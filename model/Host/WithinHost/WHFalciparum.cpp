@@ -104,7 +104,7 @@ void WHFalciparum::init( const OM::Parameters& parameters, const scnXml::Model& 
     try{
         //NOTE: if XSD is changed, this should not have a default unit
         SimTime latentP = UnitParse::readShortDuration(
-            model.getParameters().getLatentp(), UnitParse::STEPS );
+            model.getParameters().get().getLatentp(), UnitParse::STEPS );
         Infection::init( latentP );
     }catch( const util::format_error& e ){
         throw util::xml_scenario_error( string("model/parameters/latentP: ").append(e.message()) );

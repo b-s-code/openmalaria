@@ -39,6 +39,7 @@
 #include "schema/scenario.h"
 
 #include <cerrno>
+#include <optional>
 
 namespace OM {
     using mon::Continuous;
@@ -144,15 +145,19 @@ int main(int argc, char* argv[])
         scenarioFile = util::CommandLine::parse (argc, argv);
         unique_ptr<scnXml::Scenario> scenario = util::loadScenario(scenarioFile);
 
+        const bool modelOptionsPresentInXML = scenario->getModel().getModelOptions().present();
+        const bool modelNamePresentInXML = scenario->getModel().getModelName().present();
+        const bool parametersPresentInXML = scenario->getModel().getParameters().present();
+
         sim::init(*scenario);
     
         // 1) elements with no dependencies on other elements initialised here:
         // sim::init( *scenario );  // also reads survey dates
-        Parameters parameters( scenario->getModel().getParameters() );     // depends on nothing
+        Parameters parameters( scenario->getModel().getParameters().get() );     // depends on nothing
         WithinHost::Genotypes::init( *scenario );
         
-        util::master_RNG.seed( scenario->getModel().getParameters().getIseed(), 0 ); // Init RNG with Iseed
-        util::ModelOptions::init( scenario->getModel().getModelOptions() );
+        util::master_RNG.seed( scenario->getModel().getParameters().get().getIseed(), 0 ); // Init RNG with Iseed
+        util::ModelOptions::init( scenario->getModel().getModelOptions().get() );
         
         // 2) elements depending on only elements initialised in (1):
         WithinHost::diagnostics::init( parameters, *scenario ); // Depends on Parameters

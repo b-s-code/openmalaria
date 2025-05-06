@@ -582,7 +582,7 @@ double WHVivax::getCumulative_Y() const{ throw TRACED_EXCEPTION( not_impl, util:
 void WHVivax::init( const OM::Parameters& parameters, const scnXml::Model& model ){
     try{
         //NOTE: if XSD is changed, this should not have a default unit
-        latentP = UnitParse::readShortDuration( model.getParameters().getLatentp(), UnitParse::STEPS );
+        latentP = UnitParse::readShortDuration( model.getParameters().get().getLatentp(), UnitParse::STEPS );
     }catch( const util::format_error& e ){
         throw util::xml_scenario_error( string("model/parameters/latentP: ").append(e.message()) );
     }
