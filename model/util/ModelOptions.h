@@ -285,7 +285,10 @@ namespace OM { namespace util {
 	    return options.test( code );
 	}
 	
-	/** Read options from the XML element. */
+	/** Read options from the XML element.
+     * TODO : "or initialise some default options and respective values if no <ModelOptions> is specified
+     *        in the input XML, and the user instead just specifies a <ModelName>.
+     * */
 	static void init (const scnXml::OptionSet& options);
         
     private:

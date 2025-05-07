@@ -118,6 +118,26 @@ namespace OM { namespace util {
     void ModelOptions::init( const scnXml::OptionSet& optionsElt ){
 	OptionCodeMap codeMap;
 	
+    /* TODO : discuss this part.
+    
+       It seems that options are a case of on off.  "true" or "false".
+
+       AFAICT, current behaviour is that if the user writes an empty <ModelOptions> element in their
+       input XML, then all options will be set to off, except for the 4 below.
+
+       By contrast, if the user uses the example_scenario.xml as input, then the contents of that
+       file will (now) cause *all* options to be set to off.  Even the 4 below.
+
+       My guess is that, in the absence of intentional customisation by the user, we'd like for
+       *all* options to be turned off.  If that is the case, why not just remove the 4 lines of code
+       below and remove the 4 <option> elements (or maybe the whole <ModelOptions> element from the
+       example_scenario.xml file?
+
+       When I think about possible issues - users who have existing XML files that *do not* include
+       the <option ... value="false"/> tags found in the example_scenario.xml file *will* encounter
+       changed simulation behaviour under my proposed changes above.  (Is this an issue?)
+    */
+
 	// State of all default options:
 	bitset<NUM_OPTIONS> defaultOptSet;
 	defaultOptSet.set (MAX_DENS_CORRECTION);
