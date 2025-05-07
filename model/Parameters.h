@@ -96,6 +96,19 @@ public:
         MAX
     };
 
+    /*
+    TODO : Make this take an optional value instead.
+           In the case where the optional-typed thing does not contain a value, just use defaults.
+           I.e. skip the logic that initialises from values in XML (because none were given in this
+           case).
+
+           Need to give consideration to *how* defaults are defined.
+           Probably a pre-populated std::map, using values currently given in example_scenario.xml.
+
+           There's the question of whether to replace the plain enum with an enum class...
+           whether to just have a std::map<std::string, double>, where supported parameters are just
+           defined by the collection of map keys that exist (then we don't need any enum).
+    */
     Parameters( const scnXml::Parameters& parameters )
     {
         // set parameters
