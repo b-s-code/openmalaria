@@ -137,6 +137,7 @@ int main(int argc, char* argv[])
     string scenarioFile;
     string checkpointFileName;
     SimTime estEndTime, endTime;
+
     
     try {
         util::set_gsl_handler();
@@ -144,9 +145,48 @@ int main(int argc, char* argv[])
         scenarioFile = util::CommandLine::parse (argc, argv);
         unique_ptr<scnXml::Scenario> scenario = util::loadScenario(scenarioFile);
 
-        const bool modelOptionsPresentInXML = scenario->getModel().getModelOptions().present();
-        const bool modelNamePresentInXML = scenario->getModel().getModelName().present();
-        const bool parametersPresentInXML = scenario->getModel().getParameters().present();
+        /*
+        TODO : create a customXMLValidation function, which contains the below check.
+        While it's likely preferable to verify as many XML constraints as possible using normal
+        validation (i.e. against an XSD schema), the customXMLValidation function should make it clear
+        that it can be extended with additional checks in future, if necessary.  Here, "necessary"
+        means "unable to be accomplished via validation against an XSD schema".
+
+
+        There are two valid ways to model options and parameters in the input XML.
+
+            (A) <ModelOptions> and <parameters> are written explicitly.
+                No <ModelName> element appears.
+
+            (B) Neither <ModelOptions> or <parameters> are written explicitly.
+                <ModelName> does appear.
+
+        Here, we check and enforce this constraint.
+
+        Note: newer versions of the XSD spec (version 1.1) support checks of this logical complexity as
+        part of XML validation, but such functionality is not available with OpenMalaria's current XML
+        stack.
+        */
+        {
+            // Determine which elements are written in the input XML.
+            const bool modelOptionsDefined = scenario->getModel().getModelOptions().present();
+            const bool modelNameDefined = scenario->getModel().getModelName().present();
+            const bool parametersDefined = scenario->getModel().getParameters().present();
+
+            // Determine whether the combination of elements provided is legal.
+            const bool validSelectionMade = (
+                        (modelOptionsDefined && parametersDefined && !modelNameDefined)
+                        || (!modelOptionsDefined && !parametersDefined && modelNameDefined)
+                    );
+
+            // Enforce rule.
+            const string& errorMsg = "<ModelName> should be stated. Or <ModelOptions> and <parameters> should be stated.  But not both.";
+            XML_ASSERT(validSelectionMade, errorMsg);
+        }
+
+        // TODO : remove.  Just used for investigation.
+        // TODO : implement setting of model options and parameters in the case where just a model name is given.
+        return 0;
 
         sim::init(*scenario);
     
