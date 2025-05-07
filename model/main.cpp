@@ -39,7 +39,6 @@
 #include "schema/scenario.h"
 
 #include <cerrno>
-#include <optional>
 
 namespace OM {
     using mon::Continuous;
