@@ -31,6 +31,7 @@
 #include "util/ModelNameProvider.h"
 #include "util/CommandLine.h"
 #include "util/errors.h"
+#include "util/UnitParse.h"
 
 namespace scnXml { class Parameters; }
 namespace OM {
@@ -202,6 +203,12 @@ public:
         return nameToValueMap.at(name).value();
     }
 
+    /*
+    * Returns length of pre-erythrocytic laatent period.
+    * Outside of this class, this method should always be used to obtain the value of
+    * latentp, instead of reading it from the scenario.
+    */
+    SimTime GetLatentP() const { return latentp; }
 private:
 
     /*
@@ -252,6 +259,19 @@ private:
             }
 
             nameToValueMap[nameOfParamToSet] = paramValueFromXML;
+        }
+
+        // This will override any previously set value for the pre-erythrocytic latent period,
+        // with whatever value is written in XML.
+        try
+        {
+            // Passing UnitParse::NONE makes any attempt by a user to specify a latent
+            // period without explicitly writing a time unit fail.
+            latentp = UnitParse::readShortDuration(parameters.getLatentp(), UnitParse::NONE);
+        }
+        catch( const util::format_error& e )
+        {
+            throw util::xml_scenario_error( string("model/parameters/latentP: ").append(e.message()) );
         }
     }
 
@@ -308,6 +328,10 @@ private:
         nameToValueMap[ retrieveParamName(27) ] = 0; // Asexual immunity decay
         nameToValueMap[ retrieveParamName(28) ] = 296.302437899999973; // Ystar0
         nameToValueMap[ retrieveParamName(30) ] = 0.117383; // critical age for comorbidity
+
+        // This is where we define the default pre-erythrocyctic latent period, in days,
+        // for the base model.
+        latentp = UnitParse::readShortDuration("15d", UnitParse::DAYS);
     }
 
     /*
@@ -375,6 +399,8 @@ private:
     * given parameter among its preset values.
     */
     std::unordered_map<ParameterName, std::optional<double>> nameToValueMap;
+
+    SimTime latentp;
 };
 
 }

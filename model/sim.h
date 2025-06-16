@@ -29,6 +29,7 @@
 
 #include "util/mod.h"
 #include "util/checkpoint.h"
+#include "util/ModelNameProvider.h"
 #include <memory>
 
 class UnittestUtil;
@@ -229,7 +230,10 @@ public:
     
 // private:
     // Initial set-up: called by Simulator
-    static void init( const scnXml::Scenario& scenario );
+    static void init( const scnXml::Scenario& scenario, util::ModelNameProvider mnp);
+
+    // Sets up time step duration.
+    static void initInterval(const scnXml::Scenario& scenario, util::ModelNameProvider mnp);
     
     // Start of update: called by Simulator
     static inline void start_update(){

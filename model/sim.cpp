@@ -29,9 +29,8 @@
 
 namespace OM {
 
-void sim::init( const scnXml::Scenario& scenario ){
-    SimData::interval = scenario.getModel().getComputationParameters().getInterval();
-
+void sim::init( const scnXml::Scenario& scenario, util::ModelNameProvider mnp ){
+    initInterval(scenario, mnp);
     SimData::steps_per_year = sim::inSteps(sim::oneYear());
     SimData::years_per_step = 1.0 / SimData::steps_per_year;
     sim::s_max_human_age = sim::fromYearsD( scenario.getDemography().getMaximumAgeYrs() );
@@ -52,6 +51,30 @@ void sim::init( const scnXml::Scenario& scenario ){
     
     sim::s_interv = sim::never(); // large negative number
     sim::s_end = mon::readSurveyDates( mon );
+}
+
+void sim::initInterval(const scnXml::Scenario& scenario, util::ModelNameProvider mnp)
+{
+    const util::ModelNames namedModelToUse = mnp.GetModelName();
+    const bool useNamedModel = namedModelToUse != util::ModelNames::none;
+    if (useNamedModel)
+    {
+        if (namedModelToUse == util::ModelNames::base)
+        {
+            // This is where we define the length of the default time step, in days,
+            // for the base model.
+            SimData::interval = 5;
+        }
+        else
+        {
+            throw util::xml_scenario_error(
+                "No pre-set interval value is available for the specified model name.");
+        }
+    }
+    else
+    {
+        SimData::interval = scenario.getModel().getParameters().get().getInterval();
+    }
 }
 
 }
