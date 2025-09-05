@@ -48,7 +48,7 @@ if (NOT MSVC)
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -msse2 -mfpmath=sse")
   endif (${CMAKE_SYSTEM_PROCESSOR} MATCHES "^arm")
   # We almost always want optimisations enabled:
-  set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O2")
+  set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
 endif (NOT MSVC)
 
 if (CMAKE_CXX_COMPILER_ID MATCHES "Intel")
