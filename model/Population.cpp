@@ -38,6 +38,7 @@
 #include <schema/scenario.h>
 
 #include <cmath>
+#include <filesystem>
 
 namespace OM
 {
@@ -52,8 +53,14 @@ const vector<double> ctsDemogAgeGroups = { 1.0, 5.0, 10.0, 15.0, 25.0 };
 
 Population::Population(size_t size) : size (size) {}
 
+std::filesystem::path pyramid_file_path = "/home/bs/sync/code/fork/pyramid.dat";
+
 void Population::createInitialHumans()
 {
+    // Delete previous contents of pyramid file the lazy way.
+    std::ofstream pyramid_file(pyramid_file_path);
+    pyramid_file.close();
+
     /* We create a whole population here, regardless of whether humans can
     survive until start of vector init (vector model needs a whole population
     structure in any case). However, we don't update humans known not to survive
@@ -75,6 +82,34 @@ void Population::createInitialHumans()
     // Vector setup dependant on human population structure (we *want* to
     // include all humans, whether they'll survive to vector init phase or not).
     assert( sim::now() == sim::zero() );      // assumed below
+}
+
+void print_population_pyramid(const std::vector<Host::Human>& humans)
+{
+    // Population pyramid at time t, where age resolution is years.
+    // This is an "absolute" population pyramid, unlike the proportional pyramids
+    // which are popular to use in epidemiology.
+    std::vector<int> pyramid;
+    const int max_years_to_visualise = 110;
+    pyramid.resize(max_years_to_visualise);
+
+    // Fill population pyramid with data obtained from actual Human ages.
+    for (const Host::Human& h : humans)
+    {
+        int age_in_days = h.age(sim::ts1());
+        int age_in_years = age_in_days / sim::DAYS_IN_YEAR;
+        pyramid.at(age_in_years) = pyramid.at(age_in_years) + 1;
+    }
+
+    // Print out pyramid, appending to file.
+    std::ofstream pyramid_file;
+    pyramid_file.open(pyramid_file_path, std::ios_base::app);
+    for (int frequency : pyramid)
+    {
+        pyramid_file << frequency << ',';
+    }
+    pyramid_file << std::endl;
+    pyramid_file.close();
 }
 
 void Population::update()
@@ -109,6 +144,8 @@ void Population::update()
         humans.push_back( Host::Human (sim::ts1()) );
         ++cumPop;
     }
+
+    print_population_pyramid(humans);
 }
 
 void Population::checkpoint(istream& stream)
