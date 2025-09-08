@@ -129,7 +129,7 @@ public:
     static const vector<size_t>& getDrugsInUse();
     
     /** Create a per-human drug module for a given drug index. */
-    static unique_ptr<LSTMDrug> createInstance( LocalRng& rng, size_t index );
+    static std::unique_ptr<LSTMDrug> createInstance( LocalRng& rng, size_t index );
     //@}
     
     

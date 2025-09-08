@@ -102,13 +102,13 @@ void ClinicalModel::setHS( const scnXml::HealthSystem& healthSystem ){
     }
 }
 
-unique_ptr<ClinicalModel> ClinicalModel::createClinicalModel (double tSF) {
+std::unique_ptr<ClinicalModel> ClinicalModel::createClinicalModel (double tSF) {
     if (opt_event_scheduler){
-        return unique_ptr<ClinicalModel>(new ClinicalEventScheduler (tSF));
+        return std::make_unique<ClinicalEventScheduler>(tSF);
     }else if( opt_imm_outcomes ){
-        return unique_ptr<ClinicalModel>(new ImmediateOutcomes (tSF));
+        return std::make_unique<ImmediateOutcomes>(tSF);
     }else{
-        return unique_ptr<ClinicalModel>(new DecisionTree5Day( tSF ));
+        return std::make_unique<DecisionTree5Day>(tSF);
     }
 }
 

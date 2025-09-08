@@ -549,11 +549,11 @@ void ITNComponent::print_details( std::ostream& out )const{
     out << id().id << "\tITN";
 }
 
-unique_ptr<PerHostInterventionData> ITNComponent::makeHumanPart(LocalRng& rng) const{
-    return unique_ptr<PerHostInterventionData>(new HumanITN( rng, *this ));
+std::unique_ptr<PerHostInterventionData> ITNComponent::makeHumanPart(LocalRng& rng) const{
+    return std::make_unique<HumanITN>(rng, *this);
 }
-unique_ptr<PerHostInterventionData> ITNComponent::makeHumanPart( istream& stream, ComponentId id ) const{
-    return unique_ptr<PerHostInterventionData>(new HumanITN( stream, id ));
+std::unique_ptr<PerHostInterventionData> ITNComponent::makeHumanPart( istream& stream, ComponentId id ) const{
+    return std::make_unique<HumanITN>(stream, id);
 }
 
 void ITNComponent::ITNAnopheles::init(

@@ -136,17 +136,17 @@ const vector< size_t >& LSTMDrugType::getDrugsInUse(){
     return drugsInUse;
 }
 
-unique_ptr<LSTMDrug> LSTMDrugType::createInstance(LocalRng& rng, size_t index) {
+std::unique_ptr<LSTMDrug> LSTMDrugType::createInstance(LocalRng& rng, size_t index) {
     LSTMDrugType& typeData = drugTypes[index];
     if( typeData.conversion_rate ){
         LSTMDrugType& metaboliteData = drugTypes[typeData.metabolite];
-        return unique_ptr<LSTMDrug>(new LSTMDrugConversion( typeData, metaboliteData, rng ));
+        return std::make_unique<LSTMDrugConversion>(typeData, metaboliteData, rng);
     }else if( typeData.k12 ){
         // k21 is set when k12 is set; k13 and k31 may be set
-        return unique_ptr<LSTMDrug>(new LSTMDrugThreeComp( typeData, rng ));
+        return std::make_unique<LSTMDrugThreeComp>(typeData, rng);
     }else{
         // none of k12/k21/k13/k31 should be set in this case
-        return unique_ptr<LSTMDrug>(new LSTMDrugOneComp( typeData, rng ));
+        return std::make_unique<LSTMDrugOneComp>(typeData, rng);
     }
 }
 

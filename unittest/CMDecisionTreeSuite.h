@@ -53,8 +53,7 @@ public:
         human.reset( UnittestUtil::createHuman(sim::nowOrTs0()).release() );
 
         ETS_ASSERT( human.get() != 0 );
-        whm = dynamic_cast<WHMock*>(UnittestUtil::setHumanWH( *human,
-                unique_ptr<WithinHost::WHInterface>(new WHMock()) ));
+        whm = dynamic_cast<WHMock*>(UnittestUtil::setHumanWH( *human, std::make_unique<WHMock>() ));
         ETS_ASSERT( whm != 0 );
 
         hd.reset( new CMHostData( *human, 21 /* any real age will do for most tests */,
