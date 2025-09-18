@@ -37,7 +37,7 @@ deploy:
   provider: GitHub
   description: "OpenMalaria build for Windows"
   auth_token:
-    secure: H6XDjpkpbS8cfYxfGwOwEDBQEuAqnIeDtnG3eHuqTf6gdOjge80AFM2h5iaqTLcw
+    secure: UKCSoRtSXxG6sYCtcplzE0TWYWJgNtwbC/8HIyEpL8Rld61+18Hs6p+Fg51TezemMJ9tpS8EJC3u1qwfj8OrMyPMv4nZH7sjorGGpHpsbn33amLxwJRNG3Boi/RFEnLw
   artifact: openMalaria-windows.zip
   draft: false
   prerelease: false
