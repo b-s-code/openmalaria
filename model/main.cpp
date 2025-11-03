@@ -53,6 +53,21 @@ namespace OM {
 
 using namespace OM;
 
+std::set<int> cpus_used;
+
+template<typename T>
+std::ostream& operator<<(std::ostream& out, const std::set<T>& set)
+{
+    if (set.empty())
+        return out << "{}";
+    out << "{ " << *set.begin();
+    std::for_each(std::next(set.begin()), set.end(), [&out](const T& element)
+    {
+        out << ", " << element;
+    });
+    return out << " }";
+}
+
 void print_progress(int lastPercent, SimTime &estEndTime)
 {
     int percent = (sim::now() * 100) / estEndTime;
@@ -83,7 +98,7 @@ void run(Population &population, TransmissionModel &transmission, SimTime humanW
     while (sim::now() < endTime)
     {
         const int cpu = sched_getcpu();
-        std::cout << "sched_getcpu(): " << cpu << std::endl;
+        cpus_used.insert(cpu);
         if (util::CommandLine::option(util::CommandLine::VERBOSE) && sim::intervDate() > 0)
             cout << "Time step: " << sim::now() / sim::oneTS() << ", internal days: " << sim::now() << " | " << estEndTime << ", Intervention Date: " << sim::intervDate() << endl;
 
@@ -344,5 +359,7 @@ int main(int argc, char* argv[])
     if( errno != 0 )
         std::perror( "OpenMalaria" );
     
+    std::cout << "Set of sched_getcpu() outputs from all time steps: " << cpus_used << std::endl;
+
     return exitStatus;
 }
