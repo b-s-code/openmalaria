@@ -20,6 +20,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  */
 
+#include <sched.h>
+
 #include "Global.h"
 
 #include "util/errors.h"
@@ -80,6 +82,8 @@ void run(Population &population, TransmissionModel &transmission, SimTime humanW
 
     while (sim::now() < endTime)
     {
+        const int cpu = sched_getcpu();
+        std::cout << "sched_getcpu(): " << cpu << std::endl;
         if (util::CommandLine::option(util::CommandLine::VERBOSE) && sim::intervDate() > 0)
             cout << "Time step: " << sim::now() / sim::oneTS() << ", internal days: " << sim::now() << " | " << estEndTime << ", Intervention Date: " << sim::intervDate() << endl;
 
