@@ -51,6 +51,8 @@ bool reportInfectedOrPatentInfected = false;
 // -----  Initialization  -----
 
 void CommonWithinHost::init( const scnXml::Scenario& scenario ){
+    std::cout << "SPECIALINFO" << ',' << "timestep" << ',' << "human.id" << ',' << "parasite_density" << ','
+    << "drug0," << "drug1," << "drug2," << "drug3," << "drug4," << std::endl;  // I'm assuming drugs stay in same order.
     const scnXml::Human human = scenario.getModel().getHuman();
     if( !human.getWeight().present() ){
         // Technically this is needed by the PK/PD and Molineaux models
