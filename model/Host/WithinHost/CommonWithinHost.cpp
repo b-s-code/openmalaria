@@ -143,6 +143,15 @@ void CommonWithinHost::importInfection(LocalRng& rng){
 void CommonWithinHost::update(Host::Human &human, LocalRng& rng, int &nNewInfs_i, int &nNewInfs_l, 
         vector<double>& genotype_weights_i, vector<double>& genotype_weights_l, double ageInYears)
 {
+
+
+    /*
+    Gather data on:
+     - what timestep it is,
+     - which human is being detailed here (get their numerical ID),
+     - what the human's parasite density is currently, and
+     - the drug concentrations, for each drug, in that human.
+    */
     const OM::SimTime timestep = sim::ts0();
     const double parasite_density = human.withinHostModel->getTotalDensity();
     std::map<size_t, double> drugIndexToConcentrationMap;
@@ -152,6 +161,16 @@ void CommonWithinHost::update(Host::Human &human, LocalRng& rng, int &nNewInfs_i
         const double drug_concentration = pkpdModel.getDrugConc(drugIndex);
         drugIndexToConcentrationMap[drugIndex] = drug_concentration;
     }
+
+    // Print out gathered info.  Use prefix string, in this case the arbitrarily-chosen "SPECIALINFO" value,
+    // so that OpenMalaria's stdout can be redirected to a file, and that file's lines can be filtered to
+    // just those lines containing "SPECIALINFO".
+    std::cout << "SPECIALINFO" << ',' << timestep << ',' << human.id << ',' << parasite_density << ',';
+    for (size_t drugIndex : drugIndices)
+    {
+        std::cout << drugIndexToConcentrationMap[drugIndex] << ',';
+    }
+    std::cout << std::endl;
     
     // Note: adding infections at the beginning of the update instead of the end
     // shouldn't be significant since before latentp delay nothing is updated.
