@@ -31,6 +31,8 @@
 #include "util/random.h"
 #include "util/StreamValidator.h"
 #include "schema/scenario.h"
+#include "PkPd/Drug/LSTMDrugType.h"
+
 
 using namespace std;
 
@@ -141,6 +143,16 @@ void CommonWithinHost::importInfection(LocalRng& rng){
 void CommonWithinHost::update(Host::Human &human, LocalRng& rng, int &nNewInfs_i, int &nNewInfs_l, 
         vector<double>& genotype_weights_i, vector<double>& genotype_weights_l, double ageInYears)
 {
+    const OM::SimTime timestep = sim::ts0();
+    const double parasite_density = human.withinHostModel->getTotalDensity();
+    std::map<size_t, double> drugIndexToConcentrationMap;
+    const std::vector<size_t> drugIndices = OM::PkPd::LSTMDrugType::getDrugsInUse();
+    for (size_t drugIndex : drugIndices)
+    {
+        const double drug_concentration = pkpdModel.getDrugConc(drugIndex);
+        drugIndexToConcentrationMap[drugIndex] = drug_concentration;
+    }
+    
     // Note: adding infections at the beginning of the update instead of the end
     // shouldn't be significant since before latentp delay nothing is updated.
     nNewInfs_l = min(nNewInfs_l,MAX_INFECTIONS-numInfs);

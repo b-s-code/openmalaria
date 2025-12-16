@@ -231,6 +231,17 @@ void update(Human &human, Transmission::TransmissionModel& transmission)
         return;
     }
     
+    // const OM::SimTime timestep = sim::ts0();
+    // const double parasite_density = human.withinHostModel->getTotalDensity();
+    // const std::vector<size_t> drugIndices = OM::PkPd::LSTMDrugType::getDrugsInUse();
+
+    // for (size_t drugIndex : drugIndices)
+    // {
+    //     const double drug_concentration = human.withinHostModel->pkpdModel.getDrugConc(drugIndex);
+
+    // }
+    
+    
     util::streamValidate( age0 );
 
     // monitoringAgeGroup is the group for the start of the time step.
