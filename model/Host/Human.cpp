@@ -34,6 +34,9 @@
 #include "mon/reporting.h"
 #include "schema/scenario.h"
 
+
+int OM::nextID = 0;
+
 namespace OM { namespace Host {
     using namespace OM::util;
     using interventions::ComponentId;
@@ -107,9 +110,10 @@ HumanHet hetSample(util::LocalRng& rng)
 }
 
 Human::Human(SimTime dateOfBirth) :
-    infIncidence(InfectionIncidenceModel::createModel()),
-    rng(util::master_RNG),
-    dateOfBirth(dateOfBirth)
+id(OM::nextID++),
+infIncidence(InfectionIncidenceModel::createModel()),
+rng(util::master_RNG),
+dateOfBirth(dateOfBirth)
 {
     // Initial humans are created at time 0 and may have dateOfBirth in past. Otherwise dateOfBirth must be now.
     assert( dateOfBirth == sim::nowOrTs1() || (sim::now() == sim::zero() && dateOfBirth < sim::now()) );
@@ -230,18 +234,7 @@ void update(Human &human, Transmission::TransmissionModel& transmission)
         human.kill();
         return;
     }
-    
-    // const OM::SimTime timestep = sim::ts0();
-    // const double parasite_density = human.withinHostModel->getTotalDensity();
-    // const std::vector<size_t> drugIndices = OM::PkPd::LSTMDrugType::getDrugsInUse();
 
-    // for (size_t drugIndex : drugIndices)
-    // {
-    //     const double drug_concentration = human.withinHostModel->pkpdModel.getDrugConc(drugIndex);
-
-    // }
-    
-    
     util::streamValidate( age0 );
 
     // monitoringAgeGroup is the group for the start of the time step.

@@ -31,7 +31,11 @@
 #include <map>
 
 namespace OM {
-namespace Clinical {
+    
+    // Next Human ID.
+    extern int nextID;
+
+    namespace Clinical {
     class ClinicalModel;
 }
 namespace WithinHost {
@@ -60,6 +64,9 @@ public:
     /// Disable copying
     Human(const Human&) = delete;
     Human& operator=(const Human&) = delete;
+
+    // Numerical ID to distinguish this human from all others.
+    int id;
 
     /** Get human's age with respect to some time. */
     inline SimTime age( SimTime time ) const;
@@ -119,7 +126,7 @@ public:
 
     /** Made persistant to save a lookup each time step (significant performance improvement) */
     mon::AgeGroup monitoringAgeGroup;
-
+    
     /** The next continuous distribution in the series */
     uint32_t nextCtsDist = 0;
 
@@ -131,7 +138,7 @@ private:
 
     /** The state of he human. A human cannot be revived. */
     bool dead = false;
-
+    
     /** This lists sub-populations of which the human is a member together with
     * expiry time.
     * 
