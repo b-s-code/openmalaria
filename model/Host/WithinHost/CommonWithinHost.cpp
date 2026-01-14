@@ -51,8 +51,6 @@ bool reportInfectedOrPatentInfected = false;
 // -----  Initialization  -----
 
 void CommonWithinHost::init( const scnXml::Scenario& scenario ){
-    std::cout << "SPECIALINFO" << ',' << "timestep" << ',' << "human.id" << ',' << "parasite_density" << ','
-    << "drug0," << "drug1," << "drug2," << "drug3," << "drug4," << std::endl;  // I'm assuming drugs stay in same order.
     const scnXml::Human human = scenario.getModel().getHuman();
     if( !human.getWeight().present() ){
         // Technically this is needed by the PK/PD and Molineaux models
@@ -67,6 +65,17 @@ void CommonWithinHost::init( const scnXml::Scenario& scenario ){
         mon::isUsedM(mon::MHR_PATENT_INFECTIONS);
     
     PkPd::LSTMModel::init( scenario );
+    
+    // Print header with drug names instead of generic drug0, drug1, etc.
+    // This must be done after LSTMModel::init() so that drugs are processed and marked as "in use"
+    std::cout << "SPECIALINFO" << ',' << "timestep" << ',' << "human.id" << ',' << "parasite_density" << ',';
+    const std::vector<size_t> drugIndices = OM::PkPd::LSTMDrugType::getDrugsInUse();
+    for (size_t drugIndex : drugIndices)
+    {
+        const std::string& drugName = OM::PkPd::LSTMDrugType::getDrugAbbrev(drugIndex);
+        std::cout << drugName << ',';
+    }
+    std::cout << std::endl;
 }
 
 CommonWithinHost::CommonWithinHost( LocalRng& rng, double comorbidityFactor ) :

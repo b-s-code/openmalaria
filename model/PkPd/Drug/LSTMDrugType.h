@@ -128,6 +128,9 @@ public:
     /** Get a list of all drug types which are (possibly) being used. */
     static const vector<size_t>& getDrugsInUse();
     
+    /** Get drug abbreviation by index. */
+    static const string& getDrugAbbrev(size_t index);
+    
     /** Create a per-human drug module for a given drug index. */
     static unique_ptr<LSTMDrug> createInstance( LocalRng& rng, size_t index );
     //@}

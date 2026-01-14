@@ -135,6 +135,8 @@ gsl_integration_workspace *gsl_intgr_conv_wksp = gsl_integration_workspace_alloc
 //NOTE: we "should" free, but mem-leaks at end of program aren't really important
 // gsl_integration_workspace_free (gsl_intgr_conv_wksp);
 double LSTMDrugConversion::calculateFactor(const Params_convFactor& p, double duration) const{
+    std::cout << "INSIDE LSTMDrugConversion::calculateFactor" << std::endl;
+    exit(0);
     gsl_function F;
     F.function = &func_convFactor;
     // gsl_function doesn't accept const; we re-apply const later

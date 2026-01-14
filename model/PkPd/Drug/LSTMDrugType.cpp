@@ -136,6 +136,15 @@ const vector< size_t >& LSTMDrugType::getDrugsInUse(){
     return drugsInUse;
 }
 
+const string& LSTMDrugType::getDrugAbbrev(size_t index) {
+    for(const auto& pair : drugTypeNames) {
+        if(pair.second == index) {
+            return pair.first;
+        }
+    }
+    throw util::xml_scenario_error("Drug index not found: " + to_string(index));
+}
+
 unique_ptr<LSTMDrug> LSTMDrugType::createInstance(LocalRng& rng, size_t index) {
     LSTMDrugType& typeData = drugTypes[index];
     if( typeData.conversion_rate ){

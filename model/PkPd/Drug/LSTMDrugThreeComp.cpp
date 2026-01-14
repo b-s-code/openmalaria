@@ -130,6 +130,8 @@ gsl_integration_workspace *gsl_intgr_wksp = gsl_integration_workspace_alloc (GSL
 // gsl_integration_workspace_free (gsl_intgr_wksp);
 
 double LSTMDrugThreeComp::calculateFactor(const Params_fC& p, double duration) const{
+    std::cout << "INSIDE LSTMDrugThreeComp::calculateFactor" << std::endl;
+    exit(0);
     gsl_function F;
     F.function = &func_fC;
     // gsl_function doesn't accept const; we re-apply const later
