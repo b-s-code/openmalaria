@@ -68,7 +68,7 @@ void CommonWithinHost::init( const scnXml::Scenario& scenario ){
     
     // Print header with drug names instead of generic drug0, drug1, etc.
     // This must be done after LSTMModel::init() so that drugs are processed and marked as "in use"
-    std::cout << "SPECIALINFO" << ',' << "timestep" << ',' << "human.id" << ',' << "parasite_density" << ',';
+    std::cout << "SPECIALINFO" << ',' << "timestep" << ',' << "human.id" << ',' << "cohort" << ',' << "parasite_density" << ',';
     const std::vector<size_t> drugIndices = OM::PkPd::LSTMDrugType::getDrugsInUse();
     for (size_t drugIndex : drugIndices)
     {
@@ -176,7 +176,7 @@ void CommonWithinHost::update(Host::Human &human, LocalRng& rng, int &nNewInfs_i
     // Print out gathered info.  Use prefix string, in this case the arbitrarily-chosen "SPECIALINFO" value,
     // so that OpenMalaria's stdout can be redirected to a file, and that file's lines can be filtered to
     // just those lines containing "SPECIALINFO".
-    std::cout << "SPECIALINFO" << ',' << timestep << ',' << human.id << ',' << parasite_density << ',';
+    std::cout << "SPECIALINFO" << ',' << timestep << ',' << human.id << ',' << human.getCohortSet() << ',' << parasite_density << ',';
     for (size_t drugIndex : drugIndices)
     {
         std::cout << drugIndexToConcentrationMap[drugIndex] << ',';
