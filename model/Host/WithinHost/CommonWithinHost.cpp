@@ -33,6 +33,8 @@
 #include "schema/scenario.h"
 #include "PkPd/Drug/LSTMDrugType.h"
 
+#include "Host/WithinHost/json.hpp"
+using json = nlohmann::json;
 
 using namespace std;
 
@@ -65,17 +67,6 @@ void CommonWithinHost::init( const scnXml::Scenario& scenario ){
         mon::isUsedM(mon::MHR_PATENT_INFECTIONS);
     
     PkPd::LSTMModel::init( scenario );
-    
-    // Print header with drug names instead of generic drug0, drug1, etc.
-    // This must be done after LSTMModel::init() so that drugs are processed and marked as "in use"
-    std::cout << "SPECIALINFO" << ',' << "timestep" << ',' << "human.id" << ',' << "cohort" << ',' << "parasite_density" << ',';
-    const std::vector<size_t> drugIndices = OM::PkPd::LSTMDrugType::getDrugsInUse();
-    for (size_t drugIndex : drugIndices)
-    {
-        const std::string& drugName = OM::PkPd::LSTMDrugType::getDrugAbbrev(drugIndex);
-        std::cout << drugName << ',';
-    }
-    std::cout << std::endl;
 }
 
 CommonWithinHost::CommonWithinHost( LocalRng& rng, double comorbidityFactor ) :
@@ -162,26 +153,18 @@ void CommonWithinHost::update(Host::Human &human, LocalRng& rng, int &nNewInfs_i
      - which human is being detailed here (get their numerical ID),
      - what the human's parasite density is currently, and
      - the drug concentrations, for each drug, in that human.
-    */
+     */
     const OM::SimTime timestep = sim::ts0();
     const double parasite_density = human.withinHostModel->getTotalDensity();
-    std::map<size_t, double> drugIndexToConcentrationMap;
+    std::map<std::string, double> drugConcentrationMap;
     const std::vector<size_t> drugIndices = OM::PkPd::LSTMDrugType::getDrugsInUse();
     for (size_t drugIndex : drugIndices)
     {
+        // Here I'm assuming that drugIndex's are ordered same for both names and concentrations.
+        const std::string& drugName = OM::PkPd::LSTMDrugType::getDrugAbbrev(drugIndex);
         const double drug_concentration = pkpdModel.getDrugConc(drugIndex);
-        drugIndexToConcentrationMap[drugIndex] = drug_concentration;
+        drugConcentrationMap[drugName] = drug_concentration;
     }
-
-    // Print out gathered info.  Use prefix string, in this case the arbitrarily-chosen "SPECIALINFO" value,
-    // so that OpenMalaria's stdout can be redirected to a file, and that file's lines can be filtered to
-    // just those lines containing "SPECIALINFO".
-    std::cout << "SPECIALINFO" << ',' << timestep << ',' << human.id << ',' << human.getCohortSet() << ',' << parasite_density << ',';
-    for (size_t drugIndex : drugIndices)
-    {
-        std::cout << drugIndexToConcentrationMap[drugIndex] << ',';
-    }
-    std::cout << std::endl;
     
     // Note: adding infections at the beginning of the update instead of the end
     // shouldn't be significant since before latentp delay nothing is updated.
@@ -201,16 +184,16 @@ void CommonWithinHost::update(Host::Human &human, LocalRng& rng, int &nNewInfs_i
         {
             double vaccineFactor = human.vaccine.getFactor( interventions::Vaccine::PEV, genotype );
             if(vaccineFactor == 1.0 || human.rng.bernoulli(vaccineFactor))
-                infections.push_back(createInfection (rng, genotype, InfectionOrigin::Introduced));
+            infections.push_back(createInfection (rng, genotype, InfectionOrigin::Introduced));
             else
                 nNewInfsDiscarded++;
-        }
-        else if (opt_vaccine_genotype == false)
+            }
+            else if (opt_vaccine_genotype == false)
             infections.push_back(createInfection (rng, genotype, InfectionOrigin::Introduced));
-    }
-    // Update nNewInfs, this is the number that will be reported in Human
-    nNewInfs_i -= nNewInfsDiscarded;
-    numInfs += nNewInfs_i;
+        }
+        // Update nNewInfs, this is the number that will be reported in Human
+        nNewInfs_i -= nNewInfsDiscarded;
+        numInfs += nNewInfs_i;
 
     nNewInfsDiscarded = 0;
     for( int i=0; i<nNewInfs_l; ++i ) {
@@ -222,10 +205,10 @@ void CommonWithinHost::update(Host::Human &human, LocalRng& rng, int &nNewInfs_i
             double vaccineFactor = human.vaccine.getFactor( interventions::Vaccine::PEV, genotype );
             if(vaccineFactor == 1.0 || human.rng.bernoulli(vaccineFactor))
                 infections.push_back(createInfection (rng, genotype, InfectionOrigin::Indigenous));
-            else
+                else
                 nNewInfsDiscarded++;
-        }
-        else if (opt_vaccine_genotype == false)
+            }
+            else if (opt_vaccine_genotype == false)
             infections.push_back(createInfection (rng, genotype, InfectionOrigin::Indigenous));
     }
     // Update nNewInfs, this is the number that will be reported in Human
@@ -235,7 +218,7 @@ void CommonWithinHost::update(Host::Human &human, LocalRng& rng, int &nNewInfs_i
     assert( numInfs == static_cast<int>(infections.size()) );
     
     updateImmuneStatus ();
-
+    
     totalDensity = 0.0;
     hrp2Density = 0.0;
     timeStepMaxDensity = 0.0;
@@ -244,6 +227,11 @@ void CommonWithinHost::update(Host::Human &human, LocalRng& rng, int &nNewInfs_i
     bool treatmentBlood = treatExpiryBlood > sim::ts0();
     
     double body_mass = massByAge.eval( ageInYears ) * hetMassMultiplier;
+    
+    // One entry for each day for each infection.
+    // E.g. 5-day timesteps, 2 infections -> vector will have 10 entries.
+    // E.g. 5-day timesteps, 0 infections -> vector will have 0 entries.
+    std::vector<double> drugFactors;
     
     for( SimTime now = sim::ts0(), end = sim::ts0() + sim::oneTS(); now < end; now = now + sim::oneDay() ){
         // every day, medicate drugs, update each infection, then decay drugs
@@ -257,6 +245,8 @@ void CommonWithinHost::update(Host::Human &human, LocalRng& rng, int &nNewInfs_i
             
             if( !expires ){     /* no expiry due to simple treatment model; do update */
                 const double drugFactor = pkpdModel.getDrugFactor(rng, *inf, body_mass);
+                // Note this drug factor can in some cases be derived from more than one drug type.
+                drugFactors.push_back(drugFactor);
                 const double immFactor = immunitySurvivalFactor(ageInYears, (*inf)->cumulativeExposureJ());
                 const double bsvFactor = human.vaccine.getFactor(interventions::Vaccine::BSV, opt_vaccine_genotype? (*inf)->genotype() : 0);
                 const double survivalFactor = bsvFactor * _innateImmSurvFact * immFactor * drugFactor;
@@ -284,6 +274,15 @@ void CommonWithinHost::update(Host::Human &human, LocalRng& rng, int &nNewInfs_i
         }
         pkpdModel.decayDrugs (body_mass);
     }
+
+    json special_info = json::object();
+    special_info["timestep"] = timestep;
+    special_info["human.id"] = human.id;
+    special_info["cohort"] = human.getCohortSet();
+    special_info["parasite_density"] = parasite_density;
+    special_info["getDrugFactor"] = drugFactors;
+    special_info["drugConcentrations"] = drugConcentrationMap;
+    std::cout << special_info.dump() << std::endl;
     
     // As in AJTMH p22, cumulative_h (X_h + 1) doesn't include infections added
     // this time-step and cumulative_Y only includes past densities, thus we
