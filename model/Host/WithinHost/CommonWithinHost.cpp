@@ -244,6 +244,9 @@ void CommonWithinHost::update(Host::Human &human, LocalRng& rng, int &nNewInfs_i
             bool expires = ((*inf)->bloodStage() ? treatmentBlood : treatmentLiver);
             
             if( !expires ){     /* no expiry due to simple treatment model; do update */
+                // TODO : receive structure containing outputs of individual calculateDrugFactor calls here.
+                // The values within this structure need to somehow be associated with the specific drug they are from.
+                // In the scenario in question, the particular override calculateDrugFactor being called is LSTMDrugOneComp::calculateDrugFactor.
                 const double drugFactor = pkpdModel.getDrugFactor(rng, *inf, body_mass);
                 // Note this drug factor can in some cases be derived from more than one drug type.
                 drugFactors.push_back(drugFactor);

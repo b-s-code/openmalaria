@@ -133,14 +133,22 @@ double LSTMModel::getDrugConc (size_t drug_index) const{
     return c;
 }
 
-double LSTMModel::getDrugFactor (LocalRng& rng, WithinHost::CommonInfection *inf, double body_mass) const{
+std::pair<double, std::vector<std::pair<size_t, double>>> LSTMModel::getDrugFactor (LocalRng& rng, WithinHost::CommonInfection *inf, double body_mass) const{
     double factor = 1.0; //no effect
     
+    // Using vector of pairs instead of map in case multiple elements in m_drugs have same drug index.
+    std::vector<std::pair<size_t, double>> drugIndexToDrugFactor;
+
     for( auto drug = m_drugs.begin(), end = m_drugs.end(); drug != end; ++drug ){
+        // Can be used by caller to determine drug name.
+        const size_t drugIndex = (*drug)->getIndex();
+
         double drugFactor = (*drug)->calculateDrugFactor(rng, inf, body_mass);
+        drugIndexToDrugFactor.push_back(std::pair<size_t, double>{drugIndex, drugFactor});
+
         factor *= drugFactor;
     }
-    return factor;
+    return std::pair<double, std::vector<std::pair<size_t, double>>>{factor, drugIndexToDrugFactor};
 }
 
 void LSTMModel::decayDrugs (double body_mass) {
