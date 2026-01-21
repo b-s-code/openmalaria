@@ -231,7 +231,13 @@ void CommonWithinHost::update(Host::Human &human, LocalRng& rng, int &nNewInfs_i
     // One entry for each day for each infection.
     // E.g. 5-day timesteps, 2 infections -> vector will have 10 entries.
     // E.g. 5-day timesteps, 0 infections -> vector will have 0 entries.
+    // These drug factors are obtained by combining (product) individual drugs' factors.
     std::vector<double> drugFactors;
+
+    // One outer vector entry for each day for each infection.
+    // Inner vector has one entry "per drug" (really, per element of LSTMModel.m_drugs).
+    // Each inner vector element is a drug id (integer), and a drug-specific drug factor.
+    std::vector<std::vector<std::pair<size_t, double>>> identifiedComponentDrugFactors;
     
     for( SimTime now = sim::ts0(), end = sim::ts0() + sim::oneTS(); now < end; now = now + sim::oneDay() ){
         // every day, medicate drugs, update each infection, then decay drugs
@@ -247,9 +253,11 @@ void CommonWithinHost::update(Host::Human &human, LocalRng& rng, int &nNewInfs_i
                 // TODO : receive structure containing outputs of individual calculateDrugFactor calls here.
                 // The values within this structure need to somehow be associated with the specific drug they are from.
                 // In the scenario in question, the particular override calculateDrugFactor being called is LSTMDrugOneComp::calculateDrugFactor.
-                const double drugFactor = pkpdModel.getDrugFactor(rng, *inf, body_mass);
+                const std::pair<double, std::vector<std::pair<size_t, double>>> output = pkpdModel.getDrugFactor(rng, *inf, body_mass);
+                const double drugFactor = output.first;
                 // Note this drug factor can in some cases be derived from more than one drug type.
                 drugFactors.push_back(drugFactor);
+                identifiedComponentDrugFactors.push_back(output.second);
                 const double immFactor = immunitySurvivalFactor(ageInYears, (*inf)->cumulativeExposureJ());
                 const double bsvFactor = human.vaccine.getFactor(interventions::Vaccine::BSV, opt_vaccine_genotype? (*inf)->genotype() : 0);
                 const double survivalFactor = bsvFactor * _innateImmSurvFact * immFactor * drugFactor;
@@ -278,6 +286,22 @@ void CommonWithinHost::update(Host::Human &human, LocalRng& rng, int &nNewInfs_i
         pkpdModel.decayDrugs (body_mass);
     }
 
+    // Outer vector's elements correspond to individual days/infections.
+    // Inner vector's elements correspond to individual drugs.
+    // Format could possibly be improved w.r.t. days/infections.
+    std::vector<std::vector<std::pair<std::string, double>>> namedComponentDrugFactors;
+    for (auto outer_vec : identifiedComponentDrugFactors)
+    {
+        std::vector<std::pair<std::string, double>> namedDrugFactors;
+        for (auto inner_vec : outer_vec)
+        {
+            const size_t drugIndex = inner_vec.first;
+            const std::string drugName = OM::PkPd::LSTMDrugType::getDrugAbbrev(drugIndex);
+            const double drugFactor = inner_vec.second;
+            namedDrugFactors.push_back(std::pair<std::string, double>{drugName, drugFactor});
+        }
+    }
+
     json special_info = json::object();
     special_info["timestep"] = timestep;
     special_info["human.id"] = human.id;
@@ -285,6 +309,7 @@ void CommonWithinHost::update(Host::Human &human, LocalRng& rng, int &nNewInfs_i
     special_info["parasite_density"] = parasite_density;
     special_info["getDrugFactor"] = drugFactors;
     special_info["drugConcentrations"] = drugConcentrationMap;
+    special_info["namedComponentDrugFactors"] = namedComponentDrugFactors;
     std::cout << special_info.dump() << std::endl;
     
     // As in AJTMH p22, cumulative_h (X_h + 1) doesn't include infections added
