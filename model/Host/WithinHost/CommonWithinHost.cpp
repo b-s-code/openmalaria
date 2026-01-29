@@ -300,6 +300,7 @@ void CommonWithinHost::update(Host::Human &human, LocalRng& rng, int &nNewInfs_i
             const double drugFactor = inner_vec.second;
             namedDrugFactors.push_back(std::pair<std::string, double>{drugName, drugFactor});
         }
+        namedComponentDrugFactors.push_back(namedDrugFactors);
     }
 
     json special_info = json::object();
