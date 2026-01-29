@@ -63,33 +63,36 @@ double LSTMDrugOneComp::calculateDrugFactor(LocalRng& rng, WithinHost::CommonInf
     
     const LSTMDrugPD& drugPD = typeData.getPD(inf->genotype());
     const double Kn = drugPD.IC50_pow_slope(rng, typeData.getIndex(), inf);
-    
+    // Using vector of pairs instead of a map, because otherwise values with same time key will get overwritten.
+    std::vector<std::pair<double, double>> pkpdTimeToDrugConcentrationMap;
+    std::vector<std::pair<double, double>> pkpdTimeToTotalFactorMap;
     double time = 0.0;
     typedef pair<double,double> TimeConc;
     for( TimeConc time_conc : doses ){
         // we iteratate through doses in time order (since doses are sorted)
         if( time_conc.first < 1.0 /*i.e. today*/ ){
             if( time < time_conc.first ){
-                //TODO print(concentration_today, time)
+                pkpdTimeToDrugConcentrationMap.push_back(std::pair<double, double>{time, concentration_today});
                 totalFactor *= drugPD.calcFactor( Kn, neg_elim_rate, &concentration_today, time_conc.first - time );
-                //TODO print(totalFactor, time)
-                //TODO print(concentration_today, time)
+                pkpdTimeToTotalFactorMap.push_back(std::pair<double, double>{time, totalFactor});
+                pkpdTimeToDrugConcentrationMap.push_back(std::pair<double, double>{time, concentration_today});
                 time = time_conc.first;
             }else{ assert( time == time_conc.first ); }
             // add dose (instantaneous absorption):
             concentration_today += time_conc.second / (vol_dist * body_mass);
-            //TODO print(concentration_today, time)
+            pkpdTimeToDrugConcentrationMap.push_back(std::pair<double, double>{time, concentration_today});
         }else/*i.e. tomorrow or later*/{
             break;
         }
     }
     if( time < 1.0 ){
         totalFactor *= drugPD.calcFactor( Kn, neg_elim_rate, &concentration_today, 1.0 - time );
-        //print(totalFactor, time)
-        //print(concentration_today, time)
+        pkpdTimeToTotalFactorMap.push_back(std::pair<double, double>{time, totalFactor});
+        pkpdTimeToDrugConcentrationMap.push_back(std::pair<double, double>{time, concentration_today});
 
     }
     
+    pkpdTimeToTotalFactorMap.push_back(std::pair<double, double>{time, totalFactor});
     return totalFactor; // Drug effect per day per drug per parasite
 }
 
