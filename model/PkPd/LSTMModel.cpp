@@ -143,7 +143,15 @@ std::pair<double, std::vector<std::pair<size_t, double>>> LSTMModel::getDrugFact
         // Can be used by caller to determine drug name.
         const size_t drugIndex = (*drug)->getIndex();
 
-        double drugFactor = (*drug)->calculateDrugFactor(rng, inf, body_mass);
+        // Using vector of pairs instead of a map, because otherwise values with same time key will get overwritten.
+        std::vector<std::pair<double, double>> pkpdTimeToDrugConcentrationMap;
+        std::vector<std::pair<double, double>> pkpdTimeToTotalFactorMap;
+        
+        double drugFactor = (*drug)->calculateDrugFactor(rng, inf, body_mass,
+            pkpdTimeToDrugConcentrationMap,
+            pkpdTimeToTotalFactorMap
+        );
+        
         drugIndexToDrugFactor.push_back(std::pair<size_t, double>{drugIndex, drugFactor});
 
         factor *= drugFactor;

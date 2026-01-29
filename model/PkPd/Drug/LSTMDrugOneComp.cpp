@@ -49,7 +49,10 @@ double LSTMDrugOneComp::getConcentration(size_t index) const {
 
 // TODO: in high transmission, is this going to get called more often than updateConcentration?
 // When does it make sense to try to optimise (avoid doing decay calcuations here)?
-double LSTMDrugOneComp::calculateDrugFactor(LocalRng& rng, WithinHost::CommonInfection *inf, double body_mass) const {
+double LSTMDrugOneComp::calculateDrugFactor(LocalRng& rng, WithinHost::CommonInfection *inf, double body_mass,
+    std::vector<std::pair<double, double>>& pkpdTimeToDrugConcentrationMap,
+    std::vector<std::pair<double, double>>& pkpdTimeToTotalFactorMap
+) const {
     if( concentration == 0.0 && doses.size() == 0 ) return 1.0; // nothing to do
     
     /* Survival factor of the parasite (this multiplies the parasite density).
@@ -63,9 +66,7 @@ double LSTMDrugOneComp::calculateDrugFactor(LocalRng& rng, WithinHost::CommonInf
     
     const LSTMDrugPD& drugPD = typeData.getPD(inf->genotype());
     const double Kn = drugPD.IC50_pow_slope(rng, typeData.getIndex(), inf);
-    // Using vector of pairs instead of a map, because otherwise values with same time key will get overwritten.
-    std::vector<std::pair<double, double>> pkpdTimeToDrugConcentrationMap;
-    std::vector<std::pair<double, double>> pkpdTimeToTotalFactorMap;
+
     double time = 0.0;
     typedef pair<double,double> TimeConc;
     for( TimeConc time_conc : doses ){
