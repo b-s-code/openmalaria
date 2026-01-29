@@ -42,7 +42,7 @@ set (OM_STD_LIBS)
 
 if (NOT MSVC)
   # We almost always want optimisations enabled:
-  set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O2")
+  set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
 endif (NOT MSVC)
 
 if (CMAKE_CXX_COMPILER_ID MATCHES "Intel")
