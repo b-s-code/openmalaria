@@ -264,6 +264,8 @@ void CommonWithinHost::update(Host::Human &human, LocalRng& rng, int &nNewInfs_i
                     pkpdTimeToDrugConcentrationMap,
                     pkpdTimeToTotalFactorMap
                 );
+                pkpdTimeToDrugConcentrationMaps.push_back(pkpdTimeToDrugConcentrationMap);
+                pkpdTimeToTotalFactorMaps.push_back(pkpdTimeToTotalFactorMap);
                 const double drugFactor = output.first;
                 // Note this drug factor can in some cases be derived from more than one drug type.
                 drugFactors.push_back(drugFactor);
