@@ -51,8 +51,9 @@ public:
     virtual double getConcentration(size_t index) const;
     
     virtual double calculateDrugFactor(LocalRng& rng, WithinHost::CommonInfection *inf, double body_mass,
-    std::vector<std::pair<double, double>>& pkpdTimeToDrugConcentrationMap,
-    std::vector<std::pair<double, double>>& pkpdTimeToTotalFactorMap
+    const std::string& drugName,
+    std::vector<std::tuple<std::string, double, double>>& pkpdTimeToDrugConcentrationMap,
+    std::vector<std::tuple<std::string, double, double>>& pkpdTimeToTotalFactorMap
     ) const;
     virtual void updateConcentration (double body_mass);
     

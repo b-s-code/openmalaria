@@ -124,7 +124,10 @@ public:
      * Each time step, on each infection, the parasite density is multiplied by
      * the return value of this infection. The WithinHostModels are responsible
      * for clearing infections once the parasite density is negligible. */
-    std::pair<double, std::vector<std::pair<size_t, double>>> getDrugFactor (LocalRng& rng, WithinHost::CommonInfection *inf, double body_mass) const;
+    std::pair<double, std::vector<std::pair<size_t, double>>> getDrugFactor (LocalRng& rng, WithinHost::CommonInfection *inf, double body_mass,
+        std::vector<std::tuple<std::string, double, double>>& pkpdTimeToDrugConcentrationMap,
+        std::vector<std::tuple<std::string, double, double>>& pkpdTimeToTotalFactorMap
+    ) const;
     
     /** After any resident infections have been reduced by getDrugFactor(),
      * this function is called to update drug levels to their effective level

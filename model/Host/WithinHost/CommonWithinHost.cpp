@@ -238,6 +238,10 @@ void CommonWithinHost::update(Host::Human &human, LocalRng& rng, int &nNewInfs_i
     // Inner vector has one entry "per drug" (really, per element of LSTMModel.m_drugs).
     // Each inner vector element is a drug id (integer), and a drug-specific drug factor.
     std::vector<std::vector<std::pair<size_t, double>>> identifiedComponentDrugFactors;
+
+    // One outer vector entry for each day for each infection.
+    std::vector<std::vector<std::tuple<std::string, double, double>>> pkpdTimeToDrugConcentrationMaps;
+    std::vector<std::vector<std::tuple<std::string, double, double>>> pkpdTimeToTotalFactorMaps;
     
     for( SimTime now = sim::ts0(), end = sim::ts0() + sim::oneTS(); now < end; now = now + sim::oneDay() ){
         // every day, medicate drugs, update each infection, then decay drugs
@@ -250,10 +254,16 @@ void CommonWithinHost::update(Host::Human &human, LocalRng& rng, int &nNewInfs_i
             bool expires = ((*inf)->bloodStage() ? treatmentBlood : treatmentLiver);
             
             if( !expires ){     /* no expiry due to simple treatment model; do update */
-                // TODO : receive structure containing outputs of individual calculateDrugFactor calls here.
+                // Using vector of pairs instead of a map, because otherwise values with same time key will get overwritten.
+                std::vector<std::tuple<std::string, double, double>> pkpdTimeToDrugConcentrationMap;
+                std::vector<std::tuple<std::string, double, double>> pkpdTimeToTotalFactorMap;
+
                 // The values within this structure need to somehow be associated with the specific drug they are from.
                 // In the scenario in question, the particular override calculateDrugFactor being called is LSTMDrugOneComp::calculateDrugFactor.
-                const std::pair<double, std::vector<std::pair<size_t, double>>> output = pkpdModel.getDrugFactor(rng, *inf, body_mass);
+                const std::pair<double, std::vector<std::pair<size_t, double>>> output = pkpdModel.getDrugFactor(rng, *inf, body_mass,
+                    pkpdTimeToDrugConcentrationMap,
+                    pkpdTimeToTotalFactorMap
+                );
                 const double drugFactor = output.first;
                 // Note this drug factor can in some cases be derived from more than one drug type.
                 drugFactors.push_back(drugFactor);
@@ -289,9 +299,15 @@ void CommonWithinHost::update(Host::Human &human, LocalRng& rng, int &nNewInfs_i
     // Outer vector's elements correspond to individual days/infections.
     // Inner vector's elements correspond to individual drugs.
     // Format could possibly be improved w.r.t. days/infections.
-    std::vector<std::vector<std::pair<std::string, double>>> namedComponentDrugFactors;
+    // This drug factor, as opposed to the other drug factors which get printed out,
+    // represents the product of all drugs' drug factors for the given human-day-infection.
+    std::vector<std::vector<std::pair<std::string, double>>> namedComponentDrugFactorProducts;
     for (auto outer_vec : identifiedComponentDrugFactors)
     {
+        if (!outer_vec.empty())
+        {
+            int x = 999; // Dummy instructions for breakpoint.
+        }
         std::vector<std::pair<std::string, double>> namedDrugFactors;
         for (auto inner_vec : outer_vec)
         {
@@ -300,7 +316,7 @@ void CommonWithinHost::update(Host::Human &human, LocalRng& rng, int &nNewInfs_i
             const double drugFactor = inner_vec.second;
             namedDrugFactors.push_back(std::pair<std::string, double>{drugName, drugFactor});
         }
-        namedComponentDrugFactors.push_back(namedDrugFactors);
+        namedComponentDrugFactorProducts.push_back(namedDrugFactors);
     }
 
     json special_info = json::object();
@@ -310,7 +326,9 @@ void CommonWithinHost::update(Host::Human &human, LocalRng& rng, int &nNewInfs_i
     special_info["parasite_density"] = parasite_density;
     special_info["getDrugFactor"] = drugFactors;
     special_info["drugConcentrations"] = drugConcentrationMap;
-    special_info["namedComponentDrugFactors"] = namedComponentDrugFactors;
+    special_info["namedComponentDrugFactorProducts"] = namedComponentDrugFactorProducts;
+    special_info["pkpdTimeToDrugConcentrationMaps"] = pkpdTimeToDrugConcentrationMaps;
+    special_info["pkpdTimeToTotalFactorMaps"] = pkpdTimeToTotalFactorMaps;
     std::cout << special_info.dump() << std::endl;
     
     // As in AJTMH p22, cumulative_h (X_h + 1) doesn't include infections added

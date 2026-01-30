@@ -133,21 +133,22 @@ double LSTMModel::getDrugConc (size_t drug_index) const{
     return c;
 }
 
-std::pair<double, std::vector<std::pair<size_t, double>>> LSTMModel::getDrugFactor (LocalRng& rng, WithinHost::CommonInfection *inf, double body_mass) const{
+std::pair<double, std::vector<std::pair<size_t, double>>> LSTMModel::getDrugFactor (LocalRng& rng, WithinHost::CommonInfection *inf, double body_mass,
+    std::vector<std::tuple<std::string, double, double>>& pkpdTimeToDrugConcentrationMap,
+    std::vector<std::tuple<std::string, double, double>>& pkpdTimeToTotalFactorMap
+) const{
     double factor = 1.0; //no effect
     
     // Using vector of pairs instead of map in case multiple elements in m_drugs have same drug index.
     std::vector<std::pair<size_t, double>> drugIndexToDrugFactor;
 
     for( auto drug = m_drugs.begin(), end = m_drugs.end(); drug != end; ++drug ){
-        // Can be used by caller to determine drug name.
+        // Get name of current drug.
         const size_t drugIndex = (*drug)->getIndex();
-
-        // Using vector of pairs instead of a map, because otherwise values with same time key will get overwritten.
-        std::vector<std::pair<double, double>> pkpdTimeToDrugConcentrationMap;
-        std::vector<std::pair<double, double>> pkpdTimeToTotalFactorMap;
+        const std::string& drugName = OM::PkPd::LSTMDrugType::getDrugAbbrev(drugIndex);
         
         double drugFactor = (*drug)->calculateDrugFactor(rng, inf, body_mass,
+            drugName,
             pkpdTimeToDrugConcentrationMap,
             pkpdTimeToTotalFactorMap
         );
