@@ -130,8 +130,6 @@ gsl_integration_workspace *gsl_intgr_wksp = gsl_integration_workspace_alloc (GSL
 // gsl_integration_workspace_free (gsl_intgr_wksp);
 
 double LSTMDrugThreeComp::calculateFactor(const Params_fC& p, double duration) const{
-    std::cout << "INSIDE LSTMDrugThreeComp::calculateFactor" << std::endl;
-    exit(0);
     gsl_function F;
     F.function = &func_fC;
     // gsl_function doesn't accept const; we re-apply const later
@@ -160,7 +158,11 @@ double LSTMDrugThreeComp::calculateFactor(const Params_fC& p, double duration) c
 
 // TODO: in high transmission, is this going to get called more often than updateConcentration?
 // When does it make sense to try to optimise (avoid doing decay calcuations here)?
-double LSTMDrugThreeComp::calculateDrugFactor(LocalRng& rng, WithinHost::CommonInfection *inf, double body_mass) const {
+double LSTMDrugThreeComp::calculateDrugFactor(LocalRng& rng, WithinHost::CommonInfection *inf, double body_mass,
+    const std::string& drugName,
+    std::vector<std::tuple<std::string, double, double>>& pkpdTimeToDrugConcentrationMap,
+    std::vector<std::tuple<std::string, double, double>>& pkpdTimeToTotalFactorMap
+) const {
     if( conc() == 0.0 && doses.size() == 0 ) return 1.0; // nothing to do
     updateCached(body_mass);
     
@@ -180,11 +182,24 @@ double LSTMDrugThreeComp::calculateDrugFactor(LocalRng& rng, WithinHost::CommonI
         if( time_conc.first < 1.0 /*i.e. today*/ ){
             if( time < time_conc.first ){
                 double duration = time_conc.first - time;
+                
+                // Add concentration and factor tracking before duration
+                double current_conc = p.cA + p.cB + p.cC - p.cABC;
+                pkpdTimeToDrugConcentrationMap.push_back(std::tuple<std::string, double, double>{drugName, time, current_conc});
+                
                 totalFactor *= calculateFactor(p, duration);
+                pkpdTimeToTotalFactorMap.push_back(std::tuple<std::string, double, double>{drugName, time, totalFactor});
+                
+                // Update concentrations after duration
                 p.cA *= exp(p.na * duration);
                 p.cB *= exp(p.nb * duration);
                 p.cC *= exp(p.ng * duration);
                 p.cABC *= exp(p.nka * duration);
+                
+                // Add concentration tracking after duration
+                current_conc = p.cA + p.cB + p.cC - p.cABC;
+                pkpdTimeToDrugConcentrationMap.push_back(std::tuple<std::string, double, double>{drugName, time, current_conc});
+                
                 time = time_conc.first;
             }else{ assert( time == time_conc.first ); }
             // add dose:
@@ -192,13 +207,35 @@ double LSTMDrugThreeComp::calculateDrugFactor(LocalRng& rng, WithinHost::CommonI
             p.cB += B * time_conc.second;
             p.cC += C * time_conc.second;
             p.cABC += (A + B + C) * time_conc.second;
+            
+            // Add concentration tracking after dose
+            double current_conc = p.cA + p.cB + p.cC - p.cABC;
+            pkpdTimeToDrugConcentrationMap.push_back(std::tuple<std::string, double, double>{drugName, time, current_conc});
         }else /*i.e. tomorrow or later*/{
             // ignore
         }
     }
     if( time < 1.0 ){
-        totalFactor *= calculateFactor(p, 1.0 - time);
+        double duration = 1.0 - time;
+        
+        // // Add concentration and factor tracking before final duration
+        // double current_conc = p.cA + p.cB + p.cC - p.cABC;
+        // pkpdTimeToDrugConcentrationMap.push_back(std::tuple<std::string, double, double>{drugName, time, current_conc});
+        
+        totalFactor *= calculateFactor(p, duration);
+        pkpdTimeToTotalFactorMap.push_back(std::tuple<std::string, double, double>{drugName, time, totalFactor});
+        
+        // // Add concentration tracking after final duration
+        // p.cA *= exp(p.na * duration);
+        // p.cB *= exp(p.nb * duration);
+        // p.cC *= exp(p.ng * duration);
+        // p.cABC *= exp(p.nka * duration);
+        const double current_conc = p.cA + p.cB + p.cC - p.cABC;
+        pkpdTimeToDrugConcentrationMap.push_back(std::tuple<std::string, double, double>{drugName, time, current_conc});
     }
+    
+    // Add final total factor entry
+    pkpdTimeToTotalFactorMap.push_back(std::tuple<std::string, double, double>{drugName, time, totalFactor});
     
     return totalFactor;
 }

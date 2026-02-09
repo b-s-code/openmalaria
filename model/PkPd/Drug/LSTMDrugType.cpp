@@ -155,9 +155,7 @@ unique_ptr<LSTMDrug> LSTMDrugType::createInstance(LocalRng& rng, size_t index) {
         throw std::runtime_error("Drug conversion not supported");
     }else if( typeData.k12 ){
         // k21 is set when k12 is set; k13 and k31 may be set
-        // return unique_ptr<LSTMDrug>(new LSTMDrugThreeComp( typeData, rng ));
-        // High velocity hack.
-        throw std::runtime_error("Multi-compartment drug models not supported");
+        return unique_ptr<LSTMDrug>(new LSTMDrugThreeComp( typeData, rng ));
     }else{
         // none of k12/k21/k13/k31 should be set in this case
         return unique_ptr<LSTMDrug>(new LSTMDrugOneComp( typeData, rng ));
