@@ -38,7 +38,7 @@ set (OM_STD_LIBS)
 # -D_LIBCPP_ENABLE_CXX17_REMOVED_AUTO_PTR
 # auto_ptr has been removed from c++17
 # This extension is needed because XSD still use auto_ptr in its headers
-# Note that is doe snot use auto_ptr in the generated code, only in the library headers
+# Note that is does not use auto_ptr in the generated code, only in the library headers
 
 if (NOT MSVC)
   # We almost always want optimisations enabled:
