@@ -124,7 +124,8 @@ public:
      * Each time step, on each infection, the parasite density is multiplied by
      * the return value of this infection. The WithinHostModels are responsible
      * for clearing infections once the parasite density is negligible. */
-    std::pair<double, std::vector<std::pair<size_t, double>>> getDrugFactor (LocalRng& rng, WithinHost::CommonInfection *inf, double body_mass,
+    // "now" is simulation time in DAYS as an int.  This provides finer granularity than just (5 day) timesteps, but not intraday time.
+    std::pair<double, std::vector<std::pair<size_t, double>>> getDrugFactor (SimTime now, LocalRng& rng, WithinHost::CommonInfection *inf, double body_mass,
         std::vector<std::tuple<std::string, double, double>>& pkpdTimeToDrugConcentrationMap,
         std::vector<std::tuple<std::string, double, double>>& pkpdTimeToTotalFactorMap
     ) const;

@@ -133,7 +133,7 @@ double LSTMModel::getDrugConc (size_t drug_index) const{
     return c;
 }
 
-std::pair<double, std::vector<std::pair<size_t, double>>> LSTMModel::getDrugFactor (LocalRng& rng, WithinHost::CommonInfection *inf, double body_mass,
+std::pair<double, std::vector<std::pair<size_t, double>>> LSTMModel::getDrugFactor (SimTime now, LocalRng& rng, WithinHost::CommonInfection *inf, double body_mass,
     std::vector<std::tuple<std::string, double, double>>& pkpdTimeToDrugConcentrationMap,
     std::vector<std::tuple<std::string, double, double>>& pkpdTimeToTotalFactorMap
 ) const{
@@ -147,7 +147,7 @@ std::pair<double, std::vector<std::pair<size_t, double>>> LSTMModel::getDrugFact
         const size_t drugIndex = (*drug)->getIndex();
         const std::string& drugName = OM::PkPd::LSTMDrugType::getDrugAbbrev(drugIndex);
         
-        double drugFactor = (*drug)->calculateDrugFactor(rng, inf, body_mass,
+        double drugFactor = (*drug)->calculateDrugFactor(now, rng, inf, body_mass,
             drugName,
             pkpdTimeToDrugConcentrationMap,
             pkpdTimeToTotalFactorMap

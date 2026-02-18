@@ -77,7 +77,7 @@ public:
      * @param inf A pointer to the infection of interest
      * @param body_mass Weight of patient in kg
      */
-    virtual double calculateDrugFactor(LocalRng& rng, WithinHost::CommonInfection *inf, double body_mass,
+    virtual double calculateDrugFactor(SimTime now, LocalRng& rng, WithinHost::CommonInfection *inf, double body_mass,
     const std::string& drugName,
     std::vector<std::tuple<std::string, double, double>>& pkpdTimeToDrugConcentrationMap,
     std::vector<std::tuple<std::string, double, double>>& pkpdTimeToTotalFactorMap

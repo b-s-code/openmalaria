@@ -243,6 +243,7 @@ void CommonWithinHost::update(Host::Human &human, LocalRng& rng, int &nNewInfs_i
     std::vector<std::vector<std::tuple<std::string, double, double>>> pkpdTimeToDrugConcentrationMaps;
     std::vector<std::vector<std::tuple<std::string, double, double>>> pkpdTimeToTotalFactorMaps;
     
+    // This is where one day timestep starts.
     for( SimTime now = sim::ts0(), end = sim::ts0() + sim::oneTS(); now < end; now = now + sim::oneDay() ){
         // every day, medicate drugs, update each infection, then decay drugs
         pkpdModel.medicate(rng);
@@ -260,7 +261,7 @@ void CommonWithinHost::update(Host::Human &human, LocalRng& rng, int &nNewInfs_i
 
                 // The values within this structure need to somehow be associated with the specific drug they are from.
                 // In the scenario in question, the particular override calculateDrugFactor being called is LSTMDrugOneComp::calculateDrugFactor.
-                const std::pair<double, std::vector<std::pair<size_t, double>>> output = pkpdModel.getDrugFactor(rng, *inf, body_mass,
+                const std::pair<double, std::vector<std::pair<size_t, double>>> output = pkpdModel.getDrugFactor(now, rng, *inf, body_mass,
                     pkpdTimeToDrugConcentrationMap,
                     pkpdTimeToTotalFactorMap
                 );

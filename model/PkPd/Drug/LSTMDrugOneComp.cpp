@@ -49,7 +49,8 @@ double LSTMDrugOneComp::getConcentration(size_t index) const {
 
 // TODO: in high transmission, is this going to get called more often than updateConcentration?
 // When does it make sense to try to optimise (avoid doing decay calcuations here)?
-double LSTMDrugOneComp::calculateDrugFactor(LocalRng& rng, WithinHost::CommonInfection *inf, double body_mass,
+double LSTMDrugOneComp::calculateDrugFactor(SimTime now /*TODO: not used here yet.  Assuming
+    only care about threecomp for now.*/, LocalRng& rng, WithinHost::CommonInfection *inf, double body_mass,
     const std::string& drugName,
     std::vector<std::tuple<std::string, double, double>>& pkpdTimeToDrugConcentrationMap,
     std::vector<std::tuple<std::string, double, double>>& pkpdTimeToTotalFactorMap
