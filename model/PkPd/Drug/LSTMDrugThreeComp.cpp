@@ -218,18 +218,9 @@ double LSTMDrugThreeComp::calculateDrugFactor(LocalRng& rng, WithinHost::CommonI
     if( time < 1.0 ){
         double duration = 1.0 - time;
         
-        // // Add concentration and factor tracking before final duration
-        // double current_conc = p.cA + p.cB + p.cC - p.cABC;
-        // pkpdTimeToDrugConcentrationMap.push_back(std::tuple<std::string, double, double>{drugName, time, current_conc});
-        
         totalFactor *= calculateFactor(p, duration);
         pkpdTimeToTotalFactorMap.push_back(std::tuple<std::string, double, double>{drugName, time, totalFactor});
-        
-        // // Add concentration tracking after final duration
-        // p.cA *= exp(p.na * duration);
-        // p.cB *= exp(p.nb * duration);
-        // p.cC *= exp(p.ng * duration);
-        // p.cABC *= exp(p.nka * duration);
+
         const double current_conc = p.cA + p.cB + p.cC - p.cABC;
         pkpdTimeToDrugConcentrationMap.push_back(std::tuple<std::string, double, double>{drugName, time, current_conc});
     }
