@@ -20,6 +20,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  */
 
+#include <algorithm>
 #include <limits>
 #include <memory>
 
@@ -277,6 +278,85 @@ private:
     T op;
 };
 
+class EmaxFunction : public DecayFunction {
+public:
+    EmaxFunction( const scnXml::DecayFunction& elt ) : 
+        DecayFunction(elt.getIncreasing(), elt.getInitialEfficacy(), elt.getCV()) {
+        const scnXml::DecayFunction::DecaySequence &decaySequence = elt.getDecay();
+        if(decaySequence.size() != 1)
+            throw util::xml_scenario_error("The Emax function expects exactly one user function, but " + to_string(decaySequence.size()) +"  were given.");
+        if(!elt.getEmax().present())
+            throw util::xml_scenario_error("Emax function: the Emax parameter is not declared");
+        if(!elt.getIC50().present())
+            throw util::xml_scenario_error("Emax function: the IC50 parameter is not declared");
+        if(!elt.getSlope().present())
+            throw util::xml_scenario_error("Emax function: the Slope parameter is not declared");
+        if(!elt.getInitialConcentration().present())
+            throw util::xml_scenario_error("Emax function: the InitialConcentration parameter is not declared");
+        
+        f = makeObject(decaySequence[0], "Emax::f");
+
+        Emax = elt.getEmax().get();
+        const double rawIC50 = elt.getIC50().get();
+        slope = elt.getSlope().get();
+        initialConcentration = elt.getInitialConcentration().get();
+
+        if (Emax < 0.0 || Emax > 1.0) {
+            throw util::xml_scenario_error(
+                "Emax function: Emax must be in [0, 1], got " + std::to_string(Emax));
+        }
+
+        if (rawIC50 <= 0.0) {
+            throw util::xml_scenario_error(
+                "Emax function: IC50 must be > 0, got " + std::to_string(rawIC50));
+        }
+
+        if (slope <= 0.0) {
+            throw util::xml_scenario_error(
+                "Emax function: Slope must be > 0, got " + std::to_string(slope));
+        }
+
+        if (initialConcentration < 0.0) {
+            throw util::xml_scenario_error(
+                "Emax function: InitialConcentration must be >= 0, got " + std::to_string(initialConcentration));
+        }
+
+        // Store IC50^slope once since compute() evaluates this repeatedly.
+        IC50 = std::pow(rawIC50, slope);
+    }
+
+    EmaxFunction(const EmaxFunction &copy, std::unique_ptr<DecayFunction> f) :
+        DecayFunction(copy),
+        f(std::move(f)),
+        Emax(copy.Emax),
+        IC50(copy.IC50),
+        slope(copy.slope),
+        initialConcentration(copy.initialConcentration) {}
+
+    double compute(double effectiveAge) const {
+        // Emax model: E(C)=Emax*C^slope/(C^slope + IC50^slope), C=C0*f(t).
+        const double concentrationPow =
+            std::pow(initialConcentration * f->eval(effectiveAge), slope);
+        const double efficacy = Emax * concentrationPow / (concentrationPow + IC50);
+        return std::max(std::min(efficacy, 1.0), 0.0);
+    }
+    
+    SimTime sampleAgeOfDecay (LocalRng& rng) const {
+        return sim::roundToTSFromDays( f->sampleAgeOfDecay(rng) );
+    }
+
+    std::unique_ptr<DecayFunction> hetSample(double hetFactor) const {
+        std::unique_ptr<DecayFunction> fhetSample = f->hetSample(hetFactor);
+        std::unique_ptr<EmaxFunction> copy =
+            std::make_unique<EmaxFunction>(*this, std::move(fhetSample));
+        return std::move(copy);
+    }
+
+private:
+    std::unique_ptr<DecayFunction> f;
+    double Emax, IC50, slope, initialConcentration;
+};
+
 // -----  interface / static functions  -----
 unique_ptr<DecayFunction> DecayFunction::makeObject(
     const scnXml::DecayFunction& elt, const char* eltName
@@ -305,8 +385,10 @@ unique_ptr<DecayFunction> DecayFunction::makeObject(
         return make_unique<OperatorDecayFunction<std::divides<double>>>( elt );
     else if( func == "multiplies" )
         return make_unique<OperatorDecayFunction<std::multiplies<double>>>( elt );
+    else if( func == "emax" )
+        return make_unique<EmaxFunction>( elt );
     else
-        throw xml_scenario_error("decay function type " + string(func) + " of " + string(eltName) + " unrecognized");
+        throw xml_scenario_error("decay function " + string(eltName) + " of type " + string(func) + " unrecognized");
 }
 
 } }
