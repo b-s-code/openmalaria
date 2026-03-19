@@ -139,6 +139,9 @@ public:
     /** Make summaries of drug concentration data. */
     void summarize( const Host::Human& human ) const;
     
+    /// Drugs with non-zero blood concentrations:
+    vector<unique_ptr<LSTMDrug>> m_drugs;
+    
 private:
     /** Medicate drugs to an individual, which act on infections the following
      * time steps, until rendered ineffective by decayDrugs().
@@ -158,9 +161,6 @@ private:
   
     void checkpoint (istream& stream);
     void checkpoint (ostream& stream);
-    
-    /// Drugs with non-zero blood concentrations:
-    vector<unique_ptr<LSTMDrug>> m_drugs;
     
     /// All pending medications
     list<MedicateData> medicateQueue;

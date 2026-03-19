@@ -32,6 +32,7 @@
 #include "util/StreamValidator.h"
 #include "schema/scenario.h"
 #include "PkPd/Drug/LSTMDrugType.h"
+#include "PkPd/Drug/LSTMDrug.h"
 
 #include "Host/WithinHost/json.hpp"
 using json = nlohmann::json;
@@ -243,8 +244,29 @@ void CommonWithinHost::update(Host::Human &human, LocalRng& rng, int &nNewInfs_i
     std::vector<std::vector<std::tuple<std::string, double, double>>> pkpdTimeToDrugConcentrationMaps;
     std::vector<std::vector<std::tuple<std::string, double, double>>> pkpdTimeToTotalFactorMaps;
     
+    // Drug concentrations at one-day timestep resolution.  Each drug belonging (transitively) to this human gets its concentration checked and added here BEFORE
+    // any other actual infection/drug logic runs.
+    std::vector<std::tuple<SimTime, std::string, double>> oneDayDrugConcs;
+
     // This is where one day timestep starts.
     for( SimTime now = sim::ts0(), end = sim::ts0() + sim::oneTS(); now < end; now = now + sim::oneDay() ){
+        
+        std::vector<std::unique_ptr<PkPd::LSTMDrug>>& drugs = pkpdModel.m_drugs;
+        for (auto& drug : drugs)
+        {
+            // Need this drug's id in order to get its concentration.
+            const size_t drugIndex = drug->getIndex();
+
+            // Doesn't mutate drugs or human.
+            const double conc = drug->getConcentration(drugIndex);
+
+            // Better for printed output than a numerical id.
+            const std::string drugName = OM::PkPd::LSTMDrugType::getDrugAbbrev(drugIndex);
+
+            const std::tuple<SimTime, std::string, double> thisDrugThisDay {now, drugName, conc};
+            oneDayDrugConcs.push_back(thisDrugThisDay);
+        }
+
         // every day, medicate drugs, update each infection, then decay drugs
         pkpdModel.medicate(rng);
         
@@ -332,6 +354,7 @@ void CommonWithinHost::update(Host::Human &human, LocalRng& rng, int &nNewInfs_i
     special_info["namedComponentDrugFactorProducts"] = namedComponentDrugFactorProducts;
     special_info["pkpdTimeToDrugConcentrationMaps"] = pkpdTimeToDrugConcentrationMaps;
     special_info["pkpdTimeToTotalFactorMaps"] = pkpdTimeToTotalFactorMaps;
+    special_info["oneDayDrugConcs"] = oneDayDrugConcs;
     std::cout << special_info.dump() << std::endl;
     
     // As in AJTMH p22, cumulative_h (X_h + 1) doesn't include infections added
