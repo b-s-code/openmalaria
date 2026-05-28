@@ -80,6 +80,7 @@ namespace OM { namespace util {
         codeMap["VACCINE_GENOTYPE"] = VACCINE_GENOTYPE;
         codeMap["CFR_PF_USE_HOSPITAL"] = CFR_PF_USE_HOSPITAL;
         codeMap["HEALTH_SYSTEM_MEMORY_FIX"] = HEALTH_SYSTEM_MEMORY_FIX;
+        codeMap["VAX_EFFICACY_VS_CUMULATIVE_INFS"] = VAX_EFFICACY_VS_CUMULATIVE_INFS;
 	}
 	
 	OptionCodes operator[] (const string s) {
