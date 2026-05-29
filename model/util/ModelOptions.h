@@ -276,7 +276,16 @@ namespace OM { namespace util {
          */
         USE_EXACT_NV0_SOLVER,
 
-        
+        /** Change PEV effect timing.
+		 * 
+         * ON = PEV effect implemented in the infection-incidence model.
+		 * OFF = PEV effect implemented in the within host update function,
+         * meaning PEV application should have less downstream effect on blood
+		 * stage immunity.
+         */
+        MORE_IMMUNE_AFTER_PEV,
+
+
 	// Used by tests; should be 1 more than largest option
 	NUM_OPTIONS,
         

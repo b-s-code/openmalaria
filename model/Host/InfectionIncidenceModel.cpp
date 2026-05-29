@@ -62,7 +62,8 @@ double EstarInv;
 
 // model options:
 bool opt_neg_bin_mass_action = false, opt_lognormal_mass_action = false,
-        opt_no_pre_erythrocytic = false, opt_any_het = false, opt_vaccine_genotype = false;
+        opt_no_pre_erythrocytic = false, opt_any_het = false, opt_vaccine_genotype = false,
+        opt_more_immune_after_pev = false;
 
 // ———  variables  ———
 int InfectionIncidenceModel::ctsNewInfections = 0;
@@ -95,6 +96,7 @@ void InfectionIncidenceModel::init ( const Parameters& parameters ) {
     opt_no_pre_erythrocytic = util::ModelOptions::option (util::NO_PRE_ERYTHROCYTIC);
     opt_neg_bin_mass_action = util::ModelOptions::option (util::NEGATIVE_BINOMIAL_MASS_ACTION);
     opt_vaccine_genotype = util::ModelOptions::option (util::VACCINE_GENOTYPE);
+    opt_more_immune_after_pev = util::ModelOptions::option (util::MORE_IMMUNE_AFTER_PEV);
 
     if (opt_neg_bin_mass_action) {
         inf_rate_shape_param = (baseline_avail_shape_param+1.0) / (r_square_Gamma*baseline_avail_shape_param - 1.0);
@@ -227,7 +229,18 @@ double InfectionIncidenceModel::expectedNumNewInfections(OM::Host::Human& human,
     }
 
     double expectedNumInfections = getModelExpectedInfections (human.rng, effectiveEIR, human.perHostTransmission);
-  
+
+    // When MORE_IMMUNE_AFTER_PEV is enabled the PEV effect is instead
+    // applied later, in the within-host model, so it is not applied here.
+    if(opt_more_immune_after_pev == false)
+    {
+        // Only to be consistent with old simulation runs when set to false
+        // Setting this option to true will only affect reporting
+        if(opt_vaccine_genotype == false)
+            //Introduce the effect of vaccination. Note that this does not affect cumEIR.
+            expectedNumInfections *= human.vaccine.getFactor( interventions::Vaccine::PEV );
+    }
+
     //Update pre-erythrocytic immunity
     m_cumulativeEIRa += effectiveEIR;
 

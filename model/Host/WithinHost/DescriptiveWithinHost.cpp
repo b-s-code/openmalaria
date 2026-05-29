@@ -55,6 +55,7 @@ DescriptiveWithinHostModel::DescriptiveWithinHostModel( LocalRng& rng, double co
 {
     assert( sim::oneTS() == sim::fromDays(5) );
     opt_vaccine_genotype = util::ModelOptions::option (util::VACCINE_GENOTYPE);
+    opt_more_immune_after_pev = util::ModelOptions::option (util::MORE_IMMUNE_AFTER_PEV);
 }
 
 DescriptiveWithinHostModel::~DescriptiveWithinHostModel() {
@@ -126,15 +127,25 @@ void DescriptiveWithinHostModel::update(Host::Human &human, LocalRng& rng, int &
     // Cache number of infections prior to PEV effect, so that effect of PEV on m_cumulative_h can be reduced.
     const int nNewInfsBeforePEV_l = nNewInfs_l;
     const int nNewInfsBeforePEV_i = nNewInfs_i;
-    // Only to be consistent with old simulation runs when set to false
-    // Setting this option to true will only affect reporting
-    if(opt_vaccine_genotype == false)
-        //Introduce the effect of vaccination. Note that this does not affect cumEIR.
-        // TODO : consider rounding, we are multiplying an int and a double here.
-        nNewInfs_l *= human.vaccine.getFactor( interventions::Vaccine::PEV );
-        nNewInfs_i *= human.vaccine.getFactor( interventions::Vaccine::PEV );
-    // TODO : consider case when opt_vaccine_genotype == true.
-    // Likely need to adjust nNewInfsBeforePEV_* for nNewInfsDiscarded.
+
+    // When MORE_IMMUNE_AFTER_PEV is enabled, the PEV effect is applied here
+    // (rather than in the infection-incidence model) and m_cumulative_h is
+    // incremented using the number of infections before the PEV effect, so
+    // that PEV-vaccinated hosts acquire more blood stage immunity.
+    if(opt_more_immune_after_pev)
+    {
+        // Only to be consistent with old simulation runs when set to false
+        // Setting this option to true will only affect reporting
+        if(opt_vaccine_genotype == false)
+        {
+            //Introduce the effect of vaccination. Note that this does not affect cumEIR.
+            // TODO : consider rounding, we are multiplying an int and a double here.
+            nNewInfs_l *= human.vaccine.getFactor( interventions::Vaccine::PEV );
+            nNewInfs_i *= human.vaccine.getFactor( interventions::Vaccine::PEV );
+        }
+        // TODO : consider case when opt_vaccine_genotype == true.
+        // Likely need to adjust nNewInfsBeforePEV_* for nNewInfsDiscarded.
+    }
 
     numInfs += nNewInfs_i;
     assert( numInfs>=0 && numInfs<=MAX_INFECTIONS );
@@ -219,7 +230,14 @@ void DescriptiveWithinHostModel::update(Host::Human &human, LocalRng& rng, int &
     
     // As in AJTMH p22, cumulative_h (X_h + 1) doesn't include infections added
     // this time-step and cumulative_Y only includes past densities.
-    m_cumulative_h += nNewInfsBeforePEV_i + nNewInfsBeforePEV_l;
+    if(opt_more_immune_after_pev)
+    {
+        m_cumulative_h += nNewInfsBeforePEV_i + nNewInfsBeforePEV_l;
+    }
+    else
+    {
+        m_cumulative_h += nNewInfs_i + nNewInfs_l;
+    }
     m_cumulative_Y += sim::oneTS() * totalDensity;
     
     util::streamValidate( totalDensity );
