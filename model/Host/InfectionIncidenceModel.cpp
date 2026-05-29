@@ -226,13 +226,7 @@ double InfectionIncidenceModel::expectedNumNewInfections(OM::Host::Human& human,
         throw TRACED_EXCEPTION (out.str(), util::Error::EffectiveEIR);
     }
 
-    double expectedNumInfections = getModelExpectedInfections (human.rng, effectiveEIR, human.perHostTransmission);    
-    
-    // Only to be consistent with old simulation runs when set to false
-    // Setting this option to true will only affect reporting
-    if(opt_vaccine_genotype == false)
-        //Introduce the effect of vaccination. Note that this does not affect cumEIR.
-        expectedNumInfections *= human.vaccine.getFactor( interventions::Vaccine::PEV );
+    double expectedNumInfections = getModelExpectedInfections (human.rng, effectiveEIR, human.perHostTransmission);
   
     //Update pre-erythrocytic immunity
     m_cumulativeEIRa += effectiveEIR;

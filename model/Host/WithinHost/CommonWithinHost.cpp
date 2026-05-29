@@ -145,6 +145,19 @@ void CommonWithinHost::update(Host::Human &human, LocalRng& rng, int &nNewInfs_i
     // shouldn't be significant since before latentp delay nothing is updated.
     nNewInfs_l = min(nNewInfs_l,MAX_INFECTIONS-numInfs);
     nNewInfs_i = min(nNewInfs_i,MAX_INFECTIONS-numInfs-nNewInfs_l);
+    
+    // Cache number of infections prior to PEV effect, so that effect of PEV on m_cumulative_h can be reduced.
+    const int nNewInfsBeforePEV_l = nNewInfs_l;
+    const int nNewInfsBeforePEV_i = nNewInfs_i;
+    // Only to be consistent with old simulation runs when set to false
+    // Setting this option to true will only affect reporting
+    if(opt_vaccine_genotype == false)
+        //Introduce the effect of vaccination. Note that this does not affect cumEIR.
+        // TODO : consider rounding, we are multiplying an int and a double here.
+        nNewInfs_l *= human.vaccine.getFactor( interventions::Vaccine::PEV );
+        nNewInfs_i *= human.vaccine.getFactor( interventions::Vaccine::PEV );
+    // TODO : consider case when opt_vaccine_genotype == true.
+    // Likely need to adjust nNewInfsBeforePEV_* for nNewInfsDiscarded.
 
     int nNewInfsIgnored = nNewInfs_i + nNewInfs_l - (MAX_INFECTIONS-numInfs);
 
@@ -246,7 +259,7 @@ void CommonWithinHost::update(Host::Human &human, LocalRng& rng, int &nNewInfs_i
     // As in AJTMH p22, cumulative_h (X_h + 1) doesn't include infections added
     // this time-step and cumulative_Y only includes past densities, thus we
     // increment these after the update.
-    m_cumulative_h += nNewInfs_i + nNewInfs_l;
+    m_cumulative_h += nNewInfsBeforePEV_i + nNewInfsBeforePEV_l;
     m_cumulative_Y += totalDensity;
     
     util::streamValidate(totalDensity);
