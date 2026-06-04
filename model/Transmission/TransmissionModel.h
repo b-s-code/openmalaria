@@ -155,7 +155,7 @@ public:
 
     /** Extra initialisation when not loading from a checkpoint, requiring
      * information from the human population structure. */
-    virtual void init2(const vector<Host::Human> &population) = 0;
+    virtual void init2(const std::vector<Host::Human> &population) = 0;
 
     /// Checkpointing
     template <class S>
@@ -207,7 +207,7 @@ public:
     /** Needs to be called each step of the simulation before Human::update().
      *
      * when the vector model is used this updates mosquito populations. */
-    virtual void vectorUpdate(const vector<Host::Human> &population){};
+    virtual void vectorUpdate(const std::vector<Host::Human> &population){};
 
     virtual void changeEIRIntervention(const scnXml::NonVector &) = 0;
 
@@ -235,7 +235,7 @@ public:
      *    the non-vector model), the length is set to one.
      * @returns the sum of EIR across genotypes
      */
-    double getEIR(Host::Human &human, SimTime age, double ageYears, vector<double> &EIR_i, vector<double> &EIR_l)
+    double getEIR(Host::Human &human, SimTime age, double ageYears, std::vector<double> &EIR_i, std::vector<double> &EIR_l)
     {
         /* For the NonVector model, the EIR should just be multiplied by the
          * availability. For the Vector model, the availability is also required
@@ -264,7 +264,7 @@ public:
     /** Needs to be called each time-step after Human::update() to update summary
      * statististics related to transmission. Also returns kappa (the average
      * human infectiousness weighted by availability to mosquitoes). */
-    virtual double updateKappa(const vector<Host::Human> &population)
+    virtual double updateKappa(const std::vector<Host::Human> &population)
     {
         // Lazy initialisation: AgeGroup::numGroups() is not valid at construction time.
         if (lastKappaByAge.empty()) {
@@ -279,8 +279,8 @@ public:
         numTransmittingHumans = 0;
 
         // Per-age accumulators for this timestep's snapshot.
-        vector<double> perAgeNg(lastKappaByAge.size(), 0.0);
-        vector<double> perAgeAg(lastKappaByAge.size(), 0.0);
+        std::vector<double> perAgeNg(lastKappaByAge.size(), 0.0);
+        std::vector<double> perAgeAg(lastKappaByAge.size(), 0.0);
 
         for (const Host::Human &human : population)
         {
@@ -289,8 +289,8 @@ public:
             const double avail = human.perHostTransmission.relativeAvailabilityHetAge(sim::inYears(human.age(sim::ts1())));
             sumWeight += avail;
 
-            vector<double> probTransGenotype_i(WithinHost::Genotypes::N());
-            vector<double> probTransGenotype_l(WithinHost::Genotypes::N());
+            std::vector<double> probTransGenotype_i(WithinHost::Genotypes::N());
+            std::vector<double> probTransGenotype_l(WithinHost::Genotypes::N());
             const double pTransmit = human.withinHostModel->probTransmissionToMosquito(probTransGenotype_i, probTransGenotype_l);
 
             double riskTrans = 0.0;
@@ -383,7 +383,7 @@ protected:
      *    individual human is exposed to, per parasite genotype, in units of
      *    inoculations per day. Length set by callee. 
      *    _i for imported infections and _l for local infections */
-    virtual void calculateEIR(Host::Human &human, double ageYears, vector<double> &EIR_i, vector<double> &EIR_l) const = 0;
+    virtual void calculateEIR(Host::Human &human, double ageYears, std::vector<double> &EIR_i, std::vector<double> &EIR_l) const = 0;
 
     virtual void checkpoint(istream &stream)
     {
@@ -459,7 +459,7 @@ public:
      *
      * Not checkpointed; doesn't need to be except when a changeEIR intervention
      * occurs. */
-    vector<double> initialisationEIR;
+    std::vector<double> initialisationEIR;
 
     /** The type of EIR calculation. Checkpointed. */
     int simulationMode;
@@ -475,7 +475,7 @@ public:
      * non-vector model.
      *
      * Checkpointed. */
-    vector<double> laggedKappa;
+    std::vector<double> laggedKappa;
 
     /** Total annual infectious bites per adult.
      *
@@ -519,13 +519,13 @@ private:
      * Overwritten each timestep in updateKappa(); read in summarize().
      * Lazily sized to AgeGroup::numGroups() on first updateKappa() call.
      * Checkpointed. */
-    vector<double> lastNgByAge;
+    std::vector<double> lastNgByAge;
 
     /** Per-age-group snapshot of within-group kappa kappa_g = N_g / A_g.
      * Overwritten each timestep in updateKappa(); read in summarize().
      * Lazily sized to AgeGroup::numGroups() on first updateKappa() call.
      * Checkpointed. */
-    vector<double> lastKappaByAge;
+    std::vector<double> lastKappaByAge;
 
     // Reporting data. Doesn't need checkpointing due to reset every time-step.
     // accumulator for time step EIR of adults
