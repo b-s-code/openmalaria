@@ -175,6 +175,20 @@ void defineOutMeasures(){
      * mosquitoes that get infected multiplied by human population size).
      * Single value, not per age-group. */
     namedOutMeasures["nTransmit"] = OutMeasure::value( 7, MVF_NUM_TRANSMIT, true );
+    /** Per-age-group availability-weighted infectiousness numerator.
+     *
+     * For age group g: N_g = sum_{i in g} avail_i * pTransmit_i * TBV_i.
+     * This is the numerator of the within-group kappa (kappaByAge).
+     * Snapshot of the most recent timestep before each survey.
+     * Not cohort-stratified. */
+    namedOutMeasures["nTransmitByAge"] = OutMeasure::humanA( 83, MVF_NUM_TRANSMIT_BY_AGE, true );
+    /** Per-age-group within-group kappa.
+     *
+     * For age group g: kappa_g = N_g / A_g, where A_g = sum_{i in g} avail_i.
+     * Same scale as nTransmit (in [0,1]); directly comparable across age groups.
+     * Snapshot of the most recent timestep before each survey.
+     * Not cohort-stratified. */
+    namedOutMeasures["kappaByAge"] = OutMeasure::humanA( 84, MVF_KAPPA_BY_AGE, true );
     /** The sum of all detectable infections (where blood stage parasite
      * density is above the detection limit) across all human hosts.
      * Vivax: the number of broods with an active blood stage. */

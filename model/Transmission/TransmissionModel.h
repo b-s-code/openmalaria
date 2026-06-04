@@ -173,6 +173,11 @@ public:
         mon::reportStatMF(mon::MVF_NUM_TRANSMIT, laggedKappa[sim::moduloSteps(sim::now(), laggedKappa.size())]);
         mon::reportStatMF(mon::MVF_ANN_AVG_K, _annualAverageKappa);
 
+        for (size_t g = 0; g < lastNgByAge.size(); ++g) {
+            mon::reportStatMAF(mon::MVF_NUM_TRANSMIT_BY_AGE, g, lastNgByAge[g]);
+            mon::reportStatMAF(mon::MVF_KAPPA_BY_AGE, g, lastKappaByAge[g]);
+        }
+
         if (!mon::isReported()) return; // cannot use counters below when not reporting
 
         double duration = sim::inSteps(sim::now() - lastSurveyTime);
@@ -261,10 +266,21 @@ public:
      * human infectiousness weighted by availability to mosquitoes). */
     virtual double updateKappa(const vector<Host::Human> &population)
     {
+        // Lazy initialisation: AgeGroup::numGroups() is not valid at construction time.
+        if (lastKappaByAge.empty()) {
+            const size_t nAges = mon::AgeGroup::numGroups();
+            lastKappaByAge.assign(nAges, 0.0);
+            lastNgByAge.assign(nAges, 0.0);
+        }
+
         // We calculate kappa for output and the non-vector model.
         double sumWt_kappa = 0.0;
         double sumWeight = 0.0;
         numTransmittingHumans = 0;
+
+        // Per-age accumulators for this timestep's snapshot.
+        vector<double> perAgeNg(lastKappaByAge.size(), 0.0);
+        vector<double> perAgeAg(lastKappaByAge.size(), 0.0);
 
         for (const Host::Human &human : population)
         {
@@ -293,6 +309,18 @@ public:
             if (riskTrans > 0.0) ++numTransmittingHumans;
 
             sumWt_kappa += riskTrans;
+
+            const size_t ageIdx = human.monitoringAgeGroup.i();
+            perAgeNg[ageIdx] += riskTrans;
+            perAgeAg[ageIdx] += avail;
+        }
+
+        // Update per-age snapshot vectors (overwrite; not accumulate).
+        for (size_t g = 0; g < lastKappaByAge.size(); ++g) {
+            lastNgByAge[g] = perAgeNg[g];
+            lastKappaByAge[g] = (perAgeAg[g] > DBL_MIN * 10.0)
+                ? perAgeNg[g] / perAgeAg[g]
+                : 0.0;
         }
 
         size_t lKMod = sim::moduloSteps(sim::ts1(), laggedKappa.size()); // now
@@ -374,6 +402,8 @@ protected:
         lastSurveyTime &stream;
         adultAge &stream;
         numTransmittingHumans &stream;
+        lastNgByAge &stream;
+        lastKappaByAge &stream;
     }
 
     virtual void checkpoint(ostream &stream)
@@ -393,6 +423,8 @@ protected:
         lastSurveyTime &stream;
         adultAge &stream;
         numTransmittingHumans &stream;
+        lastNgByAge &stream;
+        lastKappaByAge &stream;
     }
 
 private:
@@ -482,6 +514,18 @@ private:
 
     /// For "num transmitting humans" cts output.
     int numTransmittingHumans;
+
+    /** Per-age-group snapshot of availability-weighted infectiousness sum N_g.
+     * Overwritten each timestep in updateKappa(); read in summarize().
+     * Lazily sized to AgeGroup::numGroups() on first updateKappa() call.
+     * Checkpointed. */
+    vector<double> lastNgByAge;
+
+    /** Per-age-group snapshot of within-group kappa kappa_g = N_g / A_g.
+     * Overwritten each timestep in updateKappa(); read in summarize().
+     * Lazily sized to AgeGroup::numGroups() on first updateKappa() call.
+     * Checkpointed. */
+    vector<double> lastKappaByAge;
 
     // Reporting data. Doesn't need checkpointing due to reset every time-step.
     // accumulator for time step EIR of adults

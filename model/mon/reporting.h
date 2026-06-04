@@ -175,6 +175,10 @@ enum Measure{
     // ———  MVF: vector (transmission) measures (doubles)  ———
     // Infectiousness of human population to mosquitoes
     MVF_NUM_TRANSMIT,
+    // Per-age-group availability-weighted infectiousness sum N_g (numerator of within-group kappa)
+    MVF_NUM_TRANSMIT_BY_AGE,
+    // Per-age-group within-group kappa kappa_g = N_g / A_g
+    MVF_KAPPA_BY_AGE,
     // Annual Average Kappa
     MVF_ANN_AVG_K,
     // Input EIR (Expected EIR entered into scenario file). Units: inoculations per adult per time step.
