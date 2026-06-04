@@ -215,6 +215,8 @@ namespace Deploy {
 // void reportMI( Measure measure, int val );
 /// Report some value (floating point) to the current survey.
 void reportStatMF( Measure measure, double val );
+/// Report some value (floating point) for the current survey and some age group (no cohort stratification).
+void reportStatMAF( Measure measure, size_t ageIndex, double val );
 /// Report some tally (additive integer) for some human to the current survey.
 void reportEventMHI( Measure measure, const Host::Human& human, int val );
 /// Report some tally (additive integer) for some human to the current survey via the CMDecisionTree Report node

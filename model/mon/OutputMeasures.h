@@ -63,6 +63,11 @@ struct OutMeasure{
         return OutMeasure( outId, m, isDouble, false, false, false, false,
                            false, Deploy::NA );
     }
+    // Something with reports segregated by human age only (not by cohort).
+    static OutMeasure humanA( int outId, Measure m, bool isDouble ){
+        return OutMeasure( outId, m, isDouble, true, false, false, false, false,
+                           Deploy::NA );
+    }
     // Something with reports segregated by human age and cohort membership
     static OutMeasure humanAC( int outId, Measure m, bool isDouble ){
         return OutMeasure( outId, m, isDouble, true, true, false, false, false,

@@ -633,6 +633,9 @@ void reportEventMHD( Measure measure, const Host::Human& human,
 void reportStatMF( Measure measure, double val ){
     storeF.report( val, measure, impl::survNumStat, 0, 0, 0, 0, 0 );
 }
+void reportStatMAF( Measure measure, size_t ageIndex, double val ){
+    storeF.report( val, measure, impl::survNumStat, ageIndex, 0, 0, 0, 0 );
+}
 void reportStatMHF( Measure measure, const Host::Human& human, double val ){
     const size_t survey = impl::survNumStat;
     const size_t ageIndex = human.monitoringAgeGroup.i();
