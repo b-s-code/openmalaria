@@ -177,7 +177,7 @@ enum Measure{
     MVF_NUM_TRANSMIT,
     // Per-age-group availability-weighted infectiousness sum N_g (numerator of within-group kappa)
     MVF_NUM_TRANSMIT_BY_AGE,
-    // Per-age-group within-group kappa kappa_g = N_g / A_g
+    // Per-age-group within-group kappa kappa_g = N_g / A_g.
     MVF_KAPPA_BY_AGE,
     // Annual Average Kappa
     MVF_ANN_AVG_K,
