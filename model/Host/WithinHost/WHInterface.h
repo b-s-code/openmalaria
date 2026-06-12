@@ -68,6 +68,15 @@ private:
     friend class Treatments;
 };
 
+/** A snapshot of a single infection object, used by the EXTRA_INFECTION_OUTPUT
+ * reporting code. */
+struct ReportedInfectionData {
+    uint32_t id;            ///< infection's unique id
+    int ageDays;            ///< infection age in days (current time - start date)
+    double density;         ///< this infection's parasite density
+    double cumulativeExposureJ;
+};
+
 /**
  * Interface to the within-host models. These models encapsulate the infections
  * and related immunity factors of a single human, starting with infection
@@ -196,6 +205,13 @@ public:
     virtual double getCumulative_Y() const =0;
 
     virtual InfectionOrigin getInfectionOrigin() const =0;
+
+    /** Append a snapshot of each infection object belonging to this host to
+     * `out`. Used only by the EXTRA_INFECTION_OUTPUT reporting code.
+     *
+     * The default implementation reports no infections; within-host models that
+     * keep a list of Infection objects override this. */
+    virtual void getInfectionData( vector<ReportedInfectionData>& out ) const {}
 
     /** The maximum number of infections a human can have. The only real reason
      * for this limit is to prevent incase bad input from causing the number of

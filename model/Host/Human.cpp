@@ -106,9 +106,12 @@ HumanHet hetSample(util::LocalRng& rng)
     return het;
 }
 
+uint32_t Human::s_nextID = 0;
+
 Human::Human(SimTime dateOfBirth) :
     infIncidence(InfectionIncidenceModel::createModel()),
     rng(util::master_RNG),
+    id(s_nextID++),
     dateOfBirth(dateOfBirth)
 {
     // Initial humans are created at time 0 and may have dateOfBirth in past. Otherwise dateOfBirth must be now.
@@ -180,6 +183,10 @@ void Human::checkpoint(istream &stream)
     withinHostModel & stream;
     clinicalModel & stream;
     rng.checkpoint(stream);
+    id & stream;
+    // Make sure ids handed out after a checkpoint resume don't collide with
+    // those restored from the checkpoint.
+    if( id >= s_nextID ) s_nextID = id + 1;
     dateOfBirth & stream;
     vaccine & stream;
     monitoringAgeGroup & stream;
@@ -195,6 +202,7 @@ void Human::checkpoint(ostream &stream)
     withinHostModel & stream;
     clinicalModel & stream;
     rng.checkpoint(stream);
+    id & stream;
     dateOfBirth & stream;
     vaccine & stream;
     monitoringAgeGroup & stream;

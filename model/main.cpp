@@ -37,6 +37,7 @@
 #include "Clinical/ClinicalModel.h"
 
 #include "Host/NeonatalMortality.h"
+#include "Host/ExtraInfectionOutput.h"
 #include "checkpoint.h"
 
 #include "schema/scenario.h"
@@ -123,6 +124,13 @@ void run(Population &population, TransmissionModel &transmission, SimTime humanW
 
         sim::end_update();
 
+        // Optional EXTRA_INFECTION_OUTPUT: dump per-human and per-infection state
+        // for this time step. Done after end_update() so sim::now() is valid.
+        if( Host::ExtraInfectionOutput::isEnabled() ){
+            for( const Host::Human& human : population.humans )
+                Host::ExtraInfectionOutput::report( human, sim::now() );
+        }
+
         if (util::CommandLine::option(util::CommandLine::PROGRESS))
             print_progress(lastPercent, estEndTime);
         print_errno();
@@ -160,6 +168,9 @@ int main(int argc, char* argv[])
         // 3) elements depending on only elements initialised in (2).
         Parameters parameters( scenario->getModel().getParameters(), modelNameProvider ); // Depends on ModelNameProvider.
         util::ModelOptions::init( scenario->getModel().getModelOptions(), modelNameProvider ); // Depends on ModelNameProvider.
+
+        // Optional per-timestep infection output; no-op unless EXTRA_INFECTION_OUTPUT is set.
+        Host::ExtraInfectionOutput::init( scenarioFile );
 
         // 4) elements depending on only elements initialised in (3).
         WithinHost::diagnostics::init( parameters, *scenario ); // Depends on Parameters.
@@ -295,7 +306,9 @@ int main(int argc, char* argv[])
             human.clinicalModel->flushReports();
 
         mon::writeSurveyData();
-        
+
+        Host::ExtraInfectionOutput::close();
+
     # ifdef OM_STREAM_VALIDATOR
         util::StreamValidator.saveStream();
     # endif

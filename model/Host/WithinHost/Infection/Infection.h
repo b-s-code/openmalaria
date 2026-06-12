@@ -50,6 +50,7 @@ public:
     }
     
     Infection (uint32_t genotype, int origin) :
+        m_id(s_nextID++),
         m_startDate(sim::nowOrTs0()),
         m_density(0.0),
         m_cumulativeExposureJ(0.0),
@@ -59,11 +60,15 @@ public:
     Infection (istream& stream) :
         m_startDate(sim::never())
     {
+        m_id & stream;
         m_startDate & stream;
         m_density & stream;
         m_cumulativeExposureJ & stream;
         m_genotype & stream;
         m_origin & stream;
+        // Make sure ids handed out after a checkpoint resume don't collide with
+        // those restored from the checkpoint.
+        if( m_id >= s_nextID ) s_nextID = m_id + 1;
     }
     virtual ~Infection () {}
     
@@ -95,9 +100,15 @@ public:
     }
     
     /// Get the cumulative parasite density
-    inline double cumulativeExposureJ() {
+    inline double cumulativeExposureJ() const {
         return m_cumulativeExposureJ;
     }
+
+    /// Get this infection's unique id (assigned at construction).
+    inline uint32_t id() const{ return m_id; }
+
+    /// Get the date this infection started (inoculation / start of liver stage).
+    inline SimTime startDate() const{ return m_startDate; }
     
     /// Get whether the infection is HRP2-deficient
     bool isHrp2Deficient() const {
@@ -125,13 +136,18 @@ public:
     
 protected:
     inline virtual void checkpoint (ostream& stream) {
+        m_id & stream;
         m_startDate & stream;
         m_density & stream;
         m_cumulativeExposureJ & stream;
         m_genotype & stream;
         m_origin & stream;
     }
-    
+
+    /// Unique id of this infection (assigned by an incrementing counter at
+    /// construction). See s_nextID.
+    uint32_t m_id = 0;
+
     /// Date of inoculation of infection (start of liver stage)
     /// This is the step of inoculation (ts0()).
     SimTime m_startDate = sim::never();
@@ -151,7 +167,10 @@ private:
 protected:
     /// Pre-erythrocytic latent period (instantiated in WHFalciparum.cpp)
     static SimTime s_latentP;
-    
+
+    /// Counter used to hand out unique infection ids (defined in WHFalciparum.cpp).
+    static uint32_t s_nextID;
+
     friend class ::UnittestUtil;
 };
 

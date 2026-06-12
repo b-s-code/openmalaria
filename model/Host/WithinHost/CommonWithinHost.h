@@ -69,7 +69,9 @@ public:
     //@}
 
     virtual InfectionOrigin getInfectionOrigin() const;
-    
+
+    virtual void getInfectionData( vector<ReportedInfectionData>& out ) const;
+
     virtual bool summarize( Host::Human& human )const;
     
 protected:

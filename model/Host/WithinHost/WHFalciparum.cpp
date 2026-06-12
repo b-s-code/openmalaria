@@ -79,6 +79,7 @@ static double alpha_m;
 static double decayM;
 
 SimTime Infection::s_latentP = sim::never();
+uint32_t Infection::s_nextID = 0;
 int WHFalciparum::y_lag_len = 0;
 
 

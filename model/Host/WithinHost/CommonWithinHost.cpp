@@ -284,6 +284,19 @@ InfectionOrigin CommonWithinHost::getInfectionOrigin()const
     return get_infection_origin(infections);
 }
 
+void CommonWithinHost::getInfectionData( vector<ReportedInfectionData>& out ) const
+{
+    SimTime now = sim::nowOrTs0();
+    for( const CommonInfection* inf : infections ){
+        out.push_back( ReportedInfectionData{
+            inf->id(),
+            now - inf->startDate(),
+            inf->getDensity(),
+            inf->cumulativeExposureJ()
+        } );
+    }
+}
+
 // -----  Summarize  -----
 
 // Used in summarizeInfs.

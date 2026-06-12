@@ -61,6 +61,10 @@ public:
     Human(const Human&) = delete;
     Human& operator=(const Human&) = delete;
 
+    /** Get this human's unique id (assigned by an incrementing counter at
+     * construction). */
+    inline uint32_t getId() const { return id; }
+
     /** Get human's age with respect to some time. */
     inline SimTime age( SimTime time ) const;
 
@@ -124,6 +128,12 @@ public:
     uint32_t nextCtsDist = 0;
 
 private:
+    /// Counter used to hand out unique human ids.
+    static uint32_t s_nextID;
+
+    /// Unique id of this human (assigned at construction from s_nextID).
+    uint32_t id = 0;
+
     SimTime dateOfBirth = sim::never();        // date of birth; humans are always born at the end of a time step
 
     /** Cache, updated when human is added to or removed from a sub-population */

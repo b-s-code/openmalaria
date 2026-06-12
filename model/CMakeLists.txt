@@ -39,6 +39,7 @@ set (Model_CPP
   checkpoint.cpp
   
   Host/Human.cpp
+  Host/ExtraInfectionOutput.cpp
   Host/InfectionIncidenceModel.cpp
   Host/NeonatalMortality.cpp
   

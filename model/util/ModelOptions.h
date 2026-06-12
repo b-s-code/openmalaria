@@ -276,7 +276,15 @@ namespace OM { namespace util {
          */
         USE_EXACT_NV0_SOLVER,
 
-        
+        /** Write a per-timestep CSV file (named "<scenario XML file>.csv")
+         * describing every human and every infection object in the simulation.
+         *
+         * This is a debugging/analysis output. It can produce very large files
+         * since it writes one row per human plus one row per infection on every
+         * time step of every simulation phase. */
+        EXTRA_INFECTION_OUTPUT,
+
+
 	// Used by tests; should be 1 more than largest option
 	NUM_OPTIONS,
         

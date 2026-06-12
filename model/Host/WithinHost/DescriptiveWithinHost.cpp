@@ -243,6 +243,19 @@ InfectionOrigin DescriptiveWithinHostModel::getInfectionOrigin()const
     return get_infection_origin(infections);
 }
 
+void DescriptiveWithinHostModel::getInfectionData( vector<ReportedInfectionData>& out ) const
+{
+    SimTime now = sim::nowOrTs0();
+    for( const DescriptiveInfection* inf : infections ){
+        out.push_back( ReportedInfectionData{
+            inf->id(),
+            now - inf->startDate(),
+            inf->getDensity(),
+            inf->cumulativeExposureJ()
+        } );
+    }
+}
+
 // -----  Summarize  -----
 
 bool DescriptiveWithinHostModel::summarize( Host::Human& human )const{
