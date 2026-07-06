@@ -23,6 +23,7 @@
 #include "Host/ExtraInfectionOutput.h"
 #include "Host/Human.h"
 #include "Host/WithinHost/WHInterface.h"
+#include "Clinical/ClinicalModel.h"
 #include "util/ModelOptions.h"
 #include "util/UnitParse.h"
 #include "util/errors.h"
@@ -47,6 +48,14 @@ namespace {
     /// sim::intervDate()). Only meaningful when dateFilter is true.
     SimTime startBound = sim::never();
     SimTime endBound = sim::future();
+
+    /// Map the human's current clinical (pathogenesis) state to a small integer
+    /// code for output: 0 = STATE_NONE, 1 = STATE_MALARIA, 2 = STATE_SEVERE.
+    int clinicalStatusCode( Clinical::Episode::State state ){
+        if( state & Clinical::Episode::SEVERE ) return 2;   // STATE_SEVERE
+        if( state & Clinical::Episode::MALARIA ) return 1;  // STATE_MALARIA
+        return 0;                                           // STATE_NONE
+    }
 
     /// Derive the CSV file name from the scenario file name: strip any trailing
     /// ".xml" and append ".csv".
@@ -126,7 +135,7 @@ void init( const string& scenarioFileName, const scnXml::Model& model ){
     // leave the infection columns blank and "infection" rows leave the
     // human-immunity columns blank.
     outFile << "row_type,time_days,human_id,human_age_years,"
-            << "m_cumulative_h,m_cumulative_Y,"
+            << "m_cumulative_h,m_cumulative_Y,clinical_status,"
             << "infection_id,infection_age,parasite_density,m_cumulativeExposureJ\n";
 }
 
@@ -152,14 +161,15 @@ void report( const Human& human, SimTime time ){
     outFile << "human," << time << ',' << humanID << ',' << ageYears << ','
             << human.withinHostModel->getCumulative_h() << ','
             << human.withinHostModel->getCumulative_Y() << ','
-            << ",,,\n";
+            << clinicalStatusCode( human.clinicalModel->getLatestState() )
+            << ",,,,\n";     // infection_id, infection_age, parasite_density, m_cumulativeExposureJ (blank)
 
-    // Infection rows: one per infection object, human-immunity columns blank.
+    // Infection rows: one per infection object, human-only columns blank.
     vector<WithinHost::ReportedInfectionData> infections;
     human.withinHostModel->getInfectionData( infections );
     for( const auto& inf : infections ){
         outFile << "infection," << time << ',' << humanID << ',' << ageYears << ','
-                << ",,"      // m_cumulative_h, m_cumulative_Y (blank)
+                << ",,,"     // m_cumulative_h, m_cumulative_Y, clinical_status (blank)
                 << inf.id << ',' << inf.ageDays << ',' << inf.density << ','
                 << inf.cumulativeExposureJ << '\n';
     }
