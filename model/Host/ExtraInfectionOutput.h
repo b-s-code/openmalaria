@@ -26,6 +26,8 @@
 #include "Global.h"
 #include <string>
 
+namespace scnXml { class Model; }
+
 namespace OM { namespace Host {
 
 class Human;
@@ -43,14 +45,24 @@ namespace ExtraInfectionOutput {
 
     /** If the EXTRA_INFECTION_OUTPUT option is active, open the output CSV file
      * (derived from `scenarioFileName`) and write its header row. Otherwise do
-     * nothing. Must be called after model options have been initialised. */
-    void init( const std::string& scenarioFileName );
+     * nothing. Must be called after model options and sim time have been
+     * initialised.
+     *
+     * `model` is inspected for optional startDate/endDate attributes on the
+     * EXTRA_INFECTION_OUTPUT `<option>` element, which restrict output to a
+     * calendar-date range (see report()). */
+    void init( const std::string& scenarioFileName, const scnXml::Model& model );
 
     /** True if output is enabled and the file is open. */
     bool isEnabled();
 
     /** Write the human row and one infection row per infection for `human` at
-     * the given simulation time (in days). No-op when output is disabled. */
+     * the given simulation time (in days). No-op when output is disabled or when
+     * the current step's calendar date falls outside the configured date range.
+     *
+     * `time` is the internal simulation time in days (as written to the
+     * time_days column); date-range filtering is applied separately using the
+     * current calendar date (sim::intervDate()). */
     void report( const Human& human, SimTime time );
 
     /** Flush and close the output file. Safe to call when disabled. */

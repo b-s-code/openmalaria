@@ -24,10 +24,13 @@
 #include "Host/Human.h"
 #include "Host/WithinHost/WHInterface.h"
 #include "util/ModelOptions.h"
+#include "util/UnitParse.h"
 #include "util/errors.h"
+#include "schema/scenario.h"
 
 #include <fstream>
 #include <vector>
+#include <iostream>
 
 namespace OM { namespace Host { namespace ExtraInfectionOutput {
 
@@ -36,6 +39,14 @@ using namespace std;
 namespace {
     ofstream outFile;
     bool enabled = false;
+
+    /// True when a startDate and/or endDate was given, so calendar-date
+    /// filtering is applied.
+    bool dateFilter = false;
+    /// Inclusive calendar-date bounds (absolute SimTime, comparable to
+    /// sim::intervDate()). Only meaningful when dateFilter is true.
+    SimTime startBound = sim::never();
+    SimTime endBound = sim::future();
 
     /// Derive the CSV file name from the scenario file name: strip any trailing
     /// ".xml" and append ".csv".
@@ -48,10 +59,61 @@ namespace {
         }
         return base + ".csv";
     }
+
+    /// Find the EXTRA_INFECTION_OUTPUT <option> element, if present, so its
+    /// optional startDate/endDate attributes can be read.
+    const scnXml::Option* findExtraInfectionOption( const scnXml::Model& model ){
+        if( !model.getModelOptions().present() ) return nullptr;
+        const scnXml::OptionSet::OptionSequence& optSeq =
+            model.getModelOptions().get().getOption();
+        for( const scnXml::Option& opt : optSeq ){
+            if( opt.getName() == "EXTRA_INFECTION_OUTPUT" ) return &opt;
+        }
+        return nullptr;
+    }
+
+    /// Parse a calendar date (YYYY-MM-DD) into an absolute SimTime, throwing a
+    /// scenario error if it is not a valid date.
+    SimTime parseBound( const string& attr, const string& what ){
+        SimTime date = UnitParse::parseDate( attr );
+        if( date == sim::never() ){
+            throw util::xml_scenario_error(
+                "EXTRA_INFECTION_OUTPUT/" + what + ": expected a date (YYYY-MM-DD) but got \"" + attr + "\"" );
+        }
+        return date;
+    }
 }
 
-void init( const string& scenarioFileName ){
+void init( const string& scenarioFileName, const scnXml::Model& model ){
     enabled = util::ModelOptions::option( util::EXTRA_INFECTION_OUTPUT );
+
+    const scnXml::Option* opt = findExtraInfectionOption( model );
+
+    // Read the optional date range from the EXTRA_INFECTION_OUTPUT option.
+    dateFilter = false;
+    startBound = sim::never();
+    endBound = sim::future();
+    if( opt != nullptr && (opt->getStartDate().present() || opt->getEndDate().present()) ){
+        if( !enabled ){
+            cerr << "Warning: startDate/endDate given on the EXTRA_INFECTION_OUTPUT "
+                    "option but the option is disabled; date range ignored." << endl;
+        } else {
+            dateFilter = true;
+            // Omitted start => from the beginning of the monitored period (the
+            // first step with a valid calendar date). Omitted end => to the end.
+            startBound = opt->getStartDate().present()
+                ? parseBound( opt->getStartDate().get(), "startDate" )
+                : sim::startDate();
+            endBound = opt->getEndDate().present()
+                ? parseBound( opt->getEndDate().get(), "endDate" )
+                : sim::future();
+            if( startBound > endBound ){
+                throw util::xml_scenario_error(
+                    "EXTRA_INFECTION_OUTPUT: startDate is after endDate" );
+            }
+        }
+    }
+
     if( !enabled ) return;
 
     const string fileName = deriveOutputName( scenarioFileName );
@@ -74,6 +136,14 @@ bool isEnabled(){
 
 void report( const Human& human, SimTime time ){
     if( !enabled ) return;
+
+    // Calendar-date filtering. sim::intervDate() is a valid calendar date only
+    // during the intervention phase; in warm-up/calibration it is a large
+    // negative sentinel, so any date bound naturally excludes those steps.
+    if( dateFilter ){
+        const SimTime date = sim::intervDate();
+        if( date < startBound || date > endBound ) return;
+    }
 
     const uint32_t humanID = human.getId();
     const double ageYears = sim::inYears( human.age( time ) );
@@ -98,6 +168,7 @@ void report( const Human& human, SimTime time ){
 void close(){
     if( outFile.is_open() ) outFile.close();
     enabled = false;
+    dateFilter = false;
 }
 
 } } }

@@ -170,7 +170,7 @@ int main(int argc, char* argv[])
         util::ModelOptions::init( scenario->getModel().getModelOptions(), modelNameProvider ); // Depends on ModelNameProvider.
 
         // Optional per-timestep infection output; no-op unless EXTRA_INFECTION_OUTPUT is set.
-        Host::ExtraInfectionOutput::init( scenarioFile );
+        Host::ExtraInfectionOutput::init( scenarioFile, scenario->getModel() );
 
         // 4) elements depending on only elements initialised in (3).
         WithinHost::diagnostics::init( parameters, *scenario ); // Depends on Parameters.

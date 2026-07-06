@@ -104,6 +104,30 @@ Licence: GNU General Public Licence version 2 or later (see COPYING) -->
     <xs:appinfo>name:Indicator of whether option is required;</xs:appinfo>
    </xs:annotation>
   </xs:attribute>
+  <xs:attribute name="startDate" type="xs:string" use="optional">
+   <xs:annotation>
+    <xs:documentation>
+          Only used by the EXTRA_INFECTION_OUTPUT model option. When set, rows
+          are only written for time steps on or after this calendar date
+          (format YYYY-MM-DD, as for monitoring/startDate). If omitted, output
+          starts from the beginning of the monitored (intervention) period.
+          Note that only intervention-phase steps have a calendar date, so
+          setting any date bound excludes warm-up and calibration steps.
+        </xs:documentation>
+    <xs:appinfo>name:Extra infection output start date;</xs:appinfo>
+   </xs:annotation>
+  </xs:attribute>
+  <xs:attribute name="endDate" type="xs:string" use="optional">
+   <xs:annotation>
+    <xs:documentation>
+          Only used by the EXTRA_INFECTION_OUTPUT model option. When set, rows
+          are only written for time steps on or before this calendar date
+          (format YYYY-MM-DD, inclusive). If omitted, output continues to the
+          end of the simulation.
+        </xs:documentation>
+    <xs:appinfo>name:Extra infection output end date;</xs:appinfo>
+   </xs:annotation>
+  </xs:attribute>
   </xs:complexType>
   <xs:complexType name="ModelName">
     <xs:attribute name="name" type="xs:string" use="required">
