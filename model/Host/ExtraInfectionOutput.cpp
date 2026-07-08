@@ -146,19 +146,29 @@ bool isEnabled(){
 void report( const Human& human, SimTime time ){
     if( !enabled ) return;
 
-    // Calendar-date filtering. sim::intervDate() is a valid calendar date only
-    // during the intervention phase; in warm-up/calibration it is a large
-    // negative sentinel, so any date bound naturally excludes those steps.
+    // Only emit during the intervention (monitored) period, to match the rest of
+    // OpenMalaria's monitoring: warm-up and EIR-calibration steps produce no
+    // regular monitoring output, so they produce no rows here either.
+    // sim::intervTime() is negative during those phases and >= 0 once the
+    // intervention period begins.
+    if( sim::intervTime() < sim::zero() ) return;
+
+    // Optional calendar-date range within the monitored period.
     if( dateFilter ){
         const SimTime date = sim::intervDate();
         if( date < startBound || date > endBound ) return;
     }
 
+    // Time column: days since the start of the intervention (monitored) period,
+    // as used by the rest of OpenMalaria's monitoring (first monitored step is
+    // 5). Note human age is computed from absolute time (`time`) since birth
+    // dates are absolute.
+    const SimTime timeDays = sim::intervTime();
     const uint32_t humanID = human.getId();
     const double ageYears = sim::inYears( human.age( time ) );
 
     // Human row: row attributes + human attributes, infection columns blank.
-    outFile << "human," << time << ',' << humanID << ',' << ageYears << ','
+    outFile << "human," << timeDays << ',' << humanID << ',' << ageYears << ','
             << human.withinHostModel->getCumulative_h() << ','
             << human.withinHostModel->getCumulative_Y() << ','
             << clinicalStatusCode( human.clinicalModel->getLatestState() )
@@ -168,7 +178,7 @@ void report( const Human& human, SimTime time ){
     vector<WithinHost::ReportedInfectionData> infections;
     human.withinHostModel->getInfectionData( infections );
     for( const auto& inf : infections ){
-        outFile << "infection," << time << ',' << humanID << ',' << ageYears << ','
+        outFile << "infection," << timeDays << ',' << humanID << ',' << ageYears << ','
                 << ",,,"     // m_cumulative_h, m_cumulative_Y, clinical_status (blank)
                 << inf.id << ',' << inf.ageDays << ',' << inf.density << ','
                 << inf.cumulativeExposureJ << '\n';

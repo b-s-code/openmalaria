@@ -36,11 +36,13 @@ class Human;
  * option.
  *
  * When enabled, a single CSV file (named after the scenario XML file) is written
- * containing, for every time step:
+ * containing, for every time step of the intervention (monitored) period:
  *  - one "human" row per human (with that human's immunity summary), and
  *  - one "infection" row per Infection object belonging to each human.
  *
- * This is a debugging/analysis output and can produce very large files. */
+ * Warm-up and EIR-calibration steps are not included (they produce no regular
+ * monitoring output either). This is a debugging/analysis output and can produce
+ * very large files. */
 namespace ExtraInfectionOutput {
 
     /** If the EXTRA_INFECTION_OUTPUT option is active, open the output CSV file
@@ -56,13 +58,15 @@ namespace ExtraInfectionOutput {
     /** True if output is enabled and the file is open. */
     bool isEnabled();
 
-    /** Write the human row and one infection row per infection for `human` at
-     * the given simulation time (in days). No-op when output is disabled or when
-     * the current step's calendar date falls outside the configured date range.
+    /** Write the human row and one infection row per infection for `human`.
+     * No-op when output is disabled, during warm-up/EIR-calibration (no regular
+     * monitoring happens then), or when the current step's calendar date falls
+     * outside the configured date range.
      *
-     * `time` is the internal simulation time in days (as written to the
-     * time_days column); date-range filtering is applied separately using the
-     * current calendar date (sim::intervDate()). */
+     * The time_days column is emitted relative to the start of the intervention
+     * (monitored) period (sim::intervTime()), matching the rest of OpenMalaria's
+     * monitoring. `time` is the absolute simulation time (sim::now()), used only
+     * to compute the human's age. */
     void report( const Human& human, SimTime time );
 
     /** Flush and close the output file. Safe to call when disabled. */
