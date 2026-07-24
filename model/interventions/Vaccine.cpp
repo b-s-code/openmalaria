@@ -64,6 +64,18 @@ VaccineComponent::VaccineComponent( ComponentId component, const scnXml::Vaccine
         cumulativeInfsCoeff = vd.getCumulativeInfsCoeff().get();
     }
 
+    opt_vax_efficacy_vs_cumulative_density =
+        util::ModelOptions::option (util::VAX_EFFICACY_VS_CUMULATIVE_DENSITY);
+    if( opt_vax_efficacy_vs_cumulative_density ){
+        if( !vd.getCumulativeDensityCoeff().present() ){
+            throw util::xml_scenario_error(
+                "Vaccine: cumulativeDensityCoeff attribute is required on each "
+                "vaccine description when the VAX_EFFICACY_VS_CUMULATIVE_DENSITY "
+                "model option is enabled" );
+        }
+        cumulativeDensityCoeff = vd.getCumulativeDensityCoeff().get();
+    }
+
     if( reportComponent == ComponentId::wholePop() /* the initial value */ ){
         // set to the first type described
         reportComponent = component;
@@ -173,7 +185,7 @@ void VaccineComponent::print_details(ostream& out) const
         out << id().id << "\t" << (type == Vaccine::PEV ? "PEV" : (type == Vaccine::BSV ? "BSV" : "TBV"));
 }
 
-double VaccineComponent::getInitialEfficacy (LocalRng& rng, size_t numPrevDoses, uint32_t genotype, double cumulativeH) const
+double VaccineComponent::getInitialEfficacy (LocalRng& rng, size_t numPrevDoses, uint32_t genotype, double cumulativeH, double cumulativeY) const
 {
     /* If initialMeanEfficacy.size or more doses have already been given, use
      * the last efficacy. */
@@ -202,6 +214,13 @@ double VaccineComponent::getInitialEfficacy (LocalRng& rng, size_t numPrevDoses,
     // sampled initial efficacy by exp(-cumulativeInfsCoeff * m_cumulative_h).
     if( opt_vax_efficacy_vs_cumulative_infs && sampled > 0.0 ){
         sampled *= std::exp( -cumulativeInfsCoeff * cumulativeH );
+    }
+    // When the VAX_EFFICACY_VS_CUMULATIVE_DENSITY option is enabled, scale the
+    // sampled initial efficacy by exp(-cumulativeDensityCoeff * m_cumulative_Y).
+    // The two options are mutually exclusive (enforced by ModelOptions), so at
+    // most one of these scalings is ever applied.
+    if( opt_vax_efficacy_vs_cumulative_density && sampled > 0.0 ){
+        sampled *= std::exp( -cumulativeDensityCoeff * cumulativeY );
     }
     return sampled;
 }
@@ -268,8 +287,9 @@ bool PerHumanVaccine::possiblyVaccinate( Host::Human& human,
     effect->perGenotypeInitialEfficacy.resize(WithinHost::Genotypes::N());
 
     const double cumulativeH = human.withinHostModel->getCumulative_h();
+    const double cumulativeY = human.withinHostModel->getCumulative_Y();
     for(size_t g=0; g<params.perGenotypeInitialMeanEfficacy.size(); g++)
-        effect->perGenotypeInitialEfficacy[g] = params.getInitialEfficacy(human.rng, numDosesAdministered, g, cumulativeH);
+        effect->perGenotypeInitialEfficacy[g] = params.getInitialEfficacy(human.rng, numDosesAdministered, g, cumulativeH, cumulativeY);
 
     util::streamValidate(effect->perGenotypeInitialEfficacy);
     

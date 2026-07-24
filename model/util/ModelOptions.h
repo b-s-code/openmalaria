@@ -277,10 +277,24 @@ namespace OM { namespace util {
         USE_EXACT_NV0_SOLVER,
 
         /** When this option is enabled, the initial vaccine efficacy sampled at
-		 * each vaccine dose is scaled down. The strength of this effect is
-		 * determined by the value of the cumulativeInfsCoeff attribute.
+		 * each vaccine dose is scaled down as a function of the host's
+		 * cumulative number of infections since birth (m_cumulative_h). The
+		 * strength of this effect is determined by the value of the
+		 * cumulativeInfsCoeff attribute.
+		 *
+		 * Mutually exclusive with VAX_EFFICACY_VS_CUMULATIVE_DENSITY.
          */
         VAX_EFFICACY_VS_CUMULATIVE_INFS,
+
+        /** When this option is enabled, the initial vaccine efficacy sampled at
+		 * each vaccine dose is scaled down as a function of the host's
+		 * cumulative parasite density since birth (m_cumulative_Y). The
+		 * strength of this effect is determined by the value of the
+		 * cumulativeDensityCoeff attribute.
+		 *
+		 * Mutually exclusive with VAX_EFFICACY_VS_CUMULATIVE_INFS.
+         */
+        VAX_EFFICACY_VS_CUMULATIVE_DENSITY,
 
 
 	// Used by tests; should be 1 more than largest option

@@ -1279,6 +1279,26 @@ Licence: GNU General Public Licence version 2 or later (see COPYING) -->
     <xs:appinfo>units:dimensionless;min:0;name:Coefficient on cumulative infections for vaccine efficacy;</xs:appinfo>
    </xs:annotation>
   </xs:attribute>
+  <xs:attribute name="cumulativeDensityCoeff" type="xs:double" use="optional">
+   <xs:annotation>
+    <xs:documentation>
+            Coefficient controlling how strongly initial vaccine efficacy
+            depends on the host's cumulative parasite density since birth
+            (m_cumulative_Y). When the VAX_EFFICACY_VS_CUMULATIVE_DENSITY
+            model option is enabled, the sampled initial efficacy is
+            multiplied by exp(-cumulativeDensityCoeff * m_cumulative_Y) on
+            each dose. This function is hardcoded. Larger values produce a
+            stronger reduction with prior exposure; zero recovers the
+            behaviour obtained when the model option is disabled.
+
+            Required if VAX_EFFICACY_VS_CUMULATIVE_DENSITY is enabled, ignored
+            otherwise. Note that m_cumulative_Y is not dimensionless (units:
+            days * units of density), so appropriate coefficient values differ
+            in scale from cumulativeInfsCoeff.
+          </xs:documentation>
+    <xs:appinfo>units:1/(days*density);min:0;name:Coefficient on cumulative parasite density for vaccine efficacy;</xs:appinfo>
+   </xs:annotation>
+  </xs:attribute>
  </xs:complexType>
  <xs:complexType name="ITNDescription">
   <xs:annotation>

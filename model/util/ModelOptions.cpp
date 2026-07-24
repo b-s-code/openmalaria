@@ -82,6 +82,7 @@ namespace OM { namespace util {
         codeMap["HEALTH_SYSTEM_MEMORY_FIX"] = HEALTH_SYSTEM_MEMORY_FIX;
         codeMap["USE_EXACT_NV0_SOLVER"] = USE_EXACT_NV0_SOLVER;
         codeMap["VAX_EFFICACY_VS_CUMULATIVE_INFS"] = VAX_EFFICACY_VS_CUMULATIVE_INFS;
+        codeMap["VAX_EFFICACY_VS_CUMULATIVE_DENSITY"] = VAX_EFFICACY_VS_CUMULATIVE_DENSITY;
 	}
 	
 	OptionCodes operator[] (const string s) {
@@ -264,7 +265,13 @@ namespace OM { namespace util {
             .set( EMPIRICAL_WITHIN_HOST_MODEL )
             .set( MOLINEAUX_WITHIN_HOST_MODEL )
             .set( PENNY_WITHIN_HOST_MODEL );
-        
+
+        // The two vaccine-efficacy-vs-cumulative-exposure variants scale
+        // efficacy by different host effectors (m_cumulative_h vs
+        // m_cumulative_Y) and cannot both be applied at once.
+        incompatibilities[VAX_EFFICACY_VS_CUMULATIVE_INFS]
+            .set( VAX_EFFICACY_VS_CUMULATIVE_DENSITY );
+
 	for(size_t i = 0; i < NUM_OPTIONS; ++i) {
 	    if (options [i] && (options & incompatibilities[i]).any()) {
 		ostringstream msg;

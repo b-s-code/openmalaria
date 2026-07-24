@@ -55,7 +55,7 @@ namespace OM
             void PerformPostValidationChecks(const scnXml::Scenario& scenario)
             {
                 CheckModelOptionsAndParams(scenario);
-                CheckVaxEfficacyVsCumulativeInfs(scenario);
+                CheckVaxEfficacyVsCumulativeExposure(scenario);
             }
         private:
 
@@ -77,16 +77,22 @@ namespace OM
             }
 
             /*
-            * If the VAX_EFFICACY_VS_CUMULATIVE_INFS model option is enabled in the XML,
-            * then every vaccine description (PEV / BSV / TBV) must specify the optional
-            * cumulativeInfsCoeff attribute. Throw otherwise.
-            * 
+            * If a vaccine-efficacy-vs-cumulative-exposure model option is enabled in the
+            * XML, then every vaccine description (PEV / BSV / TBV) must specify the optional
+            * coefficient attribute corresponding to that option:
+            *   - VAX_EFFICACY_VS_CUMULATIVE_INFS    requires cumulativeInfsCoeff
+            *   - VAX_EFFICACY_VS_CUMULATIVE_DENSITY requires cumulativeDensityCoeff
+            * Throw otherwise. The two options are mutually exclusive (enforced by
+            * ModelOptions), so at most one coefficient is required.
+            *
             * A user wanting to use the feature only for one vaccine component can simply
             * set the coefficient to zero for all other vaccine components.
             */
-            void CheckVaxEfficacyVsCumulativeInfs(const scnXml::Scenario& scenario)
+            void CheckVaxEfficacyVsCumulativeExposure(const scnXml::Scenario& scenario)
             {
-                if (!IsModelOptionEnabled(scenario, "VAX_EFFICACY_VS_CUMULATIVE_INFS"))
+                const bool needInfs = IsModelOptionEnabled(scenario, "VAX_EFFICACY_VS_CUMULATIVE_INFS");
+                const bool needDensity = IsModelOptionEnabled(scenario, "VAX_EFFICACY_VS_CUMULATIVE_DENSITY");
+                if (!needInfs && !needDensity)
                     return;
 
                 if (!scenario.getInterventions().getHuman().present())
@@ -97,11 +103,11 @@ namespace OM
                 {
                     const scnXml::HumanInterventionComponent& component = *it;
                     if (component.getPEV().present())
-                        RequireCumulativeInfsCoeff(component.getPEV().get(), "PEV", component.getId());
+                        RequireCoeffs(component.getPEV().get(), "PEV", component.getId(), needInfs, needDensity);
                     if (component.getBSV().present())
-                        RequireCumulativeInfsCoeff(component.getBSV().get(), "BSV", component.getId());
+                        RequireCoeffs(component.getBSV().get(), "BSV", component.getId(), needInfs, needDensity);
                     if (component.getTBV().present())
-                        RequireCumulativeInfsCoeff(component.getTBV().get(), "TBV", component.getId());
+                        RequireCoeffs(component.getTBV().get(), "TBV", component.getId(), needInfs, needDensity);
                 }
             }
 
@@ -125,16 +131,25 @@ namespace OM
                 return false;
             }
 
-            void RequireCumulativeInfsCoeff(const scnXml::VaccineDescription& vd,
-                                            const std::string& vaccineType,
-                                            const std::string& componentId)
+            void RequireCoeffs(const scnXml::VaccineDescription& vd,
+                               const std::string& vaccineType,
+                               const std::string& componentId,
+                               bool needInfs,
+                               bool needDensity)
             {
-                if (!vd.getCumulativeInfsCoeff().present())
+                if (needInfs && !vd.getCumulativeInfsCoeff().present())
                 {
                     throw util::xml_scenario_error(
                         "Vaccine component \"" + componentId + "\" (" + vaccineType +
                         "): cumulativeInfsCoeff attribute is required when the "
                         "VAX_EFFICACY_VS_CUMULATIVE_INFS model option is enabled");
+                }
+                if (needDensity && !vd.getCumulativeDensityCoeff().present())
+                {
+                    throw util::xml_scenario_error(
+                        "Vaccine component \"" + componentId + "\" (" + vaccineType +
+                        "): cumulativeDensityCoeff attribute is required when the "
+                        "VAX_EFFICACY_VS_CUMULATIVE_DENSITY model option is enabled");
                 }
             }
         };
