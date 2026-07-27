@@ -52,27 +52,22 @@ VaccineComponent::VaccineComponent( ComponentId component, const scnXml::Vaccine
 
     opt_vaccine_genotype = util::ModelOptions::option (util::VACCINE_GENOTYPE);
 
+    // Read the cumulative-exposure coefficients if their respective option is
+    // enabled. An absent attribute defaults to zero (a no-op, since the scaling
+    // factor is exp(0)=1). This lets a description specify only the coefficient
+    // for the variant it actually uses when both options are enabled. The
+    // presence policy (at least one coefficient when both options are on, the
+    // relevant one when a single option is on, and the prohibition on both
+    // being non-zero at once) is enforced in XMLChecker.
     opt_vax_efficacy_vs_cumulative_infs =
         util::ModelOptions::option (util::VAX_EFFICACY_VS_CUMULATIVE_INFS);
-    if( opt_vax_efficacy_vs_cumulative_infs ){
-        if( !vd.getCumulativeInfsCoeff().present() ){
-            throw util::xml_scenario_error(
-                "Vaccine: cumulativeInfsCoeff attribute is required on each "
-                "vaccine description when the VAX_EFFICACY_VS_CUMULATIVE_INFS "
-                "model option is enabled" );
-        }
+    if( opt_vax_efficacy_vs_cumulative_infs && vd.getCumulativeInfsCoeff().present() ){
         cumulativeInfsCoeff = vd.getCumulativeInfsCoeff().get();
     }
 
     opt_vax_efficacy_vs_cumulative_density =
         util::ModelOptions::option (util::VAX_EFFICACY_VS_CUMULATIVE_DENSITY);
-    if( opt_vax_efficacy_vs_cumulative_density ){
-        if( !vd.getCumulativeDensityCoeff().present() ){
-            throw util::xml_scenario_error(
-                "Vaccine: cumulativeDensityCoeff attribute is required on each "
-                "vaccine description when the VAX_EFFICACY_VS_CUMULATIVE_DENSITY "
-                "model option is enabled" );
-        }
+    if( opt_vax_efficacy_vs_cumulative_density && vd.getCumulativeDensityCoeff().present() ){
         cumulativeDensityCoeff = vd.getCumulativeDensityCoeff().get();
     }
 

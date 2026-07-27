@@ -1273,14 +1273,17 @@ Licence: GNU General Public Licence version 2 or later (see COPYING) -->
             stronger reduction with prior exposure; zero recovers the
             behaviour obtained when the model option is disabled.
 
-            Required if VAX_EFFICACY_VS_CUMULATIVE_INFS is enabled, ignored
-            otherwise.
+            Required if VAX_EFFICACY_VS_CUMULATIVE_INFS is enabled and
+            VAX_EFFICACY_VS_CUMULATIVE_DENSITY is not; otherwise a missing value
+            is treated as zero (a no-op).
 
             VAX_EFFICACY_VS_CUMULATIVE_INFS and VAX_EFFICACY_VS_CUMULATIVE_DENSITY
             may both be enabled in one scenario so that different vaccine
-            descriptions use different variants, but a single vaccine description
-            may not use both at once: it is an error for both cumulativeInfsCoeff
-            and cumulativeDensityCoeff to be non-zero on the same description.
+            descriptions use different variants. When both are enabled, each
+            description need only specify at least one of the two coefficients
+            (the absent one is treated as zero), but a single description may not
+            use both at once: it is an error for both cumulativeInfsCoeff and
+            cumulativeDensityCoeff to be non-zero on the same description.
           </xs:documentation>
     <xs:appinfo>units:dimensionless;min:0;name:Coefficient on cumulative infections for vaccine efficacy;</xs:appinfo>
    </xs:annotation>
@@ -1297,16 +1300,19 @@ Licence: GNU General Public Licence version 2 or later (see COPYING) -->
             stronger reduction with prior exposure; zero recovers the
             behaviour obtained when the model option is disabled.
 
-            Required if VAX_EFFICACY_VS_CUMULATIVE_DENSITY is enabled, ignored
-            otherwise. Note that m_cumulative_Y is not dimensionless (units:
-            days * units of density), so appropriate coefficient values differ
-            in scale from cumulativeInfsCoeff.
+            Required if VAX_EFFICACY_VS_CUMULATIVE_DENSITY is enabled and
+            VAX_EFFICACY_VS_CUMULATIVE_INFS is not; otherwise a missing value is
+            treated as zero (a no-op). Note that m_cumulative_Y is not
+            dimensionless (units: days * units of density), so appropriate
+            coefficient values differ in scale from cumulativeInfsCoeff.
 
             VAX_EFFICACY_VS_CUMULATIVE_INFS and VAX_EFFICACY_VS_CUMULATIVE_DENSITY
             may both be enabled in one scenario so that different vaccine
-            descriptions use different variants, but a single vaccine description
-            may not use both at once: it is an error for both cumulativeInfsCoeff
-            and cumulativeDensityCoeff to be non-zero on the same description.
+            descriptions use different variants. When both are enabled, each
+            description need only specify at least one of the two coefficients
+            (the absent one is treated as zero), but a single description may not
+            use both at once: it is an error for both cumulativeInfsCoeff and
+            cumulativeDensityCoeff to be non-zero on the same description.
           </xs:documentation>
     <xs:appinfo>units:1/(days*density);min:0;name:Coefficient on cumulative parasite density for vaccine efficacy;</xs:appinfo>
    </xs:annotation>
