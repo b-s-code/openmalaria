@@ -266,11 +266,12 @@ namespace OM { namespace util {
             .set( MOLINEAUX_WITHIN_HOST_MODEL )
             .set( PENNY_WITHIN_HOST_MODEL );
 
-        // The two vaccine-efficacy-vs-cumulative-exposure variants scale
-        // efficacy by different host effectors (m_cumulative_h vs
-        // m_cumulative_Y) and cannot both be applied at once.
-        incompatibilities[VAX_EFFICACY_VS_CUMULATIVE_INFS]
-            .set( VAX_EFFICACY_VS_CUMULATIVE_DENSITY );
+        // Note: VAX_EFFICACY_VS_CUMULATIVE_INFS and
+        // VAX_EFFICACY_VS_CUMULATIVE_DENSITY are intentionally NOT marked
+        // incompatible. Both may be enabled together so that different vaccine
+        // descriptions can use different variants. What is prohibited is a
+        // single vaccine description using both at once (i.e. both coefficients
+        // non-zero); that per-description rule is enforced in XMLChecker.
 
 	for(size_t i = 0; i < NUM_OPTIONS; ++i) {
 	    if (options [i] && (options & incompatibilities[i]).any()) {

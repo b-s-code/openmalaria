@@ -82,11 +82,16 @@ namespace OM
             * coefficient attribute corresponding to that option:
             *   - VAX_EFFICACY_VS_CUMULATIVE_INFS    requires cumulativeInfsCoeff
             *   - VAX_EFFICACY_VS_CUMULATIVE_DENSITY requires cumulativeDensityCoeff
-            * Throw otherwise. The two options are mutually exclusive (enforced by
-            * ModelOptions), so at most one coefficient is required.
+            * Throw otherwise.
             *
-            * A user wanting to use the feature only for one vaccine component can simply
-            * set the coefficient to zero for all other vaccine components.
+            * Both options may be enabled together in a single scenario, allowing
+            * different vaccine descriptions to use different variants. When both are
+            * enabled, every vaccine description must specify both coefficients. However,
+            * a single vaccine description may not use both variants at once: it is an
+            * error for both cumulativeInfsCoeff and cumulativeDensityCoeff to be present
+            * and non-zero on the same description. A zero coefficient is a no-op
+            * (exp(0)=1), so setting one coefficient to zero is how a description selects
+            * which single variant it uses (or opts out of the feature entirely).
             */
             void CheckVaxEfficacyVsCumulativeExposure(const scnXml::Scenario& scenario)
             {
@@ -150,6 +155,22 @@ namespace OM
                         "Vaccine component \"" + componentId + "\" (" + vaccineType +
                         "): cumulativeDensityCoeff attribute is required when the "
                         "VAX_EFFICACY_VS_CUMULATIVE_DENSITY model option is enabled");
+                }
+
+                // A single vaccine description may use at most one variant: reject the
+                // combined form where both coefficients are present and non-zero. This
+                // can only arise when both options are enabled (otherwise the absent
+                // coefficient would already have thrown above).
+                if (needInfs && needDensity &&
+                    vd.getCumulativeInfsCoeff().present() && vd.getCumulativeInfsCoeff().get() != 0.0 &&
+                    vd.getCumulativeDensityCoeff().present() && vd.getCumulativeDensityCoeff().get() != 0.0)
+                {
+                    throw util::xml_scenario_error(
+                        "Vaccine component \"" + componentId + "\" (" + vaccineType +
+                        "): a single vaccine description may not use both the "
+                        "VAX_EFFICACY_VS_CUMULATIVE_INFS and VAX_EFFICACY_VS_CUMULATIVE_DENSITY "
+                        "variants at once; at most one of cumulativeInfsCoeff / "
+                        "cumulativeDensityCoeff may be non-zero. Set the unused coefficient to 0");
                 }
             }
         };

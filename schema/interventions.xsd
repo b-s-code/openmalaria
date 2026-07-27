@@ -1275,6 +1275,12 @@ Licence: GNU General Public Licence version 2 or later (see COPYING) -->
 
             Required if VAX_EFFICACY_VS_CUMULATIVE_INFS is enabled, ignored
             otherwise.
+
+            VAX_EFFICACY_VS_CUMULATIVE_INFS and VAX_EFFICACY_VS_CUMULATIVE_DENSITY
+            may both be enabled in one scenario so that different vaccine
+            descriptions use different variants, but a single vaccine description
+            may not use both at once: it is an error for both cumulativeInfsCoeff
+            and cumulativeDensityCoeff to be non-zero on the same description.
           </xs:documentation>
     <xs:appinfo>units:dimensionless;min:0;name:Coefficient on cumulative infections for vaccine efficacy;</xs:appinfo>
    </xs:annotation>
@@ -1295,6 +1301,12 @@ Licence: GNU General Public Licence version 2 or later (see COPYING) -->
             otherwise. Note that m_cumulative_Y is not dimensionless (units:
             days * units of density), so appropriate coefficient values differ
             in scale from cumulativeInfsCoeff.
+
+            VAX_EFFICACY_VS_CUMULATIVE_INFS and VAX_EFFICACY_VS_CUMULATIVE_DENSITY
+            may both be enabled in one scenario so that different vaccine
+            descriptions use different variants, but a single vaccine description
+            may not use both at once: it is an error for both cumulativeInfsCoeff
+            and cumulativeDensityCoeff to be non-zero on the same description.
           </xs:documentation>
     <xs:appinfo>units:1/(days*density);min:0;name:Coefficient on cumulative parasite density for vaccine efficacy;</xs:appinfo>
    </xs:annotation>

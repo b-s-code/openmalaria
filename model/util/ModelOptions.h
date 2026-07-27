@@ -282,7 +282,10 @@ namespace OM { namespace util {
 		 * strength of this effect is determined by the value of the
 		 * cumulativeInfsCoeff attribute.
 		 *
-		 * Mutually exclusive with VAX_EFFICACY_VS_CUMULATIVE_DENSITY.
+		 * May be enabled together with VAX_EFFICACY_VS_CUMULATIVE_DENSITY so
+		 * that different vaccine descriptions can use different variants, but a
+		 * single vaccine description may not use both at once (enforced per
+		 * description in XMLChecker: at most one coefficient may be non-zero).
          */
         VAX_EFFICACY_VS_CUMULATIVE_INFS,
 
@@ -292,7 +295,10 @@ namespace OM { namespace util {
 		 * strength of this effect is determined by the value of the
 		 * cumulativeDensityCoeff attribute.
 		 *
-		 * Mutually exclusive with VAX_EFFICACY_VS_CUMULATIVE_INFS.
+		 * May be enabled together with VAX_EFFICACY_VS_CUMULATIVE_INFS so that
+		 * different vaccine descriptions can use different variants, but a
+		 * single vaccine description may not use both at once (enforced per
+		 * description in XMLChecker: at most one coefficient may be non-zero).
          */
         VAX_EFFICACY_VS_CUMULATIVE_DENSITY,
 

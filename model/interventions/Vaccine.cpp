@@ -217,8 +217,11 @@ double VaccineComponent::getInitialEfficacy (LocalRng& rng, size_t numPrevDoses,
     }
     // When the VAX_EFFICACY_VS_CUMULATIVE_DENSITY option is enabled, scale the
     // sampled initial efficacy by exp(-cumulativeDensityCoeff * m_cumulative_Y).
-    // The two options are mutually exclusive (enforced by ModelOptions), so at
-    // most one of these scalings is ever applied.
+    // Both options may be enabled in the same scenario, but a single vaccine
+    // description may not use both variants at once: XMLChecker rejects any
+    // description with both coefficients non-zero. Since a zero coefficient
+    // makes its exp(...) factor 1, at most one of these two scalings ever has a
+    // non-trivial effect on any given description.
     if( opt_vax_efficacy_vs_cumulative_density && sampled > 0.0 ){
         sampled *= std::exp( -cumulativeDensityCoeff * cumulativeY );
     }
