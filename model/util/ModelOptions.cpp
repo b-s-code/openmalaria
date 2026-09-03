@@ -129,13 +129,16 @@ namespace OM { namespace util {
     {
         bitset<NUM_OPTIONS> optSet;
 
+        optSet = getLegacyDefaultModelOptions();
+
+        // Note: the scenarios this model is derived from turn INCLUDES_PK_PD on and
+        // INDIRECT_MORTALITY_FIX off. INCLUDES_PK_PD is deprecated and ignored, so no need
+        // to address it here. INDIRECT_MORTALITY_FIX is turned on in legacy defaults so
+        // here we must explicitly turn it off.
+        optSet.reset (INDIRECT_MORTALITY_FIX);
+
         optSet.set (MOLINEAUX_WITHIN_HOST_MODEL);
         optSet.set (MOLINEAUX_PAIRWISE_SAMPLE);
-
-        // Note: the scenarios this model is derived from also turn INCLUDES_PK_PD on and
-        // INDIRECT_MORTALITY_FIX off.  INCLUDES_PK_PD is deprecated and ignored: PK/PD code
-        // is enabled in all compatible within-host models.  INDIRECT_MORTALITY_FIX is one of
-        // the legacy default options, which this named model discards, so it is already off.
 
         return optSet;
     }
@@ -174,7 +177,6 @@ namespace OM { namespace util {
         }
         else if (namedModelToUse == util::ModelNames::molineaux_original)
         {
-            // This completely discards any legacy model options set above.
             options = getMolineauxOriginalModelOptions();
         }
         else
