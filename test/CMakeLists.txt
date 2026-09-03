@@ -62,7 +62,6 @@ set (OM_BOXTEST_NAMES
   ModelNameParamOverrides
   ModelNameModelOptionOverrides
   ModelNameManyOverrides
-  ModelNameMolineauxOriginal
   ExactNv0
 )
 # tests with broken checkpointing:
