@@ -25,6 +25,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 """
 
 import os
+import re
 
 #excludedir = ["..\\Lib"]
 
@@ -99,24 +100,47 @@ def update_source(filename, copyright):
         else:
             open(filename,"w").write(fdata)
 
-def recursive_traversal(dir, copyright):
-    global excludedir
+def recursive_traversal(dir, suffixes, update, copyright):
+    """Call update(file, copyright) on every file under dir whose name ends with one of suffixes."""
     fns = os.listdir(dir)
     #print "listing "+dir
     for fn in fns:
+        if fn.startswith('.') or fn.startswith('build'):
+            # Skip hidden dirs, build dirs.
+            continue
         fullfn = os.path.join(dir,fn)
-        #if (fullfn in excludedir):
-            #continue
         if (os.path.isdir(fullfn)):
-            recursive_traversal(fullfn, copyright)
-        else:
-            if (fullfn.endswith(".h") or fullfn.endswith(".cpp")):
-                update_source(fullfn, copyright)
+            recursive_traversal(fullfn, suffixes, update, copyright)
+        elif fn.endswith(suffixes):
+            update(fullfn, copyright)
 
+def hash_comment(c_header):
+    """Convert the licence template, which uses c-style comments to # style comments."""
+    lines = []
+    for line in c_header.splitlines():
+        if line.startswith(' */'):
+            break
+        elif line.startswith('/*'):
+            line = line[2:]
+        elif line.startswith(' *'):
+            line = line[2:]
+        lines.append('#' + line)
+    return '\n'.join(lines) + '\n'
+
+def update_cmake_python_bash(filename, copyright):
+    """Replaces the copyright header in a cmake/python/bash file i.e. a file which does not use c-style comments."""
+    # files without the full licence block (e.g. old short notices) are left alone
+    fdata = open(filename).read()
+    full_block = re.compile(r'# This file is part of OpenMalaria\.\n.*?Boston, MA 02110-1301, USA\.\n', re.DOTALL)
+    new = full_block.sub(lambda m: copyright, fdata, count=1)
+    if new != fdata:
+        print("updating "+filename)
+        open(filename,"w").write(new)
 
 cright = open("util/licence-template.txt","r+").read()
-recursive_traversal("model", cright)
-recursive_traversal("unittest", cright)
+recursive_traversal("model", (".h", ".cpp"), update_source, cright)
+recursive_traversal("unittest", (".h", ".cpp"), update_source, cright)
+recursive_traversal(".", ("CMakeLists.txt",), update_cmake_python_bash, hash_comment(cright))
 
 print('Remember to update the text for --version in model/CommandLine.cpp!')
 
