@@ -105,17 +105,16 @@ def recursive_traversal(dir, suffixes, update, copyright):
     fns = os.listdir(dir)
     #print "listing "+dir
     for fn in fns:
-        if fn.startswith('.') or fn.startswith('build'):
-            # Skip hidden dirs, build dirs.
-            continue
         fullfn = os.path.join(dir,fn)
         if (os.path.isdir(fullfn)):
-            recursive_traversal(fullfn, suffixes, update, copyright)
+            if not (fn.startswith('.') or fn.startswith('build')):
+                # Skip hidden dirs, build dirs.
+                recursive_traversal(fullfn, suffixes, update, copyright)
         elif fn.endswith(suffixes):
             update(fullfn, copyright)
 
-def hash_comment(c_header):
-    """Convert the licence template, which uses c-style comments to # style comments."""
+def line_comment(c_header, prefix):
+    """Convert the licence template, which uses c-style comments, to line comments starting with prefix (e.g. '#' or 'REM')."""
     lines = []
     for line in c_header.splitlines():
         if line.startswith(' */'):
@@ -124,23 +123,26 @@ def hash_comment(c_header):
             line = line[2:]
         elif line.startswith(' *'):
             line = line[2:]
-        lines.append('#' + line)
+        lines.append(prefix + line)
     return '\n'.join(lines) + '\n'
 
-def update_cmake_python_bash(filename, copyright):
-    """Replaces the copyright header in a cmake/python/bash file i.e. a file which does not use c-style comments."""
+def update_line_comment_header(filename, copyright):
+    """Replaces the copyright header in a cmake/python/bash/bat file i.e. a file which uses line comments, not c-style comments."""
     # files without the full licence block (e.g. old short notices) are left alone
-    fdata = open(filename).read()
-    full_block = re.compile(r'# This file is part of OpenMalaria\.\n.*?Boston, MA 02110-1301, USA\.\n', re.DOTALL)
+    fdata = open(filename, newline='').read()  # newline='' keeps CRLF line endings as-is
+    if '\r\n' in fdata:
+        copyright = copyright.replace('\n', '\r\n')
+    full_block = re.compile(r'^(#|REM) This file is part of OpenMalaria\.\r?\n.*?Boston, MA 02110-1301, USA\.\r?\n', re.DOTALL | re.MULTILINE)
     new = full_block.sub(lambda m: copyright, fdata, count=1)
     if new != fdata:
         print("updating "+filename)
-        open(filename,"w").write(new)
+        open(filename, "w", newline='').write(new)
 
 cright = open("util/licence-template.txt","r+").read()
 recursive_traversal("model", (".h", ".cpp"), update_source, cright)
 recursive_traversal("unittest", (".h", ".cpp"), update_source, cright)
-recursive_traversal(".", ("CMakeLists.txt",), update_cmake_python_bash, hash_comment(cright))
+recursive_traversal(".", ("CMakeLists.txt", ".sh"), update_line_comment_header, line_comment(cright, "#"))
+recursive_traversal(".", (".bat",), update_line_comment_header, line_comment(cright, "REM"))
 
 print('Remember to update the text for --version in model/CommandLine.cpp!')
 
