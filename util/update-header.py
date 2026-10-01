@@ -126,23 +126,32 @@ def line_comment(c_header, prefix):
         lines.append(prefix + line)
     return '\n'.join(lines) + '\n'
 
-def update_line_comment_header(filename, copyright):
-    """Replaces the copyright header in a cmake/python/bash/bat file i.e. a file which uses line comments, not c-style comments."""
-    # files without the full licence block (e.g. old short notices) are left alone
-    fdata = open(filename, newline='').read()  # newline='' keeps CRLF line endings as-is
+def xml_comment(c_header):
+    """Convert the licence template, which uses c-style comments, to a short XML <!-- --> comment (without full GPL text)."""
+    copyrights = [line.strip(' /*').replace('(C)', '©') for line in c_header.splitlines() if line.strip(' /*').startswith('Copyright')]
+    return ('<!-- This file is part of OpenMalaria.\n'
+            + '\n'.join(copyrights) + '\n'
+            + 'Licence: GNU General Public Licence version 2 or later (see COPYING) -->\n')
+
+def update_header_block(filename, copyright):
+    """Replaces the copyright header in a file which does not use c-style comments, e.g. cmake/bash/bat/xsd."""
+    # files without an OpenMalaria licence block (e.g. old short notices) are left alone
+    fdata = open(filename, encoding='utf-8', newline='').read()  # newline='' keeps CRLF line endings as-is
     if '\r\n' in fdata:
         copyright = copyright.replace('\n', '\r\n')
-    full_block = re.compile(r'^(#|REM) This file is part of OpenMalaria\.\r?\n.*?Boston, MA 02110-1301, USA\.\r?\n', re.DOTALL | re.MULTILINE)
+    full_block = re.compile(r'^((#|REM) This file is part of OpenMalaria\..*?Boston, MA 02110-1301, USA\.'
+                            r'|<!-- This file is part of OpenMalaria\..*?-->)\r?\n', re.DOTALL | re.MULTILINE)
     new = full_block.sub(lambda m: copyright, fdata, count=1)
     if new != fdata:
         print("updating "+filename)
-        open(filename, "w", newline='').write(new)
+        open(filename, "w", encoding='utf-8', newline='').write(new)
 
 cright = open("util/licence-template.txt","r+").read()
 recursive_traversal("model", (".h", ".cpp"), update_source, cright)
 recursive_traversal("unittest", (".h", ".cpp"), update_source, cright)
-recursive_traversal(".", ("CMakeLists.txt", ".sh"), update_line_comment_header, line_comment(cright, "#"))
-recursive_traversal(".", (".bat",), update_line_comment_header, line_comment(cright, "REM"))
+recursive_traversal(".", ("CMakeLists.txt", ".sh"), update_header_block, line_comment(cright, "#"))
+recursive_traversal(".", (".bat",), update_header_block, line_comment(cright, "REM"))
+recursive_traversal("schema", (".xsd",), update_header_block, xml_comment(cright))
 
 print('Remember to update the text for --version in model/CommandLine.cpp!')
 
