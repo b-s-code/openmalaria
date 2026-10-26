@@ -30,6 +30,8 @@
 #include "util/StreamValidator.h"
 #include "util/errors.h"
 
+#include <algorithm>
+#include <array>
 #include <cassert>
 
 using namespace std;
@@ -166,6 +168,10 @@ void DescriptiveWithinHostModel::update(Host::Human &human, LocalRng& rng, int &
     bool treatmentLiver = treatExpiryLiver > sim::ts0();
     bool treatmentBlood = treatExpiryBlood > sim::ts0();
 
+    const bool dailySums = DescriptiveInfection::dailySumDensities();
+    // DAILY_SUM_DENSITIES: sum of densities across infections on each day
+    std::array<double, daysPerStep> dailyDensitySums{};
+
     for(auto inf = infections.begin(); inf != infections.end();) {
         //NOTE: it would be nice to combine this code with that in
         // CommonWithinHost.cpp, but a few changes would be needed:
@@ -183,17 +189,22 @@ void DescriptiveWithinHostModel::update(Host::Human &human, LocalRng& rng, int &
             continue;
         }
         
-        // Should be: infStepMaxDens = 0.0, but has some history.
-        // See MAX_DENS_CORRECTION in DescriptiveInfection.cpp.
-        double infStepMaxDens = timeStepMaxDensity;
         double immSurvFact = immunitySurvivalFactor(ageInYears, (*inf)->cumulativeExposureJ());
         double bsvFactor = human.vaccine.getFactor(interventions::Vaccine::BSV, opt_vaccine_genotype? (*inf)->genotype() : 0);
 
-        (*inf)->determineDensities(rng, m_cumulative_h, infStepMaxDens, immSurvFact, _innateImmSurvFact, bsvFactor);
+        if (dailySums) {
+            (*inf)->determineDailyDensities(rng, m_cumulative_h, immSurvFact, _innateImmSurvFact, bsvFactor, dailyDensitySums);
+        } else {
+            // Should be: infStepMaxDens = 0.0, but has some history.
+            // See MAX_DENS_CORRECTION in DescriptiveInfection.cpp.
+            double infStepMaxDens = timeStepMaxDensity;
 
-        if (bugfix_max_dens)
-            infStepMaxDens = std::max(infStepMaxDens, timeStepMaxDensity);
-        timeStepMaxDensity = infStepMaxDens;
+            (*inf)->determineDensities(rng, m_cumulative_h, infStepMaxDens, immSurvFact, _innateImmSurvFact, bsvFactor);
+
+            if (bugfix_max_dens)
+                infStepMaxDens = std::max(infStepMaxDens, timeStepMaxDensity);
+            timeStepMaxDensity = infStepMaxDens;
+        }
 
         double density = (*inf)->getDensity();
         totalDensity += density;
@@ -203,7 +214,10 @@ void DescriptiveWithinHostModel::update(Host::Human &human, LocalRng& rng, int &
 
         ++inf;
     }
-    
+
+    if (dailySums)
+        timeStepMaxDensity = *std::max_element(dailyDensitySums.begin(), dailyDensitySums.end());
+
     // As in AJTMH p22, cumulative_h (X_h + 1) doesn't include infections added
     // this time-step and cumulative_Y only includes past densities.
     m_cumulative_h += nNewInfs_i + nNewInfs_l;

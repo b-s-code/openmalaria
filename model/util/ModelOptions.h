@@ -276,7 +276,20 @@ namespace OM { namespace util {
          */
         USE_EXACT_NV0_SOLVER,
 
-        
+        /** Descriptive within-host model only: timeStepMaxDensity is the
+         * maximum over the 5 days of the time step of the sum of densities
+         * across all infections.
+         *
+         * Each patent infection draws 5 i.i.d. daily density samples; the
+         * first is used as the infection's density for the time step.
+         *
+         * Default: timeStepMaxDensity is the maximum density of any single
+         * infection, emulating the maximum of 5 daily samples.
+         *
+         * Requires MAX_DENS_CORRECTION and INNATE_MAX_DENS. */
+        DAILY_SUM_DENSITIES,
+
+
 	// Used by tests; should be 1 more than largest option
 	NUM_OPTIONS,
         

@@ -42,6 +42,7 @@ double DescriptiveInfection::sigma0sq;
 double DescriptiveInfection::xNuStar;
 
 bool bugfix_max_dens = true, bugfix_innate_max_dens = true;
+bool opt_daily_sum_densities = false;
 
 
 // ———  static init/clear ———
@@ -60,6 +61,7 @@ void DescriptiveInfection::init (const Parameters& parameters) {
     // stage could result in BSVEfficacy and potentially innateImmSurvFact
     // being applied to timeStepMaxDensity more than once in some cases.
     bugfix_max_dens = util::ModelOptions::option (util::MAX_DENS_CORRECTION);
+    opt_daily_sum_densities = util::ModelOptions::option (util::DAILY_SUM_DENSITIES);
     
     // Read parameters
     sigma0sq=parameters[Parameter::SIGMA0_SQ];
@@ -206,6 +208,60 @@ void DescriptiveInfection::determineDensities(
     
     if (bugfix_innate_max_dens) timeStepMaxDensity *= innateImmSurvFact;
     timeStepMaxDensity *= bsvFactor;
+}
+
+void DescriptiveInfection::determineDailyDensities(
+        LocalRng& rng,
+        double cumulativeh,
+        double immSurvFact,
+        double innateImmSurvFact,
+        double bsvFactor,
+        std::array<double, daysPerStep> &dailyDensitySums)
+{
+    // Age of patent blood stage infection. Note: liver stage is fixed at one
+    // 5-day time step and prepatent blood stage is latentp - 1 time steps.
+    SimTime infage = sim::ts0() - m_startDate - s_latentP;
+    if ( infage < sim::zero()) {
+        // Not yet patent: contributes nothing to the daily sums
+        m_density = 0.0;
+        return;
+    }
+
+    int32_t infAge = min( sim::inSteps(infage), maxDurationTS );
+    int32_t infDur = min( sim::inSteps(m_duration), maxDurationTS );
+    // Expected log density in the non naive host (AJTM p.9 eq. 9)
+    double logDensity = max (meanLogParasiteCount[infAge][infDur], 0.0) * immSurvFact;
+
+    double varlog = sigma0sq / (1.0 + (cumulativeh / xNuStar));
+    double stdlog = sqrt(varlog);
+    // Bias correction such that the mean of each sample is the predicted density
+    double meanlog = logDensity - stdlog*stdlog / 2.0;
+
+    // i.i.d. sample for each day of the time step; the first is m_density
+    for( size_t day = 0; day < daysPerStep; ++day ){
+        double density = rng.log_normal(meanlog, stdlog);
+        if (density > maxDens && notPrintedMDWarning){
+            cerr << "Daily density hit limit:\t" << density << endl;
+            notPrintedMDWarning = false;
+        }
+        // Cap each infection's daily sample, as was previously done today for
+        // m_density. Here daily sum itself isn't capped, so a multi-infection
+        // sum can exceed maxDens.
+        density = min(density, maxDens);
+
+        // Proportion of parasites remaining after innate blood stage effect
+        // and the effect of blood stage vaccination
+        density *= innateImmSurvFact * bsvFactor;
+
+        dailyDensitySums[day] += density;
+        if( day == 0 ) m_density = density;
+    }
+
+    m_cumulativeExposureJ += sim::oneTS() * m_density;
+}
+
+bool DescriptiveInfection::dailySumDensities(){
+    return opt_daily_sum_densities;
 }
 
 

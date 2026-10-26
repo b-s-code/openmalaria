@@ -26,6 +26,8 @@
 #include "Host/WithinHost/Infection/Infection.h"
 #include "util/random.h"
 
+#include <array>
+
 namespace OM { namespace WithinHost {
 
 using util::LocalRng;
@@ -39,6 +41,9 @@ const int32_t numDurations = 84;    // Above plus one (include a category for 0)
 //The maximum parasite density we allow per DescriptiveInfection. Higher values are set to maxDens.
 // NOTE: should this be enforced before or after attenuation (BSV, immunity, IPT)? Was enforced in both places.
 const double maxDens = 2000000;
+
+/// Days per (5-day) time step; DescriptiveInfection::init enforces this time step.
+constexpr size_t daysPerStep = 5;
 
 
 /** A model of Plasmodium Falciparum infections. Described in AJTMH 75(2)
@@ -89,6 +94,8 @@ public:
      *  parasite density over a 5-day interval.
      * @param innateImmSurvFact Density multiplier for innate immunity.
      * @param bsvFactor Density multiplier for Blood-Stage Vaccine effect.
+     *
+     * Not used when DAILY_SUM_DENSITIES is enabled; see determineDailyDensities.
      */
     void determineDensities(
             LocalRng& rng,
@@ -97,6 +104,27 @@ public:
             double immSurvFact,
             double innateImmSurvFact,
             double bsvFactor);
+
+    /** Alternative to determineDensities used when DAILY_SUM_DENSITIES is
+     * enabled.
+     *
+     * Draws daysPerStep i.i.d. daily parasite densities; m_density is set to
+     * the first of these.
+     *
+     * @param dailyDensitySums (In-out param) This infection's daily densities
+     *  are added to the corresponding element.
+     * Other parameters are as for determineDensities.
+     */
+    void determineDailyDensities(
+            LocalRng& rng,
+            double cumulativeh,
+            double immSurvFact,
+            double innateImmSurvFact,
+            double bsvFactor,
+            std::array<double, daysPerStep> &dailyDensitySums);
+
+    /// True when the DAILY_SUM_DENSITIES model option is enabled.
+    static bool dailySumDensities();
     
     /** Decide on an infection duration and return it.
      * 

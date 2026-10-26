@@ -122,7 +122,10 @@ protected:
      *
      * With 5-day time steps, this is not just the maximum density of any infection
      * at the end of the time step, but something designed to emulate the maximum
-     * of 5 daily samples. */
+     * of 5 daily samples.
+     *
+     * With DAILY_SUM_DENSITIES (descriptive model only), this is instead the
+     * maximum over the 5 days of the sum of densities across infections. */
     double timeStepMaxDensity;
     
     /** Total asexual blood stage density over last 20 days (uses samples from

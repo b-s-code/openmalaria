@@ -63,6 +63,7 @@ set (OM_BOXTEST_NAMES
   ModelNameModelOptionOverrides
   ModelNameManyOverrides
   ExactNv0
+  DailySumDensities
 )
 # tests with broken checkpointing:
 set (OM_BOXTEST_NC_NAMES)

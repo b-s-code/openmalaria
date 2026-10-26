@@ -81,6 +81,7 @@ namespace OM { namespace util {
         codeMap["CFR_PF_USE_HOSPITAL"] = CFR_PF_USE_HOSPITAL;
         codeMap["HEALTH_SYSTEM_MEMORY_FIX"] = HEALTH_SYSTEM_MEMORY_FIX;
         codeMap["USE_EXACT_NV0_SOLVER"] = USE_EXACT_NV0_SOLVER;
+        codeMap["DAILY_SUM_DENSITIES"] = DAILY_SUM_DENSITIES;
 	}
 	
 	OptionCodes operator[] (const string s) {
@@ -263,7 +264,15 @@ namespace OM { namespace util {
             .set( EMPIRICAL_WITHIN_HOST_MODEL )
             .set( MOLINEAUX_WITHIN_HOST_MODEL )
             .set( PENNY_WITHIN_HOST_MODEL );
-        
+
+        // Only implemented for the descriptive within-host model
+        incompatibilities[DAILY_SUM_DENSITIES]
+            .set( DUMMY_WITHIN_HOST_MODEL )
+            .set( EMPIRICAL_WITHIN_HOST_MODEL )
+            .set( MOLINEAUX_WITHIN_HOST_MODEL )
+            .set( PENNY_WITHIN_HOST_MODEL )
+            .set( VIVAX_SIMPLE_MODEL );
+
 	for(size_t i = 0; i < NUM_OPTIONS; ++i) {
 	    if (options [i] && (options & incompatibilities[i]).any()) {
 		ostringstream msg;
@@ -281,6 +290,8 @@ namespace OM { namespace util {
         // Required options (above table can't check these):
         if (options[INNATE_MAX_DENS] && !options[MAX_DENS_CORRECTION])
             throw xml_scenario_error ("INNATE_MAX_DENS requires MAX_DENS_CORRECTION");
+        if (options[DAILY_SUM_DENSITIES] && !(options[MAX_DENS_CORRECTION] && options[INNATE_MAX_DENS]))
+            throw xml_scenario_error ("DAILY_SUM_DENSITIES requires MAX_DENS_CORRECTION and INNATE_MAX_DENS");
         if( !options[MOLINEAUX_WITHIN_HOST_MODEL] && (
             options[FIRST_LOCAL_MAXIMUM_GAMMA] ||
             options[MEAN_DURATION_GAMMA] ||
