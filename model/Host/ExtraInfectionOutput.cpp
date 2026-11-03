@@ -24,6 +24,7 @@
 #include "Host/Human.h"
 #include "Host/WithinHost/WHInterface.h"
 #include "Clinical/ClinicalModel.h"
+#include "Host/WithinHost/Pathogenesis/PathogenesisModel.h"
 #include "util/ModelOptions.h"
 #include "util/UnitParse.h"
 #include "util/errors.h"
@@ -135,7 +136,7 @@ void init( const string& scenarioFileName, const scnXml::Model& model ){
     // leave the infection columns blank and "infection" rows leave the
     // human-immunity columns blank.
     outFile << "row_type,time_days,human_id,human_age_years,"
-            << "m_cumulative_h,m_cumulative_Y,clinical_status,"
+            << "m_cumulative_h,m_cumulative_Y,clinical_status,y_star,p_fever,"
             << "infection_id,infection_age,parasite_density,m_cumulativeExposureJ\n";
 }
 
@@ -171,15 +172,33 @@ void report( const Human& human, SimTime time ){
     outFile << "human," << timeDays << ',' << humanID << ',' << ageYears << ','
             << human.withinHostModel->getCumulative_h() << ','
             << human.withinHostModel->getCumulative_Y() << ','
-            << clinicalStatusCode( human.clinicalModel->getLatestState() )
-            << ",,,,\n";     // infection_id, infection_age, parasite_density, m_cumulativeExposureJ (blank)
+            << clinicalStatusCode( human.clinicalModel->getLatestState() ) << ',';
+
+    // y_star, p_fever. Blank when there is no pathogenesis model (Vivax); y_star
+    // also blank when the model has no Y* (Mueller).
+    const WithinHost::Pathogenesis::PathogenesisModel* pm =
+        human.withinHostModel->getPathogenesisModel();
+    if( pm == nullptr ){
+        outFile << ',';
+    } else if( pm->lastPFeverTs0 != sim::latestTs0() ){
+        // "skipped": determineMorbidity was not called for this human this step,
+        // so neither Y* nor the fever probability was evaluated. Happens when
+        // ClinicalModel::update returned early (human is doomed, or died as a
+        // neonate) or the human was born at the end of this step (not yet updated).
+        outFile << "skipped,skipped";
+    } else {
+        const double yStar = pm->getYstar();
+        if( !std::isnan( yStar ) ) outFile << yStar;
+        outFile << ',' << pm->lastPFever;
+    }
+    outFile << ",,,,\n";     // infection_id, infection_age, parasite_density, m_cumulativeExposureJ (blank)
 
     // Infection rows: one per infection object, human-only columns blank.
     vector<WithinHost::ReportedInfectionData> infections;
     human.withinHostModel->getInfectionData( infections );
     for( const auto& inf : infections ){
         outFile << "infection," << timeDays << ',' << humanID << ',' << ageYears << ','
-                << ",,,"     // m_cumulative_h, m_cumulative_Y, clinical_status (blank)
+                << ",,,,,"   // m_cumulative_h, m_cumulative_Y, clinical_status, y_star, p_fever (blank)
                 << inf.id << ',' << inf.ageDays << ',' << inf.density << ','
                 << inf.cumulativeExposureJ << '\n';
     }

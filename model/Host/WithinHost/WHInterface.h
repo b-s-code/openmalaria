@@ -38,6 +38,7 @@ namespace scnXml{
     class Model;
     class TreatmentOption;
 }
+namespace OM { namespace WithinHost { namespace Pathogenesis { class PathogenesisModel; } } }
 class UnittestUtil;
 
 namespace OM {
@@ -212,6 +213,10 @@ public:
      * The default implementation reports no infections; within-host models that
      * keep a list of Infection objects override this. */
     virtual void getInfectionData( vector<ReportedInfectionData>& out ) const {}
+
+    /** Pathogenesis model, or nullptr if this within-host model has none
+     * (Vivax). Used only by the EXTRA_INFECTION_OUTPUT reporting code. */
+    virtual const Pathogenesis::PathogenesisModel* getPathogenesisModel() const { return nullptr; }
 
     /** The maximum number of infections a human can have. The only real reason
      * for this limit is to prevent incase bad input from causing the number of

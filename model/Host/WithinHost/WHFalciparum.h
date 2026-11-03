@@ -71,6 +71,10 @@ public:
     
     virtual Pathogenesis::StatePair determineMorbidity( Host::Human& human, double ageYears, bool isDoomed );
 
+    virtual const Pathogenesis::PathogenesisModel* getPathogenesisModel() const {
+        return pathogenesisModel.get();
+    }
+
     inline double getCumulative_h() const {
         return m_cumulative_h;
     }

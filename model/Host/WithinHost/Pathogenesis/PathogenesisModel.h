@@ -72,6 +72,15 @@ public:
      * to add to the summary. */
     virtual void summarize (const Host::Human& human) {}
 
+    /** Pyrogenic threshold Y*, used by EXTRA_INFECTION_OUTPUT. NaN for models
+     * without one (Mueller). */
+    virtual double getYstar() const { return numeric_limits<double>::quiet_NaN(); }
+
+    /// pMalariaFever from the last determineState() call and the ts0() of that
+    /// call. Used by EXTRA_INFECTION_OUTPUT; not checkpointed.
+    double lastPFever = 0.0;
+    SimTime lastPFeverTs0 = sim::never();
+
     /// Checkpointing
     template<class S>
     void operator& (S& stream) {

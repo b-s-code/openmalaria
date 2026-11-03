@@ -107,6 +107,8 @@ Pathogenesis::StatePair PathogenesisModel::determineState(Host::Human& human,
         double ageYears, double timeStepMaxDensity, double endDensity, bool isDoomed)
 {
     double pMalariaFever = getPEpisode(timeStepMaxDensity, endDensity);
+    lastPFever = pMalariaFever;
+    lastPFeverTs0 = sim::ts0();
     StatePair result;
     //TODO(performance): would using a single RNG sample and manipulating probabilities be faster?
     //Decide whether a clinical episode occurs and if so, which type
