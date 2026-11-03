@@ -24,7 +24,8 @@
 #include "Host/Human.h"
 #include "Host/WithinHost/WHInterface.h"
 #include "Clinical/ClinicalModel.h"
-#include "Host/WithinHost/Pathogenesis/PathogenesisModel.h"
+#include "Host/WithinHost/WHFalciparum.h"
+#include "Host/WithinHost/Pathogenesis/Submodels.h"
 #include "util/ModelOptions.h"
 #include "util/UnitParse.h"
 #include "util/errors.h"
@@ -174,22 +175,18 @@ void report( const Human& human, SimTime time ){
             << human.withinHostModel->getCumulative_Y() << ','
             << clinicalStatusCode( human.clinicalModel->getLatestState() ) << ',';
 
-    // y_star, p_fever. Blank when there is no pathogenesis model (Vivax); y_star
-    // also blank when the model has no Y* (Mueller).
-    const WithinHost::Pathogenesis::PathogenesisModel* pm =
-        human.withinHostModel->getPathogenesisModel();
-    if( pm == nullptr ){
-        outFile << ',';
-    } else if( pm->lastPFeverTs0 != sim::latestTs0() ){
+    // y_star, p_fever. The casts are safe because EXTRA_INFECTION_OUTPUT is
+    // incompatible with VIVAX_SIMPLE_MODEL and MUELLER_PRESENTATION_MODEL.
+    const auto& pm = static_cast<const WithinHost::Pathogenesis::PyrogenPathogenesis&>(
+        static_cast<const WithinHost::WHFalciparum&>( *human.withinHostModel ).getPathogenesisModel() );
+    if( pm.lastPFeverTs0 != sim::latestTs0() ){
         // "skipped": determineMorbidity was not called for this human this step,
         // so neither Y* nor the fever probability was evaluated. Happens when
         // ClinicalModel::update returned early (human is doomed, or died as a
         // neonate) or the human was born at the end of this step (not yet updated).
         outFile << "skipped,skipped";
     } else {
-        const double yStar = pm->getYstar();
-        if( !std::isnan( yStar ) ) outFile << yStar;
-        outFile << ',' << pm->lastPFever;
+        outFile << pm.getYstar() << ',' << pm.lastPFever;
     }
     outFile << ",,,,\n";     // infection_id, infection_age, parasite_density, m_cumulativeExposureJ (blank)
 

@@ -71,8 +71,9 @@ public:
     
     virtual Pathogenesis::StatePair determineMorbidity( Host::Human& human, double ageYears, bool isDoomed );
 
-    virtual const Pathogenesis::PathogenesisModel* getPathogenesisModel() const {
-        return pathogenesisModel.get();
+    /// Used only by the EXTRA_INFECTION_OUTPUT reporting code.
+    inline const Pathogenesis::PathogenesisModel& getPathogenesisModel() const {
+        return *pathogenesisModel;
     }
 
     inline double getCumulative_h() const {

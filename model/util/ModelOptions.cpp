@@ -264,7 +264,12 @@ namespace OM { namespace util {
             .set( EMPIRICAL_WITHIN_HOST_MODEL )
             .set( MOLINEAUX_WITHIN_HOST_MODEL )
             .set( PENNY_WITHIN_HOST_MODEL );
-        
+
+        // ExtraInfectionOutput assumes a WHFalciparum host with a PyrogenPathogenesis model.
+        incompatibilities[EXTRA_INFECTION_OUTPUT]
+            .set( MUELLER_PRESENTATION_MODEL )
+            .set( VIVAX_SIMPLE_MODEL );
+
 	for(size_t i = 0; i < NUM_OPTIONS; ++i) {
 	    if (options [i] && (options & incompatibilities[i]).any()) {
 		ostringstream msg;

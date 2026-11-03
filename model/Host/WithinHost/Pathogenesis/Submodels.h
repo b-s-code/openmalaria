@@ -56,7 +56,8 @@ public:
     virtual ~PyrogenPathogenesis() {}
     virtual void summarize (const Host::Human& human);
     virtual double getPEpisode(double timeStepMaxDensity, double totalDensity);
-    virtual double getYstar() const { return _pyrogenThres; }
+    /// Pyrogenic threshold Y*, used by EXTRA_INFECTION_OUTPUT.
+    double getYstar() const { return _pyrogenThres; }
 
     /// Read parameters from XML
     static void init( const OM::Parameters& parameters );
