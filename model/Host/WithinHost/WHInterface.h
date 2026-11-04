@@ -37,7 +37,8 @@ namespace scnXml{
     class Scenario;
     class Model;
     class TreatmentOption;
-}class UnittestUtil;
+}
+class UnittestUtil;
 
 namespace OM {
 namespace Host {

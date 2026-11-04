@@ -265,10 +265,11 @@ namespace OM { namespace util {
             .set( MOLINEAUX_WITHIN_HOST_MODEL )
             .set( PENNY_WITHIN_HOST_MODEL );
 
-        // ExtraInfectionOutput assumes a WHFalciparum host with a PyrogenPathogenesis model.
+        // ExtraInfectionOutput assumes a WHFalciparum host with a PyrogenPathogenesis model whose p_fever is a probability.
         incompatibilities[EXTRA_INFECTION_OUTPUT]
             .set( MUELLER_PRESENTATION_MODEL )
-            .set( VIVAX_SIMPLE_MODEL );
+            .set( VIVAX_SIMPLE_MODEL )
+            .set( PREDETERMINED_EPISODES );
 
 	for(size_t i = 0; i < NUM_OPTIONS; ++i) {
 	    if (options [i] && (options & incompatibilities[i]).any()) {

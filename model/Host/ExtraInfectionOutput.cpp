@@ -176,7 +176,8 @@ void report( const Human& human, SimTime time ){
             << clinicalStatusCode( human.clinicalModel->getLatestState() ) << ',';
 
     // y_star, p_fever. The casts are safe because EXTRA_INFECTION_OUTPUT is
-    // incompatible with VIVAX_SIMPLE_MODEL and MUELLER_PRESENTATION_MODEL.
+    // incompatible with VIVAX_SIMPLE_MODEL, MUELLER_PRESENTATION_MODEL and
+    // PREDETERMINED_EPISODES.
     const auto& pm = static_cast<const WithinHost::Pathogenesis::PyrogenPathogenesis&>(
         static_cast<const WithinHost::WHFalciparum&>( *human.withinHostModel ).getPathogenesisModel() );
     if( pm.lastPFeverTs0 != sim::latestTs0() ){
