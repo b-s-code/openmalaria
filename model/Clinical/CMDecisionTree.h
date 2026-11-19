@@ -73,7 +73,7 @@ public:
      * 
      * @param node XML element describing the tree
      * @param isUC If isUC is false and a "case type" decision is created, an
-     *  xml_scenario_error exception is thrown. CMHostData::pgState is only
+     *  XmlScenarioError exception is thrown. CMHostData::pgState is only
      *  used by the "case type" decision, so if isUC is false when creating the
      *  tree, pgState does not need to be set when executing the tree. */
     static const CMDecisionTree& create( const ::scnXml::DecisionTree& node, bool isUC );

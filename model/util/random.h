@@ -55,26 +55,26 @@ namespace OM { namespace util {
 // Note: GSL  doesn't really seem to be interested in RNGs producing more than
 // 32-bits of state. This implementation serves two underlying generators.
 template<class T>
-long unsigned int sample_ulong (void *ptr) {
+long unsigned int sampleUlong (void *ptr) {
     T *rng = reinterpret_cast<T*>(ptr);
     return rng->gen_u32();
 }
 template<class T>
-double sample_double01 (void *ptr) {
+double sampleDouble01 (void *ptr) {
     T *rng = reinterpret_cast<T*>(ptr);
     return rng->gen_double();
 }
 
 template<class T>
-gsl_rng_type make_gsl_rng_type(T& rng) {
+gsl_rng_type makeGslRngType(T& rng) {
     return {
         "OM_RNG",		// name
         std::numeric_limits<uint32_t>::max(),
         std::numeric_limits<uint32_t>::min(),
         0,				// size of state; not used here
         nullptr,			// re-seed function; don't use
-        &sample_ulong<T>,
-        &sample_double01<T>
+        &sampleUlong<T>,
+        &sampleDouble01<T>
     };
 }
 
@@ -90,17 +90,17 @@ struct RNG {
     /// are used, 128-bit seeds are recommended to reduce chance of overlapping
     /// sections of RNG output.
     explicit RNG(uint64_t seed, uint64_t stream): m_rng(seed, stream) {
-        m_gsl_type = make_gsl_rng_type(m_rng);
-        m_gsl_gen.type = &m_gsl_type;
-        m_gsl_gen.state = reinterpret_cast<void*>(&m_rng);
+        m_gslType = makeGslRngType(m_rng);
+        m_gslGen.type = &m_gslType;
+        m_gslGen.state = reinterpret_cast<void*>(&m_rng);
     }
     
     /// Seed via another RNG
     template<class S>
     explicit RNG(RNG<S>& source): m_rng(source.m_rng) {
-        m_gsl_type = make_gsl_rng_type(m_rng);
-        m_gsl_gen.type = &m_gsl_type;
-        m_gsl_gen.state = reinterpret_cast<void*>(&m_rng);
+        m_gslType = makeGslRngType(m_rng);
+        m_gslGen.type = &m_gslType;
+        m_gslGen.state = reinterpret_cast<void*>(&m_rng);
     }
     
     // Disable copying
@@ -109,17 +109,17 @@ struct RNG {
   
     /// Allow moving, with explicit functions
     RNG(RNG&& other): m_rng(std::move(other.m_rng)) {
-        m_gsl_type = other.m_gsl_type;
+        m_gslType = other.m_gslType;
         // The following point into instance of this RNG:
-        m_gsl_gen.type = &m_gsl_type;
-        m_gsl_gen.state = reinterpret_cast<void*>(&m_rng);
+        m_gslGen.type = &m_gslType;
+        m_gslGen.state = reinterpret_cast<void*>(&m_rng);
     }
     void operator=(RNG&& other) {
         m_rng = std::move(other.m_rng);
-        m_gsl_type = other.m_gsl_type;
+        m_gslType = other.m_gslType;
         // The following point into instance of this RNG:
-        m_gsl_gen.type = &m_gsl_type;
-        m_gsl_gen.state = reinterpret_cast<void*>(&m_rng);
+        m_gslGen.type = &m_gslType;
+        m_gslGen.state = reinterpret_cast<void*>(&m_rng);
     }
     
     /// Seed with given 128-bit input (see notes on constructor)
@@ -136,7 +136,7 @@ struct RNG {
     }
     //@}
     
-    uint64_t gen_seed() {
+    uint64_t genSeed() {
         uint64_t low = m_rng;
         uint64_t high = m_rng;
         return (high << 32) | low;
@@ -145,19 +145,19 @@ struct RNG {
     ///@brief Random number distributions
     //@{
     /** Generate a random number in the range [0,1). */
-    inline double uniform_01 () {
+    inline double uniform01 () {
         return m_rng.gen_double();
     }
     
     /** This function returns a Gaussian random variate, with mean mean and
      * standard deviation std. The sampled value x ~ N(mean, std^2) . */
     double gauss (double mean, double std){
-        return gsl_ran_gaussian(&m_gsl_gen,std)+mean;
+        return gsl_ran_gaussian(&m_gslGen,std)+mean;
     }
     
     /** This function returns a random variate from the gamma distribution. */
     double gamma (double a, double b){
-        return gsl_ran_gamma(&m_gsl_gen, a, b);
+        return gsl_ran_gamma(&m_gslGen, a, b);
     }
     
     /** This function returns a random variate from the lognormal distribution.
@@ -168,8 +168,8 @@ struct RNG {
      * @param mu mean-log
      * @param sigma sigma-log
      */
-    double log_normal (double meanlog, double stdlog){
-        return gsl_ran_lognormal (&m_gsl_gen, meanlog, stdlog);
+    double logNormal (double meanlog, double stdlog){
+        return gsl_ran_lognormal (&m_gslGen, meanlog, stdlog);
     }
     
     /** Return the maximum over multiple log-normal samples.
@@ -180,7 +180,7 @@ struct RNG {
      * @param meanlog mean of underlying Gaussian
      * @param stdlog standard deviation of underlying Gaussian
      */
-    double max_multi_log_normal (double start, int n, double meanlog, double stdlog){
+    double maxMultiLogNormal (double start, int n, double meanlog, double stdlog){
         // Used for performance reasons. Calling GSL's log_normal 5 times is 50% slower.
         // For random variables X1, .., Xn with identical distribution X and
         // Mn = max(X1, .., Xn), the CDF:
@@ -188,15 +188,15 @@ struct RNG {
         //              = P(X1 ≤ x) P(X2 ≤ x) .. P(Xn ≤ x)
         //              = F_X(x) ^ n
         // Thus for u = F_Mn(x) = F_X(x) ^ n, u^(1/n) = F_X(x).
-        double normp = pow( uniform_01(), 1.0 / n );
+        double normp = pow( uniform01(), 1.0 / n );
         double zval = gsl_cdf_ugaussian_Pinv (normp);
-        double multi_sample = exp(meanlog + stdlog * zval);
-        return std::max(start, multi_sample);
+        double multiSample = exp(meanlog + stdlog * zval);
+        return std::max(start, multiSample);
     }
     
     /** This function returns a random variate from the beta distribution. */
     double beta(double a, double b){
-        return gsl_ran_beta (&m_gsl_gen,a,b);
+        return gsl_ran_beta (&m_gslGen,a,b);
     }
     
     /** This function wraps beta(), setting b=b and a such that m is the mean
@@ -213,7 +213,7 @@ struct RNG {
             //This would lead to an inifinite loop
             throw TRACED_EXCEPTION( "lambda is inf", Error::InfLambda );
         }
-        return gsl_ran_poisson (&m_gsl_gen, lambda);
+        return gsl_ran_poisson (&m_gslGen, lambda);
     }
 
     /** This function returns true with probability prob or 0 with probability
@@ -221,14 +221,14 @@ struct RNG {
     bool bernoulli(double prob){
         assert( (std::isfinite)(prob) );
         // return true iff our variate is less than the probability
-        return uniform_01() < prob;
+        return uniform01() < prob;
     }
     
     /** This function returns an integer from 0 to 1-n, where every value has
      * equal probability of being sampled. */
     inline int uniform (int n) {
         assert( (std::isfinite)(n) );
-        return static_cast<int>( uniform_01() * n );
+        return static_cast<int>( uniform01() * n );
     }
     
     /**
@@ -240,7 +240,7 @@ struct RNG {
      * @param k is the shape parameter
      */
     double weibull( double lambda, double k ){
-        return gsl_ran_weibull( &m_gsl_gen, lambda, k );
+        return gsl_ran_weibull( &m_gslGen, lambda, k );
     }
     //@}
     
@@ -248,8 +248,8 @@ private:
     T m_rng;
     
     // Hooks for GSL distributions
-    gsl_rng_type m_gsl_type;
-    gsl_rng m_gsl_gen;
+    gsl_rng_type m_gslType;
+    gsl_rng m_gslGen;
     
     template<class> friend class RNG;
 };
@@ -258,7 +258,7 @@ typedef RNG<Xoshiro256P> LocalRng;
 typedef RNG<ChaCha<8>> MasterRng;
 
 /// The master RNG, used only for seeding local RNGs
-extern MasterRng master_RNG;
+extern MasterRng masterRng;
 
 } }
 #endif

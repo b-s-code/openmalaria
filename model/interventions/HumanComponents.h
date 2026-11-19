@@ -77,29 +77,29 @@ public:
     /// Checkpointing
     template<class S>
     void operator& (S& stream) {
-        component & stream;
-        numDosesAdministered & stream;
-        timeLastDeployment & stream;
-        perGenotypeInitialEfficacy & stream;
+        m_component & stream;
+        m_numDosesAdministered & stream;
+        m_timeLastDeployment & stream;
+        m_perGenotypeInitialEfficacy & stream;
         checkpointHet(stream);
     }
     
 private:
     PerEffectPerHumanVaccine( LocalRng& rng, ComponentId id, const VaccineComponent& params );
     
-    ComponentId component;      // id of component (for finding parameters)
+    ComponentId m_component;      // id of component (for finding parameters)
     // Type of vaccine
     /** Number of vaccine doses this individual has received.
      *
      * If an individual misses one EPI (continuous) vaccine dose, it's
      * intentional that they also miss following EPI doses (unless a timed mass
      * vaccination reintroduces them to the EPI schedule). */
-    uint32_t numDosesAdministered;
+    uint32_t m_numDosesAdministered;
     /// Time of last vaccination with this vaccine type
-    SimTime timeLastDeployment = sim::never();
+    SimTime m_timeLastDeployment = Sim::never();
     /// Efficacy at last deployment (undecayed)
-    vector<double> perGenotypeInitialEfficacy;
-    unique_ptr<util::DecayFunction> hetSample;
+    vector<double> m_perGenotypeInitialEfficacy;
+    unique_ptr<util::DecayFunction> m_hetSample;
 
     void checkpointHet(ostream& stream);
     void checkpointHet(istream& stream);
@@ -133,13 +133,13 @@ public:
     /// Checkpointing
     template<class S>
     void operator& (S& stream) {
-        effects & stream;
+        m_effects & stream;
     }
 
 private:
     /// Details for each deployed vaccine for this human
     typedef std::vector<PerEffectPerHumanVaccine> EffectList;
-    EffectList effects;
+    EffectList m_effects;
 };
 
 }

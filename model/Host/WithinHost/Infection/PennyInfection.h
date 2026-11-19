@@ -48,8 +48,8 @@ public:
     
     /** Get the density of sequestered parasites. */
     inline double seqDensity(int ageDays){
-        size_t todayV = mod_nn(ageDays, delta_V);
-        return seqDensities[todayV];
+        size_t todayV = modNn(ageDays, delta_V);
+        return m_seqDensities[todayV];
     }
 
 protected:
@@ -66,14 +66,14 @@ private:
     // delta_V := delay to variant specific antibody response in R_V^x (days) (value 6.3572 round to 6)  
     static const int delta_V=6;
     
-    static bool immune_threshold_gamma;
-    static bool update_density_gamma;
+    static bool s_immuneThresholdGamma;
+    static bool s_updateDensityGamma;
     
     // Circulating densities, 1 to delta_C days ago.
     // index (age mod delta_C) corresponds to delta_C days ago.
-    double cirDensities[delta_C];
+    double m_cirDensities[delta_C];
     // as above, but length delta_V
-    double seqDensities[delta_V];
+    double m_seqDensities[delta_V];
     
     // threshold_N is critical threshold for innate immunity (for sigmoidal immune function)
     double threshold_N;
@@ -83,9 +83,9 @@ private:
     double threshold_C;
     
     // tracked summation of densities with decay for variant specific immunity (sigmoidal function)
-    double variantSpecificSummation;
+    double m_variantSpecificSummation;
     // tracked summation of densities with decay for clonal immunity (sigmoidal function)
-    double clonalSummation;
+    double m_clonalSummation;
     
     // allow unittest to access private vars
     friend class ::PennyInfectionSuite;

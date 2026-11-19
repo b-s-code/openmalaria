@@ -50,8 +50,8 @@ public:
     virtual size_t getIndex() const;
     virtual double getConcentration(size_t index) const;
     
-    virtual double calculateDrugFactor(LocalRng& rng, WithinHost::CommonInfection *inf, double body_mass) const;
-    virtual void updateConcentration (double body_mass);
+    virtual double calculateDrugFactor(LocalRng& rng, WithinHost::CommonInfection *inf, double bodyMass) const;
+    virtual void updateConcentration (double bodyMass);
     
 protected:
     virtual void checkpoint (istream& stream);
@@ -59,13 +59,13 @@ protected:
     
     /// Always links a drug instance to its drug-type data
     //TODO: does it still make sense to link this?
-    const LSTMDrugType& typeData;
+    const LSTMDrugType& m_typeData;
     
     /// Concentration in blood; units: mg / l.
-    double concentration;
+    double m_concentration;
     
     /// Sampled elimination rate constant
-    double neg_elim_sample;
+    double m_negElimSample;
 };
 
 }

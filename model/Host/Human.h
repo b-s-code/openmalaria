@@ -123,20 +123,20 @@ public:
     uint32_t nextCtsDist = 0;
 
 private:
-    SimTime dateOfBirth = sim::never();        // date of birth; humans are always born at the end of a time step
+    SimTime m_dateOfBirth = Sim::never();        // date of birth; humans are always born at the end of a time step
 
     /** Cache, updated when human is added to or removed from a sub-population */
-    uint32_t cohortSet = 0;
+    uint32_t m_cohortSet = 0;
 
     /** The state of he human. A human cannot be revived. */
-    bool dead = false;
+    bool m_dead = false;
 
     /** This lists sub-populations of which the human is a member together with
     * expiry time.
     * 
     * Definition: a human is in sub-population p if subPopExp.contains(p) and,
-    * for t=subPopExp[p], t > sim::now() (at the time of intervention
-    * deployment) or t > sim::ts0() (equiv t >= sim::ts1()) during human update.
+    * for t=subPopExp[p], t > Sim::now() (at the time of intervention
+    * deployment) or t > Sim::ts0() (equiv t >= Sim::ts1()) during human update.
     * 
     * NOTE: this discrepancy is because intervention deployment effectively
     * happens at the end of a time step and we want a duration of 1 time step to
@@ -144,7 +144,7 @@ private:
     * 1 human update (the next). */
     //TODO(optimisation): it might be better to instead store for each
     // ComponentId of interest the set of humans who are members
-    std::map<interventions::ComponentId,SimTime> subPopExp;
+    std::map<interventions::ComponentId,SimTime> m_subPopExp;
 };
 
 void summarize(Human &human, bool surveyOnlyNewEp);
@@ -152,29 +152,29 @@ void summarize(Human &human, bool surveyOnlyNewEp);
 void update(Human &human, Transmission::TransmissionModel& transmission);
 
 inline SimTime Human::age( SimTime time ) const { 
-    return time - dateOfBirth; 
+    return time - m_dateOfBirth; 
 }
 
 inline bool Human::isInSubPop( interventions::ComponentId id ) const {
-    auto it = subPopExp.find( id );
-    if( it == subPopExp.end() ) return false;   // no history of membership
-    else return it->second >= sim::nowOrTs0();   // added: has expired?
+    auto it = m_subPopExp.find( id );
+    if( it == m_subPopExp.end() ) return false;   // no history of membership
+    else return it->second >= Sim::nowOrTs0();   // added: has expired?
 }
 
 inline uint32_t Human::getCohortSet() const { 
-    return cohortSet; 
+    return m_cohortSet; 
 }
 
 inline SimTime Human::getDOB() const {
-    return dateOfBirth;
+    return m_dateOfBirth;
 }
 
 inline bool Human::isDead() const {
-    return dead;
+    return m_dead;
 }
 
 inline void Human::kill() {
-    dead = true;
+    m_dead = true;
 }
 
 } }

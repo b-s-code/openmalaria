@@ -30,37 +30,37 @@
 
 namespace OM {
 
-void sim::init( const scnXml::Scenario& scenario, util::ModelNameProvider mnp ){
+void Sim::init( const scnXml::Scenario& scenario, util::ModelNameProvider mnp ){
     initInterval(scenario, mnp);
-    SimData::steps_per_year = sim::inSteps(sim::oneYear());
-    SimData::years_per_step = 1.0 / SimData::steps_per_year;
-    sim::s_max_human_age = sim::fromYearsD( scenario.getDemography().getMaximumAgeYrs() );
+    SimData::s_stepsPerYear = Sim::inSteps(Sim::oneYear());
+    SimData::s_yearsPerStep = 1.0 / SimData::s_stepsPerYear;
+    Sim::s_maxHumanAge = Sim::fromYearsD( scenario.getDemography().getMaximumAgeYrs() );
     
-    sim::s_start = sim::origin();
+    Sim::s_start = Sim::origin();
     auto mon = scenario.getMonitoring();
     if( mon.getStartDate().present() ){
         try{
-            // on failure, this throws or returns sim::never()
-            sim::s_start = UnitParse::parseDate( mon.getStartDate().get() );
-            if( sim::s_start == sim::never() ){
-                throw util::format_error( "invalid format (expected YYYY-MM-DD)" );
+            // on failure, this throws or returns Sim::never()
+            Sim::s_start = UnitParse::parseDate( mon.getStartDate().get() );
+            if( Sim::s_start == Sim::never() ){
+                throw util::FormatError( "invalid format (expected YYYY-MM-DD)" );
             }
-        }catch( const util::format_error& e ){
-            throw util::xml_scenario_error( string("monitoring/startDate: ").append(e.message()) );
+        }catch( const util::FormatError& e ){
+            throw util::XmlScenarioError( string("monitoring/startDate: ").append(e.message()) );
         }
     }
     
-    sim::s_interv = sim::never(); // large negative number
-    sim::s_end = mon::readSurveyDates( mon );
+    Sim::s_interv = Sim::never(); // large negative number
+    Sim::s_end = mon::readSurveyDates( mon );
 }
 
-void sim::initInterval(const scnXml::Scenario& scenario, util::ModelNameProvider mnp)
+void Sim::initInterval(const scnXml::Scenario& scenario, util::ModelNameProvider mnp)
 {
     // If scenario states to use a named model, set the relevant time step duration for
     // that named model here.  It may possibly get overwritten later in this method if
     // the scenario also states an explicit interval value - a behaviour that exists so
     // that users have the ability to override the time step duration if they need to.
-    const util::ModelNames namedModelToUse = mnp.GetModelName();
+    const util::ModelNames namedModelToUse = mnp.getModelName();
     const bool useNamedModel = namedModelToUse != util::ModelNames::none;
     if (useNamedModel)
     {
@@ -68,11 +68,11 @@ void sim::initInterval(const scnXml::Scenario& scenario, util::ModelNameProvider
         {
             // This is where we define the length of the default time step, in days,
             // for the base model.
-            SimData::interval = 5;
+            SimData::s_interval = 5;
         }
         else
         {
-            throw util::xml_scenario_error(
+            throw util::XmlScenarioError(
                 "No pre-set interval value is available for the specified model name.");
         }
     }
@@ -83,7 +83,7 @@ void sim::initInterval(const scnXml::Scenario& scenario, util::ModelNameProvider
     {
         // Schema dictates that interval attribute is required if parameter element exists.
         // So no need to check for existsence of interval attribute in this case.
-        SimData::interval = scenario.getModel().getParameters().get().getInterval();
+        SimData::s_interval = scenario.getModel().getParameters().get().getInterval();
     }
 }
 

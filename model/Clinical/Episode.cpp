@@ -35,7 +35,7 @@ Episode::~Episode ()
 
 void Episode::flush() {
     report();
-    time = sim::never();
+    time = Sim::never();
 }
 
 
@@ -43,9 +43,9 @@ void Episode::update (const Host::Human& human, Episode::State newState)
 {
     bool toReport = false;
 
-    if (healthSystemMemoryFix && (time + ClinicalModel::hsMemory() <= sim::ts0()))
+    if (m_healthSystemMemoryFix && (time + ClinicalModel::hsMemory() <= Sim::ts0()))
         toReport = true;
-    else if (!healthSystemMemoryFix && (time + ClinicalModel::hsMemory() < sim::ts0()))
+    else if (!m_healthSystemMemoryFix && (time + ClinicalModel::hsMemory() < Sim::ts0()))
         toReport = true;
 
     if(toReport) {
@@ -53,7 +53,7 @@ void Episode::update (const Host::Human& human, Episode::State newState)
 
         report ();
 
-        time = sim::ts0();
+        time = Sim::ts0();
         surveyPeriod = mon::eventSurveyNumber();
         ageGroup = human.monitoringAgeGroup;
         cohortSet = human.getCohortSet();
@@ -64,7 +64,7 @@ void Episode::update (const Host::Human& human, Episode::State newState)
 }
 
 void Episode::report () {
-    if (time < sim::zero())        // Nothing to report
+    if (time < Sim::zero())        // Nothing to report
         return;
     
     // Reports malarial/non-malarial UC fever dependent on cause, not diagnosis.
@@ -126,7 +126,7 @@ void Episode::report () {
 
 void Episode::operator& (istream& stream) {
     time & stream;
-    if (time > sim::zero()) {
+    if (time > Sim::zero()) {
         surveyPeriod & stream;
         ageGroup & stream;
         cohortSet & stream;
@@ -137,7 +137,7 @@ void Episode::operator& (istream& stream) {
 }
 void Episode::operator& (ostream& stream) {
     time & stream;
-    if (time >= sim::zero()) {
+    if (time >= Sim::zero()) {
         surveyPeriod & stream;
         ageGroup & stream;
         cohortSet & stream;

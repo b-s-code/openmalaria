@@ -53,8 +53,8 @@ public:
     virtual void treatment( Host::Human& human, TreatmentId treatId );
     virtual void optionalPqTreatment( Host::Human& human );
     virtual bool treatSimple( Host::Human& human, SimTime timeLiver, SimTime timeBlood );
-    virtual void treatPkPd(size_t schedule, size_t dosages, double age, double delay_d);
-    virtual void update(Host::Human &human, LocalRng& rng, int &nNewInfs_i, int &nNewInfs_l, vector<double>& genotype_weights_i, vector<double>& genotype_weights_l, double ageInYears);
+    virtual void treatPkPd(size_t schedule, size_t dosages, double age, double delayD);
+    virtual void update(Host::Human &human, LocalRng& rng, int &nNewInfs_i, int &nNewInfs_l, vector<double>& genotypeWeightsI, vector<double>& genotypeWeightsL, double ageInYears);
     virtual double getTotalDensity() const;
     virtual bool diagnosticResult( LocalRng& rng, const Diagnostic& diagnostic ) const;
     virtual Pathogenesis::StatePair determineMorbidity( Host::Human& human, double ageYears, bool isDoomed );
@@ -69,7 +69,7 @@ public:
     // This mock class counts the number of times treatment() was called. Read/write this as you like.
     int nTreatments;
     
-    // The last treatment time-spans used by the simple treatment model. sim::never() if not used.
+    // The last treatment time-spans used by the simple treatment model. Sim::never() if not used.
     SimTime lastTimeLiver, lastTimeBlood;
     
     // Lists medications and drugs in the body

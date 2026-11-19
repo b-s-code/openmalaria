@@ -39,17 +39,17 @@ namespace PkPd {
 
 struct MedicateData {
     MedicateData () :
-        drug(0),
-        qty(numeric_limits< double >::signaling_NaN()),
-        time(numeric_limits< double >::signaling_NaN())
+        m_drug(0),
+        m_qty(numeric_limits< double >::signaling_NaN()),
+        m_time(numeric_limits< double >::signaling_NaN())
     {}
     
     /// Checkpointing
     template<class S>
     void operator& (S& stream) {
-        drug & stream;
-        qty & stream;
-        time & stream;
+        m_drug & stream;
+        m_qty & stream;
+        m_time & stream;
     }
     
 private:
@@ -57,13 +57,13 @@ private:
     
     inline MedicateData multiplied( double doseMult ){
         MedicateData r( *this );
-        r.qty *= doseMult;
+        r.m_qty *= doseMult;
         return r;
     }
     
-    size_t drug;      /// Drug type index
-    double qty;         /// Quantity of drug prescribed in mg
-    double time;        /// Time to medicate at, in days (0 means start of time step, may be >= 1 (thus not today))
+    size_t m_drug;      /// Drug type index
+    double m_qty;         /// Quantity of drug prescribed in mg
+    double m_time;        /// Time to medicate at, in days (0 means start of time step, may be >= 1 (thus not today))
     
     friend struct Schedule;
     friend class LSTMModel;
@@ -104,7 +104,7 @@ public:
      * @param body_mass Mass of human in kg
      * @param delay_d Delay of treatment in days
      */
-    void prescribe(size_t schedule, size_t dosages, double age, double body_mass, double delay_d);
+    void prescribe(size_t schedule, size_t dosages, double age, double bodyMass, double delayD);
     
     /** Medicate drugs: human takes prescribed drugs which are to be taken this
      * day.
@@ -117,20 +117,20 @@ public:
     /** Get concentration of the drug at the beginning of the day.
      * 
      * For unit testing. Not optimised. */
-    double getDrugConc (size_t drug_index) const;
+    double getDrugConc (size_t drugIndex) const;
     
     /** This is how drugs act on infections.
      *
      * Each time step, on each infection, the parasite density is multiplied by
      * the return value of this infection. The WithinHostModels are responsible
      * for clearing infections once the parasite density is negligible. */
-    double getDrugFactor (LocalRng& rng, WithinHost::CommonInfection *inf, double body_mass) const;
+    double getDrugFactor (LocalRng& rng, WithinHost::CommonInfection *inf, double bodyMass) const;
     
     /** After any resident infections have been reduced by getDrugFactor(),
      * this function is called to update drug levels to their effective level
      * at the end of the day, as well as clear data once drug concentrations
      * become negligible. */
-    void decayDrugs (double body_mass);
+    void decayDrugs (double bodyMass);
     
     /** Make summaries of drug concentration data. */
     void summarize( const Host::Human& human ) const;
@@ -159,7 +159,7 @@ private:
     vector<unique_ptr<LSTMDrug>> m_drugs;
     
     /// All pending medications
-    list<MedicateData> medicateQueue;
+    list<MedicateData> m_medicateQueue;
     
     friend class ::UnittestUtil;
 };

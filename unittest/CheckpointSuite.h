@@ -53,7 +53,7 @@ public:
 	(*test) & os;
 	test->clear ();
 	(*test) & is;
-	orig.assert_equals (*test);
+	orig.assertEquals (*test);
     }
     
     struct TestObject {
@@ -76,7 +76,7 @@ public:
 	    checkpoint (stream);
 	}
 	
-	virtual void assert_equals (TestObject& that) {
+	virtual void assertEquals (TestObject& that) {
 	    TS_ASSERT_EQUALS (x, that.x);
 	}
 	
@@ -143,7 +143,7 @@ public:
 	    n & stream;
 	}
 	
-	virtual void assert_equals (TestObject& p) {
+	virtual void assertEquals (TestObject& p) {
 	    DerivedObject& that = dynamic_cast<DerivedObject&> (p);
 	    TS_ASSERT_EQUALS (x, that.x);
 	    TS_ASSERT_EQUALS (y, that.y);

@@ -53,27 +53,27 @@ public:
 
     /// Allow moving, with explicit functions
     Xoshiro256P(Xoshiro256P&& other) {
-        memcpy(s, other.s, sizeof s);
+        memcpy(m_s, other.m_s, sizeof m_s);
     }
     void operator=(Xoshiro256P&& other) {
-        memcpy(s, other.s, sizeof s);
+        memcpy(m_s, other.m_s, sizeof m_s);
     }
 
 //     template<class Sseq> void seed(Sseq& seq);
 
     void seed(uint64_t a, uint64_t b = 0x220b5e8d, uint64_t c = 0x712a58a2, uint64_t d = 0x712a58a2) {
-        s[0] = a;
-        s[1] = b;
-        s[2] = c;
-        s[3] = d;
+        m_s[0] = a;
+        m_s[1] = b;
+        m_s[2] = c;
+        m_s[3] = d;
     }
 
     template<typename R>
     void seed(R& source) {
-        s[0] = source.gen_u64();
-        s[1] = source.gen_u64();
-        s[2] = source.gen_u64();
-        s[3] = source.gen_u64();
+        m_s[0] = source.gen_u64();
+        m_s[1] = source.gen_u64();
+        m_s[2] = source.gen_u64();
+        m_s[3] = source.gen_u64();
     }
 
     uint64_t operator()();
@@ -90,11 +90,11 @@ public:
 //     friend std::basic_istream<CharT, Traits>& operator>>(std::basic_istream<CharT, Traits>& is, Xoshiro256P& rng);
 
     void binary_checkpoint(ostream& stream) {
-        stream.write (reinterpret_cast<char*>(&s[0]), sizeof(s));
+        stream.write (reinterpret_cast<char*>(&m_s[0]), sizeof(m_s));
     }
     void binary_checkpoint(istream& stream) {
-        stream.read (reinterpret_cast<char*>(&s[0]), sizeof(s));
-        if (!stream || stream.gcount() != sizeof(s))
+        stream.read (reinterpret_cast<char*>(&m_s[0]), sizeof(m_s));
+        if (!stream || stream.gcount() != sizeof(m_s))
             throw runtime_error ("Xoshiro256P::binary_checkpoint: stream read error");
     }
 
@@ -102,10 +102,10 @@ public:
     static constexpr uint64_t max() { return std::numeric_limits<uint64_t>::max(); }
 
 private:
-    void generate_block();
-    void chacha_core();
+    void generateBlock();
+    void chachaCore();
 
-    uint64_t s[4];
+    uint64_t m_s[4];
 };
 
 // template<class Sseq> 
@@ -124,18 +124,18 @@ static inline uint64_t rotl(const uint64_t x, int k) {
 }
 
 inline uint64_t Xoshiro256P::operator()() {
-    const uint64_t result = s[0] + s[3];
+    const uint64_t result = m_s[0] + m_s[3];
 
-    const uint64_t t = s[1] << 17;
+    const uint64_t t = m_s[1] << 17;
 
-    s[2] ^= s[0];
-    s[3] ^= s[1];
-    s[1] ^= s[2];
-    s[0] ^= s[3];
+    m_s[2] ^= m_s[0];
+    m_s[3] ^= m_s[1];
+    m_s[1] ^= m_s[2];
+    m_s[0] ^= m_s[3];
 
-    s[2] ^= t;
+    m_s[2] ^= t;
 
-    s[3] = rotl(s[3], 45);
+    m_s[3] = rotl(m_s[3], 45);
 
     return result;
 }
@@ -157,7 +157,7 @@ inline double Xoshiro256P::gen_double() {
 // Implement <random> interface.
 inline bool operator==(const Xoshiro256P& lhs, const Xoshiro256P& rhs) {
     for (int i = 0; i < 4; ++i) {
-        if (lhs.s[i] != rhs.s[i]) return false;
+        if (lhs.m_s[i] != rhs.m_s[i]) return false;
     }
 
     return true;

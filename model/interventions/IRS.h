@@ -38,13 +38,13 @@ namespace interventions {
 class IRSComponent : public Transmission::HumanVectorInterventionComponent {
 public:
     IRSComponent( ComponentId id, const scnXml::IRSDescription& elt,
-        const map<string,size_t>& species_name_map );
+        const map<string,size_t>& speciesNameMap );
     
     virtual void deploy( Host::Human& human, mon::Deploy::Method method, VaccineLimits )const;
     
     virtual Component::Type componentType() const;
     
-    virtual void print_details( std::ostream& out )const;
+    virtual void printDetails( std::ostream& out )const;
     
     virtual unique_ptr<PerHostInterventionData> makeHumanPart(LocalRng& rng) const;
     virtual unique_ptr<PerHostInterventionData> makeHumanPart( istream& stream, ComponentId ) const;
@@ -54,34 +54,34 @@ private:
     class IRSAnopheles {
     public:
         IRSAnopheles() :
-            proportionProtected( numeric_limits<double>::signaling_NaN() ),
-            proportionUnprotected( numeric_limits<double>::signaling_NaN() )
+            m_proportionProtected( numeric_limits<double>::signaling_NaN() ),
+            m_proportionUnprotected( numeric_limits<double>::signaling_NaN() )
         {}
         void init(const scnXml::IRSDescription::AnophelesParamsType& elt,
                  double proportionUse, double maxInsecticide);
         
         /// Get deterrency. See ComponentParams::effect for a more detailed description.
         inline double relativeAttractiveness( double insecticideContent )const{
-            return _relativeAttractiveness.relativeAttractiveness( insecticideContent );
+            return m_relativeAttractiveness.relativeAttractiveness( insecticideContent );
         }
         /// Get survival effect on mosquitoes before feeding.
         /// See ComponentParams::effect for a more detailed description.
         inline double preprandialSurvivalFactor( double insecticideContent )const{
-            return _preprandialKillingEffect.survivalFactor( insecticideContent );
+            return m_preprandialKillingEffect.survivalFactor( insecticideContent );
         }
         /// Get survival effect on mosquitoes after they've eaten.
         /// See ComponentParams::effect for a more detailed description.
         inline double postprandialSurvivalFactor( double insecticideContent )const{
-            return _postprandialKillingEffect.survivalFactor( insecticideContent );
+            return m_postprandialKillingEffect.survivalFactor( insecticideContent );
         }
         /// Get fecundity effect on mosquitoes surviving feeding
         inline double fecundityEffect( double insecticideContent )const{
-            return _fecundityEffect.survivalFactor( insecticideContent );
+            return m_fecundityEffect.survivalFactor( insecticideContent );
         }
         
         /// Return x*proportionProtected + proportionUnprotected
         inline double byProtection(double x) const{
-            return x*proportionProtected + proportionUnprotected;
+            return x*m_proportionProtected + m_proportionUnprotected;
         }
         
     private:
@@ -105,8 +105,8 @@ private:
             double relativeAttractiveness( double insecticideContent )const;
             
         protected:
-            double lPF;      // log of insecticide factor
-            double insecticideScaling;
+            double m_lPf;      // log of insecticide factor
+            double m_insecticideScaling;
         };
         class SurvivalFactor {
         public:
@@ -126,29 +126,29 @@ private:
             double survivalFactor( double insecticideContent )const;
         private:
             double BF,PF;   // base and insecticide factors
-            double insecticideScaling;
-            double invBaseSurvival; // stored for performance only
+            double m_insecticideScaling;
+            double m_invBaseSurvival; // stored for performance only
         };
-        double proportionProtected;
-        double proportionUnprotected;
-        RelativeAttractiveness _relativeAttractiveness;
-        SurvivalFactor _preprandialKillingEffect;
-        SurvivalFactor _postprandialKillingEffect;
-        SurvivalFactor _fecundityEffect;
+        double m_proportionProtected;
+        double m_proportionUnprotected;
+        RelativeAttractiveness m_relativeAttractiveness;
+        SurvivalFactor m_preprandialKillingEffect;
+        SurvivalFactor m_postprandialKillingEffect;
+        SurvivalFactor m_fecundityEffect;
         
         friend class HumanIRS;
     };
     
     double sampleInitialInsecticide(LocalRng& rng) const;
     
-    NormalSampler initialInsecticide;
-    double maxInsecticide;              // maximum initial insecticide
-    unique_ptr<DecayFunction> insecticideDecay;
-    vector<IRSAnopheles> species; // vector specific params
+    NormalSampler m_initialInsecticide;
+    double m_maxInsecticide;              // maximum initial insecticide
+    unique_ptr<DecayFunction> m_insecticideDecay;
+    vector<IRSAnopheles> m_species; // vector specific params
     
     // This is sparse vector: only indexes corresponding to a IRS component are used
     // No memory management
-    static vector<IRSComponent*> componentsByIndex;
+    static vector<IRSComponent*> s_componentsByIndex;
     
     friend class HumanIRS;
 };
@@ -166,9 +166,9 @@ public:
     
     /// Get remaining insecticide content based on initial amount and decay.
     inline double getInsecticideContent(const IRSComponent& params)const{
-        SimTime age = sim::nowOrTs1() - deployTime;  // implies age 1 TS on first use
-        double effectSurvival = insecticideDecayHet->eval( age );
-        return initialInsecticide * effectSurvival;
+        SimTime age = Sim::nowOrTs1() - m_deployTime;  // implies age 1 TS on first use
+        double effectSurvival = m_insecticideDecayHet->eval( age );
+        return m_initialInsecticide * effectSurvival;
     }
     
     /// Call once per time step to update holes
@@ -191,10 +191,10 @@ protected:
 private:
     // this is sampled for each deployment: initial insecticide content doesn't
     // depend on handling by the recipient
-    double initialInsecticide;	// units: mg/m²
+    double m_initialInsecticide;	// units: mg/m²
     
     // this parameter is sampled on first deployment, but never resampled for the same human:
-    unique_ptr<DecayFunction> insecticideDecayHet;
+    unique_ptr<DecayFunction> m_insecticideDecayHet;
 };
 
 } }

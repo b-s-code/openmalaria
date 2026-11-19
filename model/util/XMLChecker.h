@@ -52,9 +52,9 @@ namespace OM
             *  - identify certain problems in the input XML as early as possible, and
             *  - enable the user to obtain a more informative error message.
             */
-            void PerformPostValidationChecks(const scnXml::Scenario& scenario)
+            void performPostValidationChecks(const scnXml::Scenario& scenario)
             {
-                CheckModelOptionsAndParams(scenario);
+                checkModelOptionsAndParams(scenario);
             }
         private:
 
@@ -62,7 +62,7 @@ namespace OM
             * Verifies that, if no model name is written in input XML, then both parameters and
             * model options and written explicitly.
             */
-            void CheckModelOptionsAndParams(const scnXml::Scenario& scenario)
+            void checkModelOptionsAndParams(const scnXml::Scenario& scenario)
             {
                 // For each relevant element, determine whether it's specified explicitly in XML.
                 const bool modelName = scenario.getModel().getModelName().present();
@@ -70,7 +70,7 @@ namespace OM
                 const bool modelOptions = scenario.getModel().getModelOptions().present();
                 if (!modelName && (!parameters || !modelOptions))
                 {
-                    throw util::xml_scenario_error(
+                    throw util::XmlScenarioError(
                         "If a model name is not specified then both <ModelOptions> and <parameters> must be specified");
                 }
             }

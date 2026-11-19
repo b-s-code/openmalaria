@@ -50,14 +50,14 @@ public:
     }
     
     Infection (uint32_t genotype, int origin) :
-        m_startDate(sim::nowOrTs0()),
+        m_startDate(Sim::nowOrTs0()),
         m_density(0.0),
         m_cumulativeExposureJ(0.0),
         m_genotype(genotype),
         m_origin(origin)
     {}
     Infection (istream& stream) :
-        m_startDate(sim::never())
+        m_startDate(Sim::never())
     {
         m_startDate & stream;
         m_density & stream;
@@ -86,7 +86,7 @@ public:
      * first update (though due to the latent period densities will still be
      * low). */
     inline bool bloodStage() const{
-        return sim::latestTs0() - m_startDate > sim::fromDays(5);
+        return Sim::latestTs0() - m_startDate > Sim::fromDays(5);
     }
     
     /// Get the density of the infection as of the last update
@@ -101,7 +101,7 @@ public:
     
     /// Get whether the infection is HRP2-deficient
     bool isHrp2Deficient() const {
-        return Genotypes::getGenotypes()[m_genotype].hrp2_deficient;
+        return Genotypes::getGenotypes()[m_genotype].hrp2Deficient;
     }
     
     /** Get the infection's genotype. */
@@ -134,7 +134,7 @@ protected:
     
     /// Date of inoculation of infection (start of liver stage)
     /// This is the step of inoculation (ts0()).
-    SimTime m_startDate = sim::never();
+    SimTime m_startDate = Sim::never();
     
     /// Current density of the infection
     double m_density;
@@ -156,7 +156,7 @@ protected:
 };
 
 template <typename T>
-InfectionOrigin get_infection_origin(const std::list<T*> &infections)
+InfectionOrigin getInfectionOrigin(const std::list<T*> &infections)
 {
     if(infections.empty())
         return InfectionOrigin::Indigenous;

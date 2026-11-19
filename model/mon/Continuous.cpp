@@ -33,7 +33,7 @@
 namespace OM {
     namespace mon {
     namespace Continuous {
-        using util::xml_scenario_error;
+        using util::XmlScenarioError;
 
         /// This is used to output some statistics in a tab-deliminated-value file.
         /// (It used to be csv, but German Excel can't open csv directly.)
@@ -47,7 +47,7 @@ namespace OM {
         // List that we report.
         vector< tuple<string, std::function<void(Population&, ostream&)>> > toReport;
 
-        SimTime ctsPeriod = sim::zero();
+        SimTime ctsPeriod = Sim::zero();
 
         bool duringInit = false;
 
@@ -56,17 +56,17 @@ namespace OM {
         void init (const scnXml::Monitoring& monitoring, bool isCheckpoint) {
             const scnXml::Monitoring::ContinuousOptional& ctsOpt = monitoring.getContinuous();
             if( !ctsOpt.present() ) {
-                ctsPeriod = sim::zero();
+                ctsPeriod = Sim::zero();
                 return;
             }
             const auto& options = ctsOpt.get();
             try{
                 //NOTE: if changing XSD, this should not have a default unit:
                 ctsPeriod = UnitParse::readShortDuration( options.getPeriod(), UnitParse::STEPS );
-                if( ctsPeriod < sim::oneTS() )
-                    throw util::format_error("must be >= 1 time step");
-            }catch( const util::format_error& e ){
-                throw xml_scenario_error( string("monitoring/continuous/period: ").append(e.message()) );
+                if( ctsPeriod < Sim::oneTS() )
+                    throw util::FormatError("must be >= 1 time step");
+            }catch( const util::FormatError& e ){
+                throw XmlScenarioError( string("monitoring/continuous/period: ").append(e.message()) );
             }
 
             if( options.getDuringInit().present() )
@@ -75,7 +75,7 @@ namespace OM {
             for (const auto& option : options.getOption()) {
                 auto registeredOutput = registered.find(option.getName());
                 if (registeredOutput == registered.end()) {
-                    throw xml_scenario_error("monitoring.continuous: no output " + string(option.getName()));
+                    throw XmlScenarioError("monitoring.continuous: no output " + string(option.getName()));
                 }
                 if (option.getValue()) toReport.push_back(registeredOutput->second);
             }
@@ -86,7 +86,7 @@ namespace OM {
                 // When loading a check-point, we resume reporting to this file.
                 ctsOStream.open(filename, ios::binary|ios::ate|ios::in|ios::out);
                 if( ctsOStream.fail() )
-                    throw util::checkpoint_error ("Continuous: resume error (no file)");
+                    throw util::CheckpointError ("Continuous: resume error (no file)");
                 return; // checkpoint() sets the saved output position later
             }
 
@@ -100,13 +100,13 @@ namespace OM {
         }
 
         void checkpoint (ostream& stream){
-            if( ctsPeriod == sim::zero() )
+            if( ctsPeriod == Sim::zero() )
                 return;	// output disabled
 
             streamOffset & stream;
         }
         void checkpoint (istream& stream){
-            if( ctsPeriod == sim::zero() )
+            if( ctsPeriod == Sim::zero() )
                 return;	// output disabled
 
             /* We attempt to resume output correctly after a reload by recording
@@ -120,19 +120,19 @@ namespace OM {
             ctsOStream.seekp( streamOffset, ios_base::beg );
 
             if( ctsOStream.fail() )
-                throw util::checkpoint_error ("Continuous: resume error (bad pos/file)");
+                throw util::CheckpointError ("Continuous: resume error (bad pos/file)");
         }
 
         void registerCallback (string optName, string titles, function<void(ostream&)> f){
             assert(registered.count(optName) == 0); // name clash/registered twice?
-            function<void(const Population&, ostream&)> _f = [f](const Population&, ostream& ostream){ f(ostream); };
-            registered[optName] = {titles, _f};
+            function<void(const Population&, ostream&)> wrapped = [f](const Population&, ostream& ostream){ f(ostream); };
+            registered[optName] = {titles, wrapped};
         }
 
         void registerCallback (string optName, string titles, function<void(const vector<Host::Human> &, ostream&)> f){
             assert(registered.count(optName) == 0); // name clash/registered twice?
-            function<void(const Population&, ostream&)> _f = [f](const Population &p, ostream& ostream){ f(p.humans, ostream); };
-            registered[optName] = {titles, _f};
+            function<void(const Population&, ostream&)> wrapped = [f](const Population &p, ostream& ostream){ f(p.humans, ostream); };
+            registered[optName] = {titles, wrapped};
         }
 
         void registerCallback (string optName, string titles, function<void(Population &, ostream&)> f){
@@ -141,24 +141,24 @@ namespace OM {
         }
 
         void update (Population &population){
-            if( ctsPeriod == sim::zero() )
+            if( ctsPeriod == Sim::zero() )
                 return;	// output disabled
             if( !duringInit ){
-                if( sim::intervTime() < sim::zero()
-                    || mod_nn(sim::intervTime(), ctsPeriod) != sim::zero() )
+                if( Sim::intervTime() < Sim::zero()
+                    || modNn(Sim::intervTime(), ctsPeriod) != Sim::zero() )
                     return;
             } else {
-                if( mod_nn(sim::now(), ctsPeriod) != sim::zero() )
+                if( modNn(Sim::now(), ctsPeriod) != Sim::zero() )
                     return;
-                ctsOStream << sim::inSteps(sim::now()) << '\t';
+                ctsOStream << Sim::inSteps(Sim::now()) << '\t';
             }
 
-            if( duringInit && sim::intervTime() < sim::zero() ){
+            if( duringInit && Sim::intervTime() < Sim::zero() ){
                 ctsOStream << "nan";
             }else{
                 // NOTE: we could switch this to output dates, but (1) it would be
                 // breaking change and (2) it may be harder to use.
-                ctsOStream << sim::inSteps(sim::intervTime());
+                ctsOStream << Sim::inSteps(Sim::intervTime());
             }
             for (const auto& report : toReport) std::get<1>(report)(population, ctsOStream);
 

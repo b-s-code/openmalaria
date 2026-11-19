@@ -43,10 +43,10 @@ using namespace OM::util;
 
 bool reportInfectionsByGenotype = false;
 
-bool opt_vivax_simple = false,
-        opt_dummy_whm = false, opt_empirical_whm = false,
-        opt_molineaux_whm = false, opt_penny_whm = false,
-        opt_common_whm = false;
+bool optVivaxSimple = false,
+        optDummyWhm = false, optEmpiricalWhm = false,
+        optMolineauxWhm = false, optPennyWhm = false,
+        optCommonWhm = false;
 
 // -----  static functions  -----
 
@@ -56,30 +56,30 @@ void WHInterface::init( const OM::Parameters& parameters, const scnXml::Scenario
         mon::isUsed(mon::measure("logDensByGenotype"));
     
     if( util::ModelOptions::option( util::VIVAX_SIMPLE_MODEL ) ){
-        opt_vivax_simple = true;
+        optVivaxSimple = true;
         WHVivax::init( parameters, scenario.getModel() );
     }else{
         WHFalciparum::init( parameters, scenario.getModel() );
         
         if (util::ModelOptions::option (util::DUMMY_WITHIN_HOST_MODEL)) {
-            opt_dummy_whm = true;
+            optDummyWhm = true;
             DummyInfection::init ();
         } else if (util::ModelOptions::option (util::EMPIRICAL_WITHIN_HOST_MODEL)) {
-            opt_empirical_whm = true;
+            optEmpiricalWhm = true;
             EmpiricalInfection::init();    // 1-day time step check
         } else if (util::ModelOptions::option (util::MOLINEAUX_WITHIN_HOST_MODEL)) {
-            opt_molineaux_whm = true;
+            optMolineauxWhm = true;
             MolineauxInfection::init( parameters );
         } else if (util::ModelOptions::option (util::PENNY_WITHIN_HOST_MODEL)) {
-            opt_penny_whm = true;
+            optPennyWhm = true;
             PennyInfection::init();
         } else {
             DescriptiveInfection::init( parameters );      // 5-day time step check
         }
-        opt_common_whm = opt_dummy_whm || opt_empirical_whm
-                || opt_molineaux_whm || opt_penny_whm;
+        optCommonWhm = optDummyWhm || optEmpiricalWhm
+                || optMolineauxWhm || optPennyWhm;
         
-        if( opt_common_whm ){
+        if( optCommonWhm ){
             CommonWithinHost::init( scenario );
         }else{
             DescriptiveWithinHostModel::initDescriptive();
@@ -92,9 +92,9 @@ TreatmentId WHInterface::addTreatment(const scnXml::TreatmentOption& desc){
 }
 
 unique_ptr<WHInterface> WHInterface::createWithinHostModel(LocalRng& rng, double comorbidityFactor) {
-    if( opt_vivax_simple ) {
+    if( optVivaxSimple ) {
         return unique_ptr<WHInterface>(new WHVivax( rng, comorbidityFactor ));
-    } else if( opt_common_whm ) {
+    } else if( optCommonWhm ) {
         return unique_ptr<WHInterface>(new CommonWithinHost( rng, comorbidityFactor ));
     } else {
         return unique_ptr<WHInterface>(new DescriptiveWithinHostModel( rng, comorbidityFactor ));
@@ -106,13 +106,13 @@ unique_ptr<WHInterface> WHInterface::createWithinHostModel(LocalRng& rng, double
 
 
 void WHInterface::checkpoint (istream& stream) {
-    numInfs & stream;
+    m_numInfs & stream;
 
-    if (numInfs > MAX_INFECTIONS)
-        throw util::checkpoint_error("numInfs: " + to_string(numInfs));
+    if (m_numInfs > MaxInfections)
+        throw util::CheckpointError("numInfs: " + to_string(m_numInfs));
 }
 void WHInterface::checkpoint (ostream& stream) {
-    numInfs & stream;
+    m_numInfs & stream;
 }
 
 }

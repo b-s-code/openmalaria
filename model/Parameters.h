@@ -147,13 +147,13 @@ public:
     */
     Parameters( const scnXml::Model::ParametersOptional& xmlParameterValues, util::ModelNameProvider mnp )
     {
-        for (const std::pair<int, Parameter> pair : idCodeToNameMap)
+        for (const std::pair<int, Parameter> pair : m_idCodeToNameMap)
         {
             const Parameter name = pair.second;
-            nameToValueMap[name] = std::nullopt;
+            m_nameToValueMap[name] = std::nullopt;
         }
 
-        const util::ModelNames namedModelToUse = mnp.GetModelName();
+        const util::ModelNames namedModelToUse = mnp.getModelName();
         const bool useNamedModel = namedModelToUse != util::ModelNames::none;
         if (useNamedModel)
         {
@@ -163,7 +163,7 @@ public:
             }
             else
             {
-                throw util::xml_scenario_error(
+                throw util::XmlScenarioError(
                     "No pre-set parameter values are available for the specified model name.");
             }
         }
@@ -184,22 +184,22 @@ public:
      */
     double operator[]( Parameter name )const{
         // First check the parameter actually exists and has a value.
-        const bool paramHasAValueSet = nameToValueMap.at(name) != std::nullopt;
+        const bool paramHasAValueSet = m_nameToValueMap.at(name) != std::nullopt;
         if (!paramHasAValueSet)
         {
-            for (const std::pair<int, Parameter> pair : idCodeToNameMap)
+            for (const std::pair<int, Parameter> pair : m_idCodeToNameMap)
             {
                 if (pair.second == name)
                 {
                     const int paramCode = pair.first;
-                    throw util::xml_scenario_error("Parameter with index " + to_string(paramCode) +
+                    throw util::XmlScenarioError("Parameter with index " + to_string(paramCode) +
                             " required but not described.");
                 }
             }
-            throw util::base_exception("A parameter required by this simulation is missing a definition for its ID in C++ code.");
+            throw util::BaseException("A parameter required by this simulation is missing a definition for its ID in C++ code.");
         }
 
-        return nameToValueMap.at(name).value();
+        return m_nameToValueMap.at(name).value();
     }
 
 private:
@@ -227,7 +227,7 @@ private:
             const double paramValueFromXML = param.getValue();
 
             // C++20 offers "contains" which would be more expressive than "count" here.
-            const bool paramIdIsValid = idCodeToNameMap.count(paramId);
+            const bool paramIdIsValid = m_idCodeToNameMap.count(paramId);
             if (!paramIdIsValid)
             {
                 if( util::CommandLine::option(util::CommandLine::DEPRECATION_WARNINGS) ){
@@ -242,16 +242,16 @@ private:
                 // deprecated some parameters.
                 continue;
             }
-            const Parameter nameOfParamToSet = idCodeToNameMap.at(paramId);
+            const Parameter nameOfParamToSet = m_idCodeToNameMap.at(paramId);
 
             const bool paramValueAlreadySet = !paramIdsSetByUser.insert(paramId).second;
             if (paramValueAlreadySet)
             {
-                throw util::xml_scenario_error("Parameter with index " + to_string(paramId) +
+                throw util::XmlScenarioError("Parameter with index " + to_string(paramId) +
                         " described twice in XML.");
             }
 
-            nameToValueMap[nameOfParamToSet] = paramValueFromXML;
+            m_nameToValueMap[nameOfParamToSet] = paramValueFromXML;
         }
     }
 
@@ -266,7 +266,7 @@ private:
         // e.g. for a deprecated parameter.  This is so that a more informative error message can be given.
         // std::unordered_map is not able to be made constexpr, which means it would be non-trivial to handle
         // this error condition with a compile-time check instead.
-        auto retrieveParamName = [&idCodeToNameMap = std::as_const(idCodeToNameMap)](const int id) -> Parameter
+        auto retrieveParamName = [&idCodeToNameMap = std::as_const(m_idCodeToNameMap)](const int id) -> Parameter
         {
             try
             {
@@ -275,11 +275,11 @@ private:
             catch (const exception& e)
             {
                 cerr << "Error: " << e.what() << endl;
-                throw util::traced_exception( "Base model attempted to set a value for a parameter with id: " + std::to_string(id)
+                throw util::TracedException( "Base model attempted to set a value for a parameter with id: " + std::to_string(id)
                         + ", which is not currently supported." , __FILE__, __LINE__);
             }
         };
-        nameToValueMap[ retrieveParamName(paramId) ] = value;
+        m_nameToValueMap[ retrieveParamName(paramId) ] = value;
     }
 
     /*
@@ -328,7 +328,7 @@ private:
     * The keys of this map need not form a contiguous sequence.
     * E.g. in the case where a parameter is deleted altogether from the simulation code.
     */
-    const std::unordered_map<int, Parameter> idCodeToNameMap
+    const std::unordered_map<int, Parameter> m_idCodeToNameMap
     {
         { 1,  Parameter::NEG_LOG_ONE_MINUS_SINF },
         { 2,  Parameter::E_STAR },
@@ -383,7 +383,7 @@ private:
     * XML explicitly states to use some model which itself contains the
     * given parameter among its preset values.
     */
-    std::unordered_map<Parameter, std::optional<double>> nameToValueMap;
+    std::unordered_map<Parameter, std::optional<double>> m_nameToValueMap;
 };
 
 }

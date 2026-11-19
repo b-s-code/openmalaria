@@ -44,13 +44,13 @@ public:
      * @param species_name_map Map of species names to indices.
      */
     GVIComponent( ComponentId, const scnXml::GVIDescription& elt,
-               const map<string,size_t>& species_name_map );
+               const map<string,size_t>& speciesNameMap );
     
     void deploy( Host::Human& human, mon::Deploy::Method method, VaccineLimits )const;
     
     virtual Component::Type componentType() const;
     
-    virtual void print_details( std::ostream& out )const;
+    virtual void printDetails( std::ostream& out )const;
     
     virtual unique_ptr<PerHostInterventionData> makeHumanPart(LocalRng& rng) const;
     virtual unique_ptr<PerHostInterventionData> makeHumanPart( istream& stream, ComponentId ) const;
@@ -84,12 +84,12 @@ private:
         friend class HumanGVI;
     };
     
-    unique_ptr<DecayFunction> decay;
-    vector<GVIAnopheles> species;  // vector specific params
+    unique_ptr<DecayFunction> m_decay;
+    vector<GVIAnopheles> m_species;  // vector specific params
     
     // This is sparse vector: only indexes corresponding to a GVI component are used
     // No memory management
-    static vector<GVIComponent*> componentsByIndex;
+    static vector<GVIComponent*> s_componentsByIndex;
     
     friend class HumanGVI;
 };
@@ -108,8 +108,8 @@ public:
     
     /** This is the survival factor of the effect. */
     inline double getEffectSurvival(const GVIComponent& params)const{
-        SimTime age = sim::nowOrTs1() - deployTime;  // implies age 1 TS on first use
-        return decayHet->eval( age );
+        SimTime age = Sim::nowOrTs1() - m_deployTime;  // implies age 1 TS on first use
+        return m_decayHet->eval( age );
     }
     
     virtual void update(Host::Human& human);
@@ -130,7 +130,7 @@ protected:
     
 private:
     // this parameter is sampled on first deployment, but never resampled for the same human:
-    unique_ptr<DecayFunction> decayHet;
+    unique_ptr<DecayFunction> m_decayHet;
 };
 
 } }

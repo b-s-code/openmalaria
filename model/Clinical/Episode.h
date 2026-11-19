@@ -81,13 +81,13 @@ public:
     };
     
     Episode() :
-            time(sim::never()),
-            surveyPeriod(mon::NOT_USED),
+            time(Sim::never()),
+            surveyPeriod(mon::NotUsed),
             ageGroup(0),
             cohortSet(0),
             state(NONE)
     {
-        healthSystemMemoryFix = util::ModelOptions::option (util::HEALTH_SYSTEM_MEMORY_FIX);
+        m_healthSystemMemoryFix = util::ModelOptions::option (util::HEALTH_SYSTEM_MEMORY_FIX);
     };
 
   ~Episode();
@@ -107,7 +107,7 @@ public:
     void operator& (ostream& stream);	///< ditto
     
     /// Time of event, potentially never
-    SimTime time = sim::never();
+    SimTime time = Sim::never();
     /// Survey during which the event occured
     size_t surveyPeriod;
     /// Age group of the individual when the episode's first bout occurred
@@ -129,7 +129,7 @@ private:
      * (both in and out of hospital). */
     void report();
 
-    bool healthSystemMemoryFix = false;
+    bool m_healthSystemMemoryFix = false;
 };
 
 } }

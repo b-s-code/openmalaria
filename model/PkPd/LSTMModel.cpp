@@ -60,7 +60,7 @@ void LSTMModel::checkpoint (istream& stream) {
         m_drugs.push_back( LSTMDrugType::createInstance(rng, index) );
         m_drugs.back() & stream;
     }
-    medicateQueue & stream;
+    m_medicateQueue & stream;
 }
 
 void LSTMModel::checkpoint (ostream& stream) {
@@ -69,35 +69,35 @@ void LSTMModel::checkpoint (ostream& stream) {
         drug->getIndex() & stream;
         drug & stream;
     }
-    medicateQueue & stream;
+    m_medicateQueue & stream;
 }
 
 
 // ———  non-static simulation time functions  ———
 
-void LSTMModel::prescribe(size_t schedule, size_t dosage, double age, double body_mass, double delay_d){
+void LSTMModel::prescribe(size_t schedule, size_t dosage, double age, double bodyMass, double delayD){
     DosageTable& table = dosages[dosage];
-    double key = table.useMass ? body_mass : age;
+    double key = table.useMass ? bodyMass : age;
     double doseMult = table.getMultiplier( key );
     for( MedicateData& medicateData : schedules[schedule].medications ){
         MedicateData data = medicateData.multiplied(doseMult);
-        data.time += delay_d;
-        medicateQueue.push_back( std::move(data) );
+        data.m_time += delayD;
+        m_medicateQueue.push_back( std::move(data) );
     }
 }
 
 void LSTMModel::medicate(LocalRng& rng){
-    if( medicateQueue.empty() ) return;
+    if( m_medicateQueue.empty() ) return;
     
     // Process pending medications (in interal queue) and apply/update:
-    auto iter = medicateQueue.begin();
-    while( iter != medicateQueue.end() ){
-        if( iter->time < 1.0 ){   // Medicate medications to be prescribed starting at the next time-step
+    auto iter = m_medicateQueue.begin();
+    while( iter != m_medicateQueue.end() ){
+        if( iter->m_time < 1.0 ){   // Medicate medications to be prescribed starting at the next time-step
             // This function could be inlined, except for uses in testing:
-            medicateDrug (rng, iter->drug, iter->qty, iter->time);
-            iter = medicateQueue.erase (iter);
+            medicateDrug (rng, iter->m_drug, iter->m_qty, iter->m_time);
+            iter = m_medicateQueue.erase (iter);
         }else{  // and decrement treatment seeking delay for the rest
-            iter->time -= 1.0;
+            iter->m_time -= 1.0;
             ++iter;
         }
     }
@@ -116,15 +116,15 @@ void LSTMModel::medicateDrug(LocalRng& rng, size_t typeIndex, double qty, double
     (*m_drugs.back()).medicate (time, qty);
 }
 
-double LSTMModel::getDrugConc (size_t drug_index) const{
+double LSTMModel::getDrugConc (size_t drugIndex) const{
     double c = 0.0;
     double d = 0.0;
     for( auto& drug : m_drugs ){
-        d = drug->getConcentration(drug_index);
+        d = drug->getConcentration(drugIndex);
         if(d < 0.0){
             // FIXME: @tph-thuering, 2015-08-11:
             // This is trying to circumvent an issue we have with negative metabolite concentration values in the implementation of the conversion model. see #53
-            cerr << "ERROR! concentration is lower than zero, setting it to zero for now: " << d << " drug_index: " << drug_index << endl;
+            cerr << "ERROR! concentration is lower than zero, setting it to zero for now: " << d << " drug_index: " << drugIndex << endl;
             d = 0.0;
         }
         c += d;
@@ -133,21 +133,21 @@ double LSTMModel::getDrugConc (size_t drug_index) const{
     return c;
 }
 
-double LSTMModel::getDrugFactor (LocalRng& rng, WithinHost::CommonInfection *inf, double body_mass) const{
+double LSTMModel::getDrugFactor (LocalRng& rng, WithinHost::CommonInfection *inf, double bodyMass) const{
     double factor = 1.0; //no effect
     
     for( auto drug = m_drugs.begin(), end = m_drugs.end(); drug != end; ++drug ){
-        double drugFactor = (*drug)->calculateDrugFactor(rng, inf, body_mass);
+        double drugFactor = (*drug)->calculateDrugFactor(rng, inf, bodyMass);
         factor *= drugFactor;
     }
     return factor;
 }
 
-void LSTMModel::decayDrugs (double body_mass) {
+void LSTMModel::decayDrugs (double bodyMass) {
     // Update concentrations for each drug.
     // TODO: previously we removed drugs with negligible concentration here. What now, just set concentration to 0?
     for( auto& drug : m_drugs ){
-        drug->updateConcentration(body_mass);
+        drug->updateConcentration(bodyMass);
     }
 }
 

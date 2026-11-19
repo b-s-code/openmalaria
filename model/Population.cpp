@@ -46,11 +46,11 @@ namespace OM
     using Transmission::TransmissionModel;
 
 /** Variables for continuous reporting */
-const vector<double> ctsDemogAgeGroups = { 1.0, 5.0, 10.0, 15.0, 25.0 };
+const vector<double> CtsDemogAgeGroups = { 1.0, 5.0, 10.0, 15.0, 25.0 };
 
 // -----  non-static methods: creation/destruction, checkpointing  -----
 
-Population::Population(size_t size) : size (size) {}
+Population::Population(size_t size) : m_size (size) {}
 
 void Population::createInitialHumans()
 {
@@ -60,12 +60,12 @@ void Population::createInitialHumans()
     until vector init, which saves computation and memory (no infections). */
     
     int cumulativePop = 0;
-    for(size_t iage_prev = AgeStructure::getMaxTStepsPerLife(), iage = iage_prev - 1;
-         iage_prev > 0; iage_prev = iage, iage -= 1 )
+    for(size_t iagePrev = AgeStructure::getMaxTStepsPerLife(), iage = iagePrev - 1;
+         iagePrev > 0; iagePrev = iage, iage -= 1 )
     {
-        int targetPop = AgeStructure::targetCumPop( iage, size );
+        int targetPop = AgeStructure::targetCumPop( iage, m_size );
         while (cumulativePop < targetPop) {
-            SimTime dob = sim::zero() - sim::fromTS(iage);
+            SimTime dob = Sim::zero() - Sim::fromTS(iage);
             util::streamValidate( dob );
             humans.push_back( Host::Human (dob) );
             ++cumulativePop;
@@ -74,7 +74,7 @@ void Population::createInitialHumans()
     
     // Vector setup dependant on human population structure (we *want* to
     // include all humans, whether they'll survive to vector init phase or not).
-    assert( sim::now() == sim::zero() );      // assumed below
+    assert( Sim::now() == Sim::zero() );      // assumed below
 }
 
 void Population::update()
@@ -88,9 +88,9 @@ void Population::update()
 
         // if (Actual number of people so far > target population size for this age)
         // "outmigrate" some to maintain population shape
-        //NOTE: better to use age(sim::ts0())? Possibly, but the difference will not be very significant.
+        //NOTE: better to use age(Sim::ts0())? Possibly, but the difference will not be very significant.
         // Also see targetPop = ... comment above
-        bool outmigrate = cumPop >= AgeStructure::targetCumPop(sim::inSteps(it->age(sim::ts1())), size);
+        bool outmigrate = cumPop >= AgeStructure::targetCumPop(Sim::inSteps(it->age(Sim::ts1())), m_size);
         
         if( isDead || outmigrate ){
             it = humans.erase (it);
@@ -101,31 +101,31 @@ void Population::update()
     } // end of per-human updates
 
     // increase population size to targetPop
-    recentBirths += (size - cumPop);
-    while (cumPop < (int)size) {
+    m_recentBirths += (m_size - cumPop);
+    while (cumPop < (int)m_size) {
         // humans born at end of this time step = beginning of next, hence ts1
-        humans.push_back( Host::Human (sim::ts1()) );
+        humans.push_back( Host::Human (Sim::ts1()) );
         ++cumPop;
     }
 }
 
 void Population::checkpoint(istream& stream)
 {
-    size & stream;
-    recentBirths & stream;
+    m_size & stream;
+    m_recentBirths & stream;
 
-    for(size_t i = 0; i < size && !stream.eof(); ++i) {
-        humans.push_back( Host::Human (sim::zero()) );
+    for(size_t i = 0; i < m_size && !stream.eof(); ++i) {
+        humans.push_back( Host::Human (Sim::zero()) );
         humans.back().checkpoint(stream);
     }
-    if (humans.size() != size)
-        throw util::checkpoint_error("Population: out of data (read " + to_string(humans.size()) + " humans)");
+    if (humans.size() != m_size)
+        throw util::CheckpointError("Population: out of data (read " + to_string(humans.size()) + " humans)");
 }
 
 void Population::checkpoint(ostream& stream)
 {
-    size & stream;
-    recentBirths & stream;
+    m_size & stream;
+    m_recentBirths & stream;
     for(Host::Human &human : humans)
         human.checkpoint(stream);
 }
@@ -133,7 +133,7 @@ void Population::checkpoint(ostream& stream)
 void registerContinousPopulationCallbacks()
 {
     ostringstream ctsDemogTitle;
-    for( double ubound : ctsDemogAgeGroups )
+    for( double ubound : CtsDemogAgeGroups )
         ctsDemogTitle << "\thost % ≤ " << ubound;
 
     mon::Continuous::registerCallback( "hosts", "\thosts", &ctsHosts );
@@ -157,8 +157,8 @@ void ctsHosts (Population &population, ostream& stream){
 void ctsHostDemography (Population &population, ostream& stream){
     auto iter = population.humans.crbegin();
     int cumCount = 0;
-    for( double ubound : ctsDemogAgeGroups ){
-        while( iter != population.humans.crend() && sim::inYears(iter->age(sim::now())) < ubound ){
+    for( double ubound : CtsDemogAgeGroups ){
+        while( iter != population.humans.crend() && Sim::inYears(iter->age(Sim::now())) < ubound ){
             ++cumCount;
             ++iter;
         }
@@ -174,7 +174,7 @@ void ctsRecentBirths (Population &population, ostream& stream){
 void ctsPatentHosts (Population &population, ostream& stream){
     int patent = 0;
     for(Host::Human &human : population.humans) {
-        auto diag = WithinHost::diagnostics::monitoringDiagnostic();
+        auto diag = WithinHost::Diagnostics::monitoringDiagnostic();
         if( human.withinHostModel->diagnosticResult(human.rng, diag) )
             ++patent;
     }
@@ -207,7 +207,7 @@ void ctsMedianImmunityY (Population &population, ostream& stream){
     }
     sort( list.begin(), list.end() );
     double x;
-    if( mod_nn(population.getSize(), 2) == 0 ){
+    if( modNn(population.getSize(), 2) == 0 ){
         size_t i = population.getSize() / 2;
         x = (list[i-1]+list[i])/2.0;
     }else{
@@ -222,7 +222,7 @@ void ctsMeanAgeAvailEffect (Population &population, ostream& stream){
     for(Host::Human &human : population.humans) {
         if( !human.perHostTransmission.outsideTransmission ){
             ++nHumans;
-            avail += human.perHostTransmission.relativeAvailabilityAge(sim::inYears(human.age(sim::now())));
+            avail += human.perHostTransmission.relativeAvailabilityAge(Sim::inYears(human.age(Sim::now())));
         }
     }
     stream << '\t' << avail/nHumans;

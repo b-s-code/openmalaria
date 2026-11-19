@@ -43,7 +43,7 @@ struct ComponentId;
 }
 namespace mon {
 
-inline constexpr size_t NOT_USED = std::numeric_limits<size_t>::max();
+inline constexpr size_t NotUsed = std::numeric_limits<size_t>::max();
 
 namespace Deploy {
 enum Method { TIMED, CTS, TREAT };
@@ -58,10 +58,10 @@ struct Condition {
 };
 
 struct SurveyDate {
-    SimTime date = sim::never();
-    size_t num = NOT_USED;
+    SimTime date = Sim::never();
+    size_t num = NotUsed;
 
-    bool isReported() const { return num != NOT_USED; }
+    bool isReported() const { return num != NotUsed; }
 };
 
 struct MeasureStore {
@@ -76,7 +76,7 @@ struct MeasureStore {
 struct RuntimeState {
     bool isInit = false;
     size_t surveyIndex = 0;
-    size_t survNumEvent = NOT_USED;
+    size_t survNumEvent = NotUsed;
     size_t nSurveys = 0;
     size_t nCohorts = 1;
     int reportIMR = -1;
@@ -99,12 +99,12 @@ void initStores(const std::vector<OutMeasure>& enabledMeasures, size_t nSpecies,
 inline size_t eventSurveyNumber() { return internal::runtime.survNumEvent; }
 inline size_t statSurveyNumber() {
     const auto& r = internal::runtime;
-    return r.isInit && r.surveyIndex < r.surveyDates.size() ? r.surveyDates[r.surveyIndex].num : NOT_USED;
+    return r.isInit && r.surveyIndex < r.surveyDates.size() ? r.surveyDates[r.surveyIndex].num : NotUsed;
 }
-inline bool isReported() { return !internal::runtime.isInit || statSurveyNumber() != NOT_USED; }
+inline bool isReported() { return !internal::runtime.isInit || statSurveyNumber() != NotUsed; }
 inline SimTime nextSurveyDate() {
     const auto& r = internal::runtime;
-    return r.isInit && r.surveyIndex < r.surveyDates.size() ? r.surveyDates[r.surveyIndex].date : sim::future();
+    return r.isInit && r.surveyIndex < r.surveyDates.size() ? r.surveyDates[r.surveyIndex].date : Sim::future();
 }
 size_t setupCondition(const std::string& measureName, double minValue, double maxValue, bool initialState);
 bool checkCondition(size_t conditionKey);

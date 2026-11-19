@@ -35,7 +35,7 @@ namespace OM
 { 
     namespace util
     {
-        static const int SCHEMA_VERSION = 50;
+        static const int SchemaVersion = 50;
 
         std::unique_ptr<scnXml::Scenario> loadScenario(std::string lXmlFile);
     }

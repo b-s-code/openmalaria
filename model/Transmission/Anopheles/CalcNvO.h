@@ -30,7 +30,7 @@
 
 #include <vector>
 
-double CalcInitMosqEmergeRate(
+double calcInitMosqEmergeRate(
 	std::vector<double> &mosqEmergeRateVector, // output vector
 	int thetap, // $\theta_p$: daysInYear
 	int tau, // $\tau$: mosqRestDuration
@@ -45,22 +45,22 @@ double CalcInitMosqEmergeRate(
 	const std::vector<double> &PCi, // $P_{C_i}$: mosqProbFindRestSite (length n)
 	const std::vector<double> &PDi, // $P_{D_i}$: mosqProbResting (length n)
 	const std::vector<double> &PEi, // $P_{E_i}$: mosqProbOvipositing -- assumed not affected by nhh
-	const std::vector<double> KviInit, // Kvi (size n * thetap)
+	const std::vector<double> kviInit, // Kvi (size n * thetap)
 	const std::vector<double> SvInit // Sv (length n)
 );
 
-void CalcUpsilon(std::vector<gsl_matrix*> &Upsilon, double &PA,
+void calcUpsilon(std::vector<gsl_matrix*> &upsilon, double &PA,
 	double &PAi, int thetap, int eta, int mt, int tau,
 	int thetas, int n, int m, const double* Ni, const double* alphai,
 	double muvA, double thetad, const double* PBi, const double* PCi, const double* PDi,
-	const double* PEi, const gsl_matrix* Kvi);
+	const double* PEi, const gsl_matrix* kvi);
 
-void CalcSvJacobian(gsl_matrix* J, const std::vector<gsl_matrix*> &Upsilon, gsl_matrix* inv1Xtp, int eta, int mt, int thetap);
+void calcSvJacobian(gsl_matrix* J, const std::vector<gsl_matrix*> &upsilon, gsl_matrix* inv1Xtp, int eta, int mt, int thetap);
 
-void CalcPSTS(double &sumkplus, double* sumklplus, int thetas, int tau, double PA, double Pdf);
+void calcPsts(double &sumkplus, double* sumklplus, int thetas, int tau, double PA, double pdf);
 
-void FuncX(gsl_matrix* X, const std::vector<gsl_matrix*> &Upsilon, int t, int s, int n);
+void funcX(gsl_matrix* X, const std::vector<gsl_matrix*> &upsilon, int t, int s, int n);
 
-double CalcSpectralRadius(gsl_matrix* A, int n);
+double calcSpectralRadius(gsl_matrix* A, int n);
 
-void CalcInv1minusA(gsl_matrix* inv1A, gsl_matrix* A, int n);
+void calcInv1minusA(gsl_matrix* inv1A, gsl_matrix* A, int n);

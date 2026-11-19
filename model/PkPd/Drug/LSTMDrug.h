@@ -77,17 +77,17 @@ public:
      * @param inf A pointer to the infection of interest
      * @param body_mass Weight of patient in kg
      */
-    virtual double calculateDrugFactor(LocalRng& rng, WithinHost::CommonInfection *inf, double body_mass) const =0;
+    virtual double calculateDrugFactor(LocalRng& rng, WithinHost::CommonInfection *inf, double bodyMass) const =0;
     
     /** Updates concentration variable and clears day's doses.
      * 
      * @param body_mass Weight of patient in kg */
-    virtual void updateConcentration (double body_mass) =0;
+    virtual void updateConcentration (double bodyMass) =0;
     
     /// Checkpointing
     template<class S>
     void operator& (S& stream) {
-        doses & stream;
+        m_doses & stream;
         checkpoint(stream);
     }
 
@@ -102,10 +102,10 @@ protected:
      * First parameter (key) is time in days, second is the dose concentration (mg/l).
      *
      * Read in calculateDrugFactor, and updated in updateConcentration(). */
-    DoseVec doses;
+    DoseVec m_doses;
     
     /// Volume of distribution, sampled when this class is first created.
-    double vol_dist;
+    double m_volDist;
 };
 
 }

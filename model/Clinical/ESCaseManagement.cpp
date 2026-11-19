@@ -34,12 +34,12 @@ namespace OM { namespace Clinical {
 
 // -----  ESCaseManagement  -----
 
-const CMDecisionTree *escm_uncomplicated = 0,
-    *escm_complicated = 0;
+const CMDecisionTree *escmUncomplicated = 0,
+    *escmComplicated = 0;
 
 void ESCaseManagement::setHealthSystem(const scnXml::HSEventScheduler& esData){
-    escm_uncomplicated = &CMDecisionTree::create( esData.getUncomplicated(), true );
-    escm_complicated = &CMDecisionTree::create( esData.getComplicated(), false );
+    escmUncomplicated = &CMDecisionTree::create( esData.getUncomplicated(), true );
+    escmComplicated = &CMDecisionTree::create( esData.getComplicated(), false );
     
     // Calling our parent class like this is messy. Changing this would require
     // moving change-of-health-system handling into ClinicalModel.
@@ -55,7 +55,7 @@ CMDTOut ESCaseManagement::execute (
     //TODO: medicateQueue.clear();
     
     const CMDecisionTree& tree = (hostData.pgState & Episode::COMPLICATED) ?
-        *escm_complicated : *escm_uncomplicated;
+        *escmComplicated : *escmUncomplicated;
     return tree.exec( hostData );
 }
 

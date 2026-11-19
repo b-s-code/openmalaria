@@ -30,12 +30,12 @@
 namespace OM { namespace util {
 using std::set;
 
-/** Checks keys exist and that all are used. Fails with an xml_scenario_error
+/** Checks keys exist and that all are used. Fails with an XmlScenarioError
  * and a suitable error message. */
 class SpeciesIndexChecker{
 public:
     SpeciesIndexChecker( const string& intervName, const map<string,size_t>& indices ) :
-        _intervName( intervName ), _indices( indices ){}
+        m_intervName( intervName ), m_indices( indices ){}
     
     /** Return the index in speciesIndex of mosquito, throwing if not found. */
     size_t getIndex( string species );
@@ -44,9 +44,9 @@ public:
     void checkNoneMissed() const;
     
 private:
-    const string& _intervName;
-    const map<string,size_t>& _indices;
-    set<string> found;
+    const string& m_intervName;
+    const map<string,size_t>& m_indices;
+    set<string> m_found;
 };
 
 } }

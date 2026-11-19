@@ -43,9 +43,9 @@ namespace UnitParse {
         STEPS,  // assume steps
     };
     
-    static const int monthLen[] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
+    static const int MonthLen[] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
     
-    static const int monthStart[] = { // offsets of start of month from start of year
+    static const int MonthStart[] = { // offsets of start of month from start of year
         0 /*Jan*/, 31, 59, 90,
         120 /*May*/, 151, 181, 212,
         243 /*Sept*/, 273, 304, 334,
@@ -57,22 +57,22 @@ namespace UnitParse {
      * Supports units of days (5d), and steps (2t) with integer values,
      * rounding inputs to the nearest time step.
      * 
-     * Call sim::init() first. */
+     * Call Sim::init() first. */
     SimTime readShortDuration( const std::string& str, DefaultUnit defUnit );
     
     /** Like readShortDuration(), but also allow inputs to be in fractional
      * years.
      * 
-     * Call sim::init() first. */
+     * Call Sim::init() first. */
     SimTime readDuration( const std::string& str, DefaultUnit defUnit );
     
     /** Like readDuration(), but without rounding. Output is in days and may
      * not be an integer.
      * 
-     * Call sim::init() first. */
+     * Call Sim::init() first. */
     double durationToDays( const std::string& str, DefaultUnit defUnit );
     
-    /** Returns sim::never() when it doesn't recognise a date. Throws when it does
+    /** Returns Sim::never() when it doesn't recognise a date. Throws when it does
      * but encounters definite format errors. */
     SimTime parseDate( const std::string& str );
 
@@ -83,7 +83,7 @@ namespace UnitParse {
      * 
      * Supports dates (e.g. 2015-10-08) as well as times relative to the start
      * of the intervention period (as readDuration will parse). Returns a time
-     * to be compared against sim::intervDate(). Again, the result is rounded to
+     * to be compared against Sim::intervDate(). Again, the result is rounded to
      * the nearest time step. */
     SimTime readDate( const std::string& str, DefaultUnit defUnit );
 }

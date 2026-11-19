@@ -63,7 +63,7 @@ public:
     // No PQ treatment for falciparum in current models:
     virtual void optionalPqTreatment( Host::Human& human ){}
     
-    virtual inline double getTotalDensity() const{ return totalDensity; }
+    virtual inline double getTotalDensity() const{ return m_totalDensity; }
     
     virtual bool diagnosticResult( LocalRng& rng, const Diagnostic& diagnostic ) const;
     virtual void treatment( Host::Human& human, TreatmentId treatId );
@@ -72,10 +72,10 @@ public:
     virtual Pathogenesis::StatePair determineMorbidity( Host::Human& human, double ageYears, bool isDoomed );
 
     inline double getCumulative_h() const {
-        return m_cumulative_h;
+        return m_cumulativeH;
     }
     inline double getCumulative_Y() const {
-        return m_cumulative_Y;
+        return m_cumulativeY;
     }
     
 protected:
@@ -103,47 +103,47 @@ protected:
     double immunitySurvivalFactor (double ageInYears, double cumulativeExposureJ);
     
     //!innate ability to control parasite densities
-    double _innateImmSurvFact;
+    double m_innateImmSurvFact;
 
     /** Number of infections received since birth. */
-    double m_cumulative_h;
+    double m_cumulativeH;
     /// Cumulative parasite density since birth (units: days * units of density)
-    double m_cumulative_Y;
+    double m_cumulativeY;
     /// m_cumulative_Y from previous time step
-    double m_cumulative_Y_lag;
+    double m_cumulativeYLag;
     //@}
     
     /// Total asexual blood stage density (sum of density of infections).
-    double totalDensity;
+    double m_totalDensity;
     /// Density from the point of view of diagnostics dependent on HRP2
-    double hrp2Density;
+    double m_hrp2Density;
     
     /** Maximum parasite density of any infection during the previous interval.
      *
      * With 5-day time steps, this is not just the maximum density of any infection
      * at the end of the time step, but something designed to emulate the maximum
      * of 5 daily samples. */
-    double timeStepMaxDensity;
+    double m_timeStepMaxDensity;
     
     /** Total asexual blood stage density over last 20 days (uses samples from
     * 10, 15 and 20 days ago).
     *
-    * m_y_lag[sim::ts0().moduloSteps(y_lag_len)] corresponds to the density
+    * m_y_lag[Sim::ts0().moduloSteps(y_lag_len)] corresponds to the density
     * from the previous time step (once updateInfection has been called). */
-    std::vector<double> m_y_lag_i, m_y_lag_l;
+    std::vector<double> m_yLagI, m_yLagL;
     
     /// The PathogenesisModel introduces illness dependant on parasite density
-    unique_ptr<Pathogenesis::PathogenesisModel> pathogenesisModel;
+    unique_ptr<Pathogenesis::PathogenesisModel> m_pathogenesisModel;
     
     /// End of step on which treatment expires = start of first step after expiry
-    SimTime treatExpiryLiver, treatExpiryBlood;
+    SimTime m_treatExpiryLiver, m_treatExpiryBlood;
 
     virtual void checkpoint (istream& stream);
     virtual void checkpoint (ostream& stream);
 
     /// Length of m_y_lag array. Wouldn't have to be dynamic if Global::interval was known at compile-time.
     /// set by initHumanParameters
-    static int y_lag_len;
+    static int s_yLagLen;
     
     static void setParams(double cumYStar, double cumHStar, double aM, double dM);   // for unit test only
     friend class ::InfectionImmunitySuite;

@@ -331,7 +331,7 @@ public:
         scnXml::LifeCycle lcElt( eggStage, larvalStage, pupalStage, femaleEggsLaid );
         lcElt.setEstimatedLarvalResources( 1e5 );
         ::xsd::cxx::tree::optional<scnXml::LifeCycle> lcOpt(lcElt);
-        UnittestUtil::MosqLifeCycle_init();
+        UnittestUtil::mosqLifeCycleInit();
         mt.initialise(lcOpt, mosqElt);
         LCEmergence* lce = dynamic_cast<LCEmergence*>(mt.emergence.get());
         assert (lce != 0);
@@ -435,7 +435,7 @@ public:
         // constant resource availability; in this case we need a vector 365 long
         lcp->invLarvalResources.assign( 365, 1e-8 );
         
-        vector<double> zeros( mt.N_v_length, 0.0 );
+        vector<double> zeros( mt.nVLength, 0.0 );
         mt.initState( P_A, P_df, 0.0, 0.0, zeros );
         // we start with 100,000 eggs and then run the model
         lc->newEggs[0] = 100000.0;
@@ -443,7 +443,7 @@ public:
         for( size_t d=1; d<adultMosquitoesConstRA.size(); ++d ){
             mt.resetTSStats();
             mt.update( d, P_A, P_df, 0.0, false, false );
-            double N_v = mt.N_v[ d % mt.N_v_length ];
+            double N_v = mt.N_v[ d % mt.nVLength ];
             TS_ASSERT_APPROX( N_v, adultMosquitoesConstRA[d] );
             TS_ASSERT_APPROX( mt.getLastN_v0(), adultEmergenceConstRA[d] );
         }
@@ -452,7 +452,7 @@ public:
         // annually-periodic resource availability
         lcp->invLarvalResources = periodicResourceAvailability;
         
-        vector<double> zeros( mt.N_v_length, 0.0 );
+        vector<double> zeros( mt.nVLength, 0.0 );
         mt.initState( P_A, P_df, 0.0, 0.0, zeros );
         // we start with 100,000 eggs and then run the model
         lc->newEggs[0] = 100000.0;
@@ -460,7 +460,7 @@ public:
         for( size_t d=1; d<adultMosquitoesPeriodicRA.size(); ++d ){
             mt.resetTSStats();
             mt.update( d, P_A, P_df, 0.0, false, false );
-            double N_v = mt.N_v[ d % mt.N_v_length ];
+            double N_v = mt.N_v[ d % mt.nVLength ];
             TS_ASSERT_APPROX( N_v, adultMosquitoesPeriodicRA[d] );
             TS_ASSERT_APPROX( mt.getLastN_v0(), adultEmergencePeriodicRA[d] );
         }
@@ -492,11 +492,11 @@ public:
             clm.fit();
             gsl_vector_free( x );
             cout<<"done fitting"<<endl;
-        } catch (const OM::util::traced_exception& e) {
+        } catch (const OM::util::TracedException& e) {
             cerr << "Exception: " << e.what() << endl;
             cerr << e << flush;
             TS_ASSERT(false);
-        } catch (const OM::util::xml_scenario_error& e) {
+        } catch (const OM::util::XmlScenarioError& e) {
             cerr << "Error in scenario XML file: " << e.what() << endl;
             TS_ASSERT(false);
         }

@@ -77,7 +77,7 @@ namespace OM { namespace util {
 
 	/** Return true if given option (from CommandLine::Options) is active. */
 		static inline bool option(size_t code) {
-			return options.test(code);
+			return s_options.test(code);
 		}
 
 	/** If path is relative, prepend it with clResourcePath. */
@@ -85,21 +85,21 @@ namespace OM { namespace util {
 
         /** Get the name of the output file. */
 		static inline string getOutputName (){
-			return outputName;
+			return s_outputName;
 		}
 
 		static inline OutputFormat getOutputFormat (){
-			return outputFormat;
+			return s_outputFormat;
 		}
 
     /** Get the name of the ctsout file. */
 		static inline string getCtsoutName (){
-			return ctsoutName;
+			return s_ctsoutName;
 		}
 
      /** Get the name of the checkpoint file. */
 		static inline string getCheckpointName (){
-			return checkpointFileName;
+			return s_checkpointFileName;
 		}
 
 	/** Looks through all command line options.
@@ -121,14 +121,14 @@ namespace OM { namespace util {
 	
 private:
 	// Static parameters: don't require checkpointing (set by parse())
-	static bitset<NUM_OPTIONS> options;	// boolean options
-	static string resourcePath;
+	static bitset<NUM_OPTIONS> s_options;	// boolean options
+	static string s_resourcePath;
 	
 	//Output filename (for main output file "output.txt")
-	static string outputName;
-	static OutputFormat outputFormat;
-	static string ctsoutName;
-	static string checkpointFileName;
+	static string s_outputName;
+	static OutputFormat s_outputFormat;
+	static string s_ctsoutName;
+	static string s_checkpointFileName;
 };
 } }
 #endif

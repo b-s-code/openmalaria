@@ -30,13 +30,13 @@
 
 namespace OM { namespace interventions {
 
-vector<GVIComponent*> GVIComponent::componentsByIndex;
+vector<GVIComponent*> GVIComponent::s_componentsByIndex;
 
 GVIComponent::GVIComponent( ComponentId id, const scnXml::GVIDescription& elt,
-        const map<string,size_t>& species_name_map ) :
+        const map<string,size_t>& speciesNameMap ) :
         Transmission::HumanVectorInterventionComponent(id)
 {
-    decay = DecayFunction::makeObject( elt.getDecay(), "interventions.human.vector.decay" );
+    m_decay = DecayFunction::makeObject( elt.getDecay(), "interventions.human.vector.decay" );
     // assume usage modifier is 100% if none is specified
     double propUse;
     if (elt.getUsage().present()) {
@@ -46,20 +46,20 @@ GVIComponent::GVIComponent( ComponentId id, const scnXml::GVIDescription& elt,
         propUse = 1.0;
     }
     if( !( propUse >= 0.0 && propUse <= 1.0 ) ){
-        throw util::xml_scenario_error("GVI.description.usage: must be within range [0,1]");
+        throw util::XmlScenarioError("GVI.description.usage: must be within range [0,1]");
     }
     
     typedef scnXml::GVIDescription::AnophelesParamsSequence AP;
     const AP& ap = elt.getAnophelesParams();
-    species.resize( species_name_map.size() );
-    util::SpeciesIndexChecker checker( "GVI intervention", species_name_map );
+    m_species.resize( speciesNameMap.size() );
+    util::SpeciesIndexChecker checker( "GVI intervention", speciesNameMap );
     for( AP::const_iterator it = ap.begin(); it != ap.end(); ++it ) {
-        species[checker.getIndex(it->getMosquito())].init (*it, propUse);
+        m_species[checker.getIndex(it->getMosquito())].init (*it, propUse);
     }
     checker.checkNoneMissed();
     
-    if( componentsByIndex.size() <= id.id ) componentsByIndex.resize( id.id+1, 0 );
-    componentsByIndex[id.id] = this;
+    if( s_componentsByIndex.size() <= id.id ) s_componentsByIndex.resize( id.id+1, 0 );
+    s_componentsByIndex[id.id] = this;
 }
 
 void GVIComponent::deploy( Host::Human& human, mon::Deploy::Method method, VaccineLimits )const{
@@ -69,7 +69,7 @@ void GVIComponent::deploy( Host::Human& human, mon::Deploy::Method method, Vacci
 
 Component::Type GVIComponent::componentType()const{ return Component::GVI; }
 
-void GVIComponent::print_details( std::ostream& out )const{
+void GVIComponent::printDetails( std::ostream& out )const{
     out << id().id << "\tGVI";
 }
 
@@ -91,7 +91,7 @@ void GVIComponent::GVIAnopheles::init(const scnXml::GVIDescription::AnophelesPar
     // Simpler version of ITN usage/action:
     double propActive = elt.getPropActive();
     if(propActive != 1.0 && propActive != 0.0)
-        throw util::xml_scenario_error("GVI.description.propActive: must be either 0 or 1");
+        throw util::XmlScenarioError("GVI.description.propActive: must be either 0 or 1");
 
     assert( proportionUse >= 0.0 && proportionUse <= 1.0 );
     assert( propActive >= 0.0 && propActive <= 1.0 );
@@ -106,51 +106,51 @@ HumanGVI::HumanGVI ( LocalRng& rng, const GVIComponent& params ) :
 {
     // Varience factor of decay is sampled once per human: human is assumed
     // to account for most variance.
-    decayHet = params.decay->hetSample(rng);
+    m_decayHet = params.m_decay->hetSample(rng);
 }
 
 void HumanGVI::redeploy(LocalRng& rng, const Transmission::HumanVectorInterventionComponent&) {
-    deployTime = sim::nowOrTs1();
+    m_deployTime = Sim::nowOrTs1();
 }
 
 void HumanGVI::update(Host::Human& human){
 }
 
 double HumanGVI::relativeAttractiveness(size_t speciesIndex) const{
-    const GVIComponent& params = *GVIComponent::componentsByIndex[m_id.id];
-    const GVIComponent::GVIAnopheles& anoph = params.species[speciesIndex];
+    const GVIComponent& params = *GVIComponent::s_componentsByIndex[m_id.id];
+    const GVIComponent::GVIAnopheles& anoph = params.m_species[speciesIndex];
     double effect = (1.0 - anoph.deterrency * getEffectSurvival(params));
     return anoph.byProtection( effect );
 }
 
 double HumanGVI::preprandialSurvivalFactor(size_t speciesIndex) const{
-    const GVIComponent& params = *GVIComponent::componentsByIndex[m_id.id];
-    const GVIComponent::GVIAnopheles& anoph = params.species[speciesIndex];
+    const GVIComponent& params = *GVIComponent::s_componentsByIndex[m_id.id];
+    const GVIComponent::GVIAnopheles& anoph = params.m_species[speciesIndex];
     double effect = (1.0 - anoph.preprandialKilling * getEffectSurvival(params));
     return anoph.byProtection( effect );
 }
 
 double HumanGVI::postprandialSurvivalFactor(size_t speciesIndex) const{
-    const GVIComponent& params = *GVIComponent::componentsByIndex[m_id.id];
-    const GVIComponent::GVIAnopheles& anoph = params.species[speciesIndex];
+    const GVIComponent& params = *GVIComponent::s_componentsByIndex[m_id.id];
+    const GVIComponent::GVIAnopheles& anoph = params.m_species[speciesIndex];
     double effect = (1.0 - anoph.postprandialKilling * getEffectSurvival(params));
     return anoph.byProtection( effect );
 }
 double HumanGVI::relFecundity(size_t speciesIndex) const{
-    const GVIComponent& params = *GVIComponent::componentsByIndex[m_id.id];
-    const GVIComponent::GVIAnopheles& anoph = params.species[speciesIndex];
+    const GVIComponent& params = *GVIComponent::s_componentsByIndex[m_id.id];
+    const GVIComponent::GVIAnopheles& anoph = params.m_species[speciesIndex];
     double effect = (1.0 - anoph.fecundityReduction * getEffectSurvival(params));
     return anoph.byProtection( effect );
 }
 
 void HumanGVI::checkpoint( ostream& stream ){
-    deployTime & stream;
-    GVIComponent::componentsByIndex[m_id.id]->decay->checkpointSample(decayHet, stream);
+    m_deployTime & stream;
+    GVIComponent::s_componentsByIndex[m_id.id]->m_decay->checkpointSample(m_decayHet, stream);
 }
 HumanGVI::HumanGVI( istream& stream, ComponentId id ) : PerHostInterventionData( id )
 {
-    deployTime & stream;
-    GVIComponent::componentsByIndex[m_id.id]->decay->checkpointSample(decayHet, stream);
+    m_deployTime & stream;
+    GVIComponent::s_componentsByIndex[m_id.id]->m_decay->checkpointSample(m_decayHet, stream);
 }
 
 } }

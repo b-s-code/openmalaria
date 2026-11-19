@@ -38,39 +38,39 @@ public:
 	// Note: these values were pulled from one source and shouldn't be taken as authoritative
 	double invCumulativeYstar = 1.0 / 68564384.7102;
 	double invCumulativeHstar = 1.0 / 71.676733;
-	double alpha_m = 1.0 - exp(- 2.411434);
+	double alphaM = 1.0 - exp(- 2.411434);
 	double decayM = 2.717773;
-        WHFalciparum::setParams(invCumulativeYstar, invCumulativeHstar, alpha_m, decayM);
+        WHFalciparum::setParams(invCumulativeYstar, invCumulativeHstar, alphaM, decayM);
         
         // We need a concrete class deriving from WHFalciparum; this will do
         LocalRng rng(0, 721347520444481703);
-	wh = new DescriptiveWithinHostModel{ rng, numeric_limits<double>::quiet_NaN() };
+	m_wh = new DescriptiveWithinHostModel{ rng, numeric_limits<double>::quiet_NaN() };
     }
     void tearDown () {
-	delete wh;
+	delete m_wh;
     }
     
     void testImmunity () {
 	// Base case: virtually no immunity due to mother's immunity or past infections
-        wh->m_cumulative_h = 0.0;
-        wh->m_cumulative_Y = 0.0;
+        m_wh->m_cumulativeH = 0.0;
+        m_wh->m_cumulativeY = 0.0;
         double cumExposureJ = 0.0;
-	TS_ASSERT_APPROX (wh->immunitySurvivalFactor (100., cumExposureJ), 1.0);
+	TS_ASSERT_APPROX (m_wh->immunitySurvivalFactor (100., cumExposureJ), 1.0);
         
 	// maternal immunity
-	TS_ASSERT_APPROX (wh->immunitySurvivalFactor (0.1, cumExposureJ), 0.30631938551881299);
+	TS_ASSERT_APPROX (m_wh->immunitySurvivalFactor (0.1, cumExposureJ), 0.30631938551881299);
         
 	// past infections, no density
-        wh->m_cumulative_h = 100.0;
-	TS_ASSERT_APPROX (wh->immunitySurvivalFactor (100., cumExposureJ), 0.41995608739475931);
+        m_wh->m_cumulativeH = 100.0;
+	TS_ASSERT_APPROX (m_wh->immunitySurvivalFactor (100., cumExposureJ), 0.41995608739475931);
         
 	// previous with cum. density of 1e8 (but none from current infection)
-        wh->m_cumulative_Y = 1e8;
-	TS_ASSERT_APPROX (wh->immunitySurvivalFactor (100., cumExposureJ), 0.17081918453312689);
+        m_wh->m_cumulativeY = 1e8;
+	TS_ASSERT_APPROX (m_wh->immunitySurvivalFactor (100., cumExposureJ), 0.17081918453312689);
     }
     
 private:
-    WHFalciparum* wh;
+    WHFalciparum* m_wh;
 };
 
 #endif

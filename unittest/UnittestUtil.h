@@ -48,7 +48,7 @@ using ::OM::util::ModelOptions;
 
 namespace OM {
     namespace WithinHost {
-        extern bool opt_common_whm;
+        extern bool optCommonWhm;
     }
 }
 
@@ -58,9 +58,9 @@ namespace xml_helpers{
     ///@param negl_conc Negligible concentration of drug (mg/l)
     ///@param hl Half-life of drug concentration (days)
     struct PK1Chl{
-        PK1Chl(double Vd, double negl_conc, double hl):
-            Vd(Vd), hl(hl), negl_conc(negl_conc) {}
-        double Vd, hl, negl_conc;
+        PK1Chl(double Vd, double neglConc, double hl):
+            Vd(Vd), hl(hl), neglConc(neglConc) {}
+        double Vd, hl, neglConc;
     };
     /// Construct a helper for setting PK parameters (1-compartment model)
     ///@param Vd Volume of distribution (l/kg)
@@ -68,9 +68,9 @@ namespace xml_helpers{
     ///@param k Elimination rate of drug (days^-1)
     ///@param m_exponent
     struct PK1C{
-        PK1C(double Vd, double negl_conc, double k, double m_exponent):
-            Vd(Vd), negl_conc(negl_conc), k(k), me(m_exponent) {}
-        double Vd, negl_conc, k, me;
+        PK1C(double Vd, double neglConc, double k, double mExponent):
+            Vd(Vd), neglConc(neglConc), k(k), me(mExponent) {}
+        double Vd, neglConc, k, me;
     };
     /// Construct a helper for setting PK parameters (1-compartment plus conversion)
     ///@param Vd Volume of distribution (l/kg)
@@ -82,10 +82,10 @@ namespace xml_helpers{
     ///@param conv Conversion rate of drug (mg/l)
     ///@param mwr Molecular weight ratio (metabolite weight / parent weight)
     struct PKConv{
-        PKConv(double Vd, double negl_conc, double k, double m_exponent,
-            double k_a, const char *metabolite, double conv, double mwr):
-            Vd(Vd), negl_conc(negl_conc), k(k), me(m_exponent), ka(k_a), met(metabolite), conv(conv), mwr(mwr) {}
-        double Vd, negl_conc, k, me, ka;
+        PKConv(double Vd, double neglConc, double k, double mExponent,
+            double kA, const char *metabolite, double conv, double mwr):
+            Vd(Vd), neglConc(neglConc), k(k), me(mExponent), ka(kA), met(metabolite), conv(conv), mwr(mwr) {}
+        double Vd, neglConc, k, me, ka;
         const char *met;
         double conv, mwr;
     };
@@ -98,10 +98,10 @@ namespace xml_helpers{
     ///@param k12 Absorbtion rate parameter k12
     ///@param k21 Absorbtion rate parameter k21
     struct PK2C{
-        PK2C(double Vd, double negl_conc, double k, double m_exponent,
+        PK2C(double Vd, double neglConc, double k, double mExponent,
              double ka, double k12, double k21):
-            Vd(Vd), negl_conc(negl_conc), k(k), me(m_exponent), ka(ka), k12(k12), k21(k21) {}
-        double Vd, negl_conc, k, me, ka, k12, k21;
+            Vd(Vd), neglConc(neglConc), k(k), me(mExponent), ka(ka), k12(k12), k21(k21) {}
+        double Vd, neglConc, k, me, ka, k12, k21;
     };
     /// Construct a helper for setting PK parameters (2-compartment model)
     ///@param Vd Volume of distribution (l/kg)
@@ -114,11 +114,11 @@ namespace xml_helpers{
     ///@param k13 Absorbtion rate parameter k13
     ///@param k31 Absorbtion rate parameter k31
     struct PK3C{
-        PK3C(double Vd, double negl_conc, double k, double m_exponent,
+        PK3C(double Vd, double neglConc, double k, double mExponent,
              double ka, double k12, double k21, double k13, double k31):
-            Vd(Vd), negl_conc(negl_conc), k(k), me(m_exponent), ka(ka),
+            Vd(Vd), neglConc(neglConc), k(k), me(mExponent), ka(ka),
             k12(k12), k21(k21), k13(k13), k31(k31) {}
-        double Vd, negl_conc, k, me, ka, k12, k21, k13, k31;
+        double Vd, neglConc, k, me, ka, k12, k21, k13, k31;
     };
     /// Construct a helper for setting PD parameters
     ///@param vmax Max killing rate
@@ -134,7 +134,7 @@ namespace xml_helpers{
     ///@param pk Helper struct with pharmaco-kinetic parameters
     ///@param pd Helper struct with pharmaco-dynamic parameters
     scnXml::PKPDDrug drug(const char *abbrev, PK1Chl pk, PD pd){
-        scnXml::PK xPK(pk.negl_conc, pk.Vd);
+        scnXml::PK xPK(pk.neglConc, pk.Vd);
         xPK.setHalf_life(pk.hl);
         scnXml::PD xPD;
         xPD.getPhenotype().push_back(scnXml::Phenotype(pd.vmax, pd.ic50, pd.slope));
@@ -145,7 +145,7 @@ namespace xml_helpers{
     ///@param pk Helper struct with pharmaco-kinetic parameters
     ///@param pd Helper struct with pharmaco-dynamic parameters
     scnXml::PKPDDrug drug(const char *abbrev, PK1C pk, PD pd){
-        scnXml::PK xPK(pk.negl_conc, pk.Vd);
+        scnXml::PK xPK(pk.neglConc, pk.Vd);
         xPK.setK(scnXml::SampledValueLN(pk.k));
         xPK.setM_exponent(pk.me);
         scnXml::PD xPD;
@@ -157,7 +157,7 @@ namespace xml_helpers{
     ///@param pk Helper struct with pharmaco-kinetic parameters
     ///@param pd Helper struct with pharmaco-dynamic parameters
     scnXml::PKPDDrug drug(const char *abbrev, PKConv pk, PD pd, double IC50corr){
-        scnXml::PK xPK(pk.negl_conc, pk.Vd);
+        scnXml::PK xPK(pk.neglConc, pk.Vd);
         xPK.setK(scnXml::SampledValueLN(pk.k));
         xPK.setM_exponent(pk.me);
         xPK.setK_a(scnXml::SampledValueLN(pk.ka));
@@ -172,7 +172,7 @@ namespace xml_helpers{
     ///@param pk Helper struct with pharmaco-kinetic parameters
     ///@param pd Helper struct with pharmaco-dynamic parameters
     scnXml::PKPDDrug drug(const char *abbrev, PK2C pk, PD pd){
-        scnXml::PK xPK(pk.negl_conc, pk.Vd);
+        scnXml::PK xPK(pk.neglConc, pk.Vd);
         xPK.setK(scnXml::SampledValueLN(pk.k));
         xPK.setCompartment2(scnXml::Compartment2(
             scnXml::SampledValueLN(pk.k12),
@@ -188,7 +188,7 @@ namespace xml_helpers{
     ///@param pk Helper struct with pharmaco-kinetic parameters
     ///@param pd Helper struct with pharmaco-dynamic parameters
     scnXml::PKPDDrug drug(const char *abbrev, PK3C pk, PD pd){
-        scnXml::PK xPK(pk.negl_conc, pk.Vd);
+        scnXml::PK xPK(pk.neglConc, pk.Vd);
         xPK.setK(scnXml::SampledValueLN(pk.k));
         xPK.setCompartment2(scnXml::Compartment2(
             scnXml::SampledValueLN(pk.k12),
@@ -263,19 +263,19 @@ public:
         dummyXML::monitoring.setSurveys( dummyXML::surveys );
         dummyXML::scenario.setMonitoring( dummyXML::monitoring );
         util::ModelNameProvider modelNameProvider(dummyXML::scenario.getModel());
-        sim::init( dummyXML::scenario, modelNameProvider );
+        Sim::init( dummyXML::scenario, modelNameProvider );
         
         // we could just use zero, but we may spot more errors by using some weird number
-        sim::s_t0 = sim::fromYearsN(83.2591);
-        sim::s_t1 = sim::s_t0;
+        Sim::s_t0 = Sim::fromYearsN(83.2591);
+        Sim::s_t1 = Sim::s_t0;
 #ifndef NDEBUG
-        sim::in_update = true;  // may not always be correct but we're more interested in getting around this check than using it in unit tests
+        Sim::s_inUpdate = true;  // may not always be correct but we're more interested in getting around this check than using it in unit tests
 #endif
     }
     static void incrTime(SimTime incr){
         //NOTE: for unit tests, we do not differentiate between s_t0 and s_t1
-        sim::s_t0 = sim::s_t0 + incr;
-        sim::s_t1 = sim::s_t0;
+        Sim::s_t0 = Sim::s_t0 + incr;
+        Sim::s_t1 = Sim::s_t0;
     }
     
     static const scnXml::Parameters& prepareParameters(){
@@ -292,7 +292,7 @@ public:
     // Parameterise standard diagnostics
     static void setDiagnostics(){
         // note that this is only ever called after initSurveys(), thus we
-        // don't need to call diagnostics::clear() (and shouldn't because it
+        // don't need to call Diagnostics::clear() (and shouldn't because it
         // would leave a dangling pointer in Survey::m_diagnostic)
         scnXml::Diagnostic microscopy( "microscopy" );
         scnXml::Stochastic microscopyParams( 20, 0.75 );
@@ -309,10 +309,10 @@ public:
         dummyXML::surveys.setDetectionLimit(numeric_limits<double>::quiet_NaN());
         dummyXML::monitoring.setSurveys(dummyXML::surveys);
         dummyXML::scenario.setMonitoring(dummyXML::monitoring);
-        diagnostics::init( parameters, dummyXML::scenario );
+        Diagnostics::init( parameters, dummyXML::scenario );
     }
     
-    static void PkPdSuiteSetup () {
+    static void pkPdSuiteSetup () {
         ModelOptions::reset();
         WithinHost::Genotypes::initSingle();
 
@@ -410,24 +410,24 @@ public:
     
     // For when infection parameters shouldn't be used; enforce by setting to NaNs.
     // But do set latentP.
-    static void Infection_init_latentP_and_NaN () {
-	Infection::s_latentP = sim::fromDays(15);
+    static void infectionInitLatentPAndNaN () {
+	Infection::s_latentP = Sim::fromDays(15);
     }
     
-    static void DescriptiveInfection_init () {
+    static void descriptiveInfectionInit () {
         ModelOptions::reset();
     }
     
-    static void EmpiricalWHM_setup () {
+    static void empiricalWhmSetup () {
         ModelOptions::reset();
         ModelOptions::set(util::EMPIRICAL_WITHIN_HOST_MODEL);
-        OM::WithinHost::opt_common_whm = true;
+        OM::WithinHost::optCommonWhm = true;
     }
     
-    static void MolineauxWHM_setup( const std::string& mode, bool repl_gamma ){
+    static void molineauxWhmSetup( const std::string& mode, bool replGamma ){
         ModelOptions::reset();
         ModelOptions::set(util::MOLINEAUX_WITHIN_HOST_MODEL);
-        OM::WithinHost::opt_common_whm = true;
+        OM::WithinHost::optCommonWhm = true;
         if( mode == "original" ){
         }else if( mode == "1st_max_gamma" ){
             ModelOptions::set(util::FIRST_LOCAL_MAXIMUM_GAMMA);
@@ -441,7 +441,7 @@ public:
         }else{
             ETS_ASSERT( false );        // stop this test
         }
-        if( repl_gamma ){
+        if( replGamma ){
             ModelOptions::set(util::PARASITE_REPLICATION_GAMMA);
         }
         
@@ -453,15 +453,15 @@ public:
         WithinHost::MolineauxInfection::init(parameters);
     }
     
-    static void MosqLifeCycle_init() {
+    static void mosqLifeCycleInit() {
         ModelOptions::reset();
         ModelOptions::set(util::VECTOR_LIFE_CYCLE_MODEL);
     }
     
     static double getPrescribedMg( const PkPd::LSTMModel& pkpd ){
         double r = 0.0;
-        for( const PkPd::MedicateData& md : pkpd.medicateQueue ){
-            r += md.qty;
+        for( const PkPd::MedicateData& md : pkpd.m_medicateQueue ){
+            r += md.m_qty;
         }
         return r;
     }
@@ -472,7 +472,7 @@ public:
     }
     
     static void clearMedicateQueue( PkPd::LSTMModel& pkpd ){
-        pkpd.medicateQueue.clear();
+        pkpd.m_medicateQueue.clear();
     }
     
     static unique_ptr<Host::Human> createHuman(SimTime dateOfBirth){

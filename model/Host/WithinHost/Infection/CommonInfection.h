@@ -36,7 +36,7 @@ using util::LocalRng;
  * conversion when the main simulation uses a 5 day time step by updating
  * infections and the PK-PD model multiple times.
  * 
- * Note therefore that sim::ts0(), ts1(), etc. may not always be accurate since
+ * Note therefore that Sim::ts0(), ts1(), etc. may not always be accurate since
  * it is only updated once per main time step. */
 class CommonInfection : public Infection {
 public:
@@ -57,15 +57,15 @@ public:
     /** Update: calculate new density. Call this once per day.
      * 
      * @param survivalFactor Density multiplier to introduce drug & vaccine effects
-     * @param now The simulation time. Use this instead of sim::ts1().
+     * @param now The simulation time. Use this instead of Sim::ts1().
      * @param body_mass Body mass of host in kg
      * @returns True when the infection goes extinct. */
-    inline bool update( LocalRng& rng, double survivalFactor, SimTime now, double body_mass ){
+    inline bool update( LocalRng& rng, double survivalFactor, SimTime now, double bodyMass ){
 	SimTime bsAge = now - m_startDate - s_latentP;	// age of post-latent-period blood stage
-	if( bsAge < sim::zero() )
+	if( bsAge < Sim::zero() )
 	    return false;	// latent period (liver stage) — don't do anything
 	else
-	    return updateDensity( rng, survivalFactor, bsAge, body_mass );
+	    return updateDensity( rng, survivalFactor, bsAge, bodyMass );
     }
     
     map<size_t, double> Kn; // IC50^slope per drug type, if sampled
@@ -75,12 +75,12 @@ protected:
      *
      * @param survivalFactor Density multiplier to introduce drug & vaccine
      *   effects
-     * @param bsAge Age of the patent blood-stage infection (sim::zero() on
+     * @param bsAge Age of the patent blood-stage infection (Sim::zero() on
      *  first day). Note that liver and pre-patent blood stages occur before
      *  this, but this function is not called during those stages.
      * @param body_mass Body mass of host in kg
      * @returns True when the infection goes extinct. */
-    virtual bool updateDensity( LocalRng& rng, double survivalFactor, SimTime bsAge, double body_mass ) =0;
+    virtual bool updateDensity( LocalRng& rng, double survivalFactor, SimTime bsAge, double bodyMass ) =0;
     
     virtual void checkpoint (ostream& stream);
 };

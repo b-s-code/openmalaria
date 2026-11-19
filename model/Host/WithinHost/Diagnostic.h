@@ -48,8 +48,8 @@ public:
     bool isPositive( LocalRng& rng, double dens, double densHRP2 ) const;
     
     inline bool operator!=( const Diagnostic& that )const{
-        return specificity != that.specificity ||
-            dens_lim != that.dens_lim;
+        return m_specificity != that.m_specificity ||
+            m_densLim != that.m_densLim;
     }
     
     /// True if false positives are possible
@@ -62,44 +62,44 @@ private:
     explicit Diagnostic( double minDens );
     
     // switch: either not-a-number indicating a deterministic test, or specificity
-    double specificity;
+    double m_specificity;
     // depending on model, this is either the minimum detectible density
     // or the density at which test has half a chance of a positive outcome
-    double dens_lim;
+    double m_densLim;
     
     // if true, the diagnostic is dependent on the HRP2 antigen
-    bool uses_hrp2;
+    bool m_usesHrp2;
     
-    friend class diagnostics;
+    friend class Diagnostics;
 };
 
 /** Static members to do with Diagnostic: library of parameterised Diagnostic
  * objects. */
-class diagnostics {
+class Diagnostics {
 public:
     /** Initialise from input data. */
     static void init( const Parameters& parameters, const scnXml::Scenario& scenario );
     
     /** Look up a diagnostic by name and get a reference to it.
      * 
-     * @throws util::xml_scenario_error on failure
+     * @throws util::XmlScenarioError on failure
      */
     static const Diagnostic& get( const std::string& name );
     
     /** Make a new diagnostic with deterministic density and return a reference. */
-    static const Diagnostic& make_deterministic( double minDens );
+    static const Diagnostic& makeDeterministic( double minDens );
 
     /// Static access functions
 
     static inline const Diagnostic& monitoringDiagnostic(){
-        assert( monitoring_diagnostic != 0 );
-        return *monitoring_diagnostic;
+        assert( s_monitoringDiagnostic != 0 );
+        return *s_monitoringDiagnostic;
     }
 
     
 private:
     static void clear();        // for unit tests
-    static const Diagnostic* monitoring_diagnostic;
+    static const Diagnostic* s_monitoringDiagnostic;
     friend class ::UnittestUtil;
 };
 

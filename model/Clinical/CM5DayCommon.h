@@ -49,17 +49,17 @@ public:
     
     virtual bool isExistingCase () {
         // If treated in the recent past:
-        return sim::now() > m_tLastTreatment && sim::now() <= m_tLastTreatment + healthSystemMemory;
+        return Sim::now() > tLastTreatment && Sim::now() <= tLastTreatment + s_healthSystemMemory;
     }
     
 protected:
     enum CaseType { FirstLine, SecondLine, NumCaseTypes };
-    static mon::Measure measures[NumCaseTypes];
-    static double accessUCAny[NumCaseTypes];
-    static double accessUCSelfTreat[NumCaseTypes];
-    static double accessSevere;
-    static double cureRateSevere;
-    static WithinHost::TreatmentId treatmentSevere;
+    static mon::Measure s_measures[NumCaseTypes];
+    static double s_accessUcAny[NumCaseTypes];
+    static double s_accessUcSelfTreat[NumCaseTypes];
+    static double s_accessSevere;
+    static double s_cureRateSevere;
+    static WithinHost::TreatmentId s_treatmentSevere;
     
     virtual void doClinicalUpdate (Human& human, double ageYears, WithinHost::Pathogenesis::StatePair &pg);
 

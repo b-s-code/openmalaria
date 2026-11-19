@@ -45,20 +45,20 @@ using internal::runtime;
 
 namespace {
 
-constexpr uint32_t maxCohortNumber = uint32_t{1} << 21;
+constexpr uint32_t MaxCohortNumber = uint32_t{1} << 21;
 
 void initAgeGroups(const scnXml::Monitoring& monitoring)
 {
     const scnXml::MonAgeGroup::GroupSequence& groups = monitoring.getAgeGroup().getGroup();
     if (!(monitoring.getAgeGroup().getLowerbound() <= 0.0)) {
-        throw util::xml_scenario_error("Expected survey age-group lowerbound of 0");
+        throw util::XmlScenarioError("Expected survey age-group lowerbound of 0");
     }
 
     runtime.ageGroupUpperBound.resize(groups.size() + 1);
     for (size_t i = 0; i < groups.size(); ++i) {
-        runtime.ageGroupUpperBound[i] = sim::fromYearsD(groups[i].getUpperbound());
+        runtime.ageGroupUpperBound[i] = Sim::fromYearsD(groups[i].getUpperbound());
     }
-    runtime.ageGroupUpperBound[groups.size()] = sim::future();
+    runtime.ageGroupUpperBound[groups.size()] = Sim::future();
 }
 
 } // namespace
@@ -75,22 +75,22 @@ void initReporting(const scnXml::Scenario& scenario)
         if (!optElt.getValue()) continue;
 
         OutMeasure om = findOutMeasure(optElt.getName());
-        if (om.measure == invalidMeasure) {
+        if (om.measure == InvalidMeasure) {
             if (isObsoleteMeasure(optElt.getName())) {
-                throw util::xml_scenario_error("obsolete survey option: " + std::string(optElt.getName()));
+                throw util::XmlScenarioError("obsolete survey option: " + std::string(optElt.getName()));
             }
-            throw util::xml_scenario_error("unrecognised survey option: " + std::string(optElt.getName()));
+            throw util::XmlScenarioError("unrecognised survey option: " + std::string(optElt.getName()));
         }
         if ((om.measure == measure("sumlogDens") || om.measure == measure("logDensByGenotype")) &&
-            WithinHost::diagnostics::monitoringDiagnostic().allowsFalsePositives())
+            WithinHost::Diagnostics::monitoringDiagnostic().allowsFalsePositives())
         {
-            throw util::xml_scenario_error("measure " + std::string(optElt.getName()) + " may not be used when monitoring diagnostic sensitivity < 1");
+            throw util::XmlScenarioError("measure " + std::string(optElt.getName()) + " may not be used when monitoring diagnostic sensitivity < 1");
         }
 
         auto applyCategory = [&](Dim flag, const auto& option, const char* label) {
             if (!option.present()) return;
             if (option.get() && !(om.dims & flag)) {
-                throw util::xml_scenario_error("measure " + std::string(optElt.getName()) + " does not support categorisation by " + label);
+                throw util::XmlScenarioError("measure " + std::string(optElt.getName()) + " does not support categorisation by " + label);
             }
             if (!option.get()) om.dims &= ~flag;
         };
@@ -102,12 +102,12 @@ void initReporting(const scnXml::Scenario& scenario)
 
         if (optElt.getOutputNumber().present()) om.outId = optElt.getOutputNumber().get();
         if (om.outId < 0) {
-            throw util::xml_scenario_error("monitoring output number must not be negative");
+            throw util::XmlScenarioError("monitoring output number must not be negative");
         }
         if (!outIds.insert(om.outId).second) {
-            throw util::xml_scenario_error("monitoring output number " + std::to_string(om.outId) + " used more than once");
+            throw util::XmlScenarioError("monitoring output number " + std::to_string(om.outId) + " used more than once");
         }
-        if (om.measure == allCauseIMR) {
+        if (om.measure == AllCauseImr) {
             runtime.reportIMR = om.outId;
             continue;
         }
@@ -145,12 +145,12 @@ SimTime readSurveyDates(const scnXml::Monitoring& monitoring)
             SimTime cur = UnitParse::readDate(s, UnitParse::STEPS);
             const bool reporting = surv.getReported();
             if (surv.getRepeatStep().present() != surv.getRepeatEnd().present()) {
-                throw util::xml_scenario_error("surveyTime: use of repeatStep or repeatEnd without other");
+                throw util::XmlScenarioError("surveyTime: use of repeatStep or repeatEnd without other");
             }
             if (surv.getRepeatStep().present()) {
                 const SimTime step = UnitParse::readDuration(surv.getRepeatStep().get(), UnitParse::NONE);
-                if (step < sim::oneTS()) {
-                    throw util::xml_scenario_error("surveyTime: repeatStep must be >= 1");
+                if (step < Sim::oneTS()) {
+                    throw util::XmlScenarioError("surveyTime: repeatStep must be >= 1");
                 }
                 const SimTime end = UnitParse::readDate(surv.getRepeatEnd().get(), UnitParse::NONE);
                 while (cur < end) {
@@ -160,8 +160,8 @@ SimTime readSurveyDates(const scnXml::Monitoring& monitoring)
             } else {
                 addSurvey(cur, reporting);
             }
-        } catch (const util::format_error& e) {
-            throw util::xml_scenario_error(std::string("surveyTime: ").append(e.message()));
+        } catch (const util::FormatError& e) {
+            throw util::XmlScenarioError(std::string("surveyTime: ").append(e.message()));
         }
     }
 
@@ -169,11 +169,11 @@ SimTime readSurveyDates(const scnXml::Monitoring& monitoring)
     runtime.surveyDates.reserve(surveys.size());
     runtime.nSurveys = 0;
     for (const auto& [date, reporting] : surveys) {
-        const size_t num = reporting ? runtime.nSurveys++ : NOT_USED;
+        const size_t num = reporting ? runtime.nSurveys++ : NotUsed;
         runtime.surveyDates.push_back({date, num});
     }
     if (runtime.surveyDates.empty()) {
-        throw util::xml_scenario_error("Scenario defines no surveys; at least one is required.");
+        throw util::XmlScenarioError("Scenario defines no surveys; at least one is required.");
     }
     if (!runtime.surveyDates.back().isReported()) {
         std::cerr << "Warning: the last survey is unreported. Having surveys beyond the last reported survey is pointless." << std::endl;
@@ -185,7 +185,7 @@ SimTime readSurveyDates(const scnXml::Monitoring& monitoring)
             if (!surveyDate.isReported()) continue;
             std::cout
                 << (surveyDate.num + 1) << '\t'
-                << sim::inSteps(surveyDate.date - sim::startDate()) << '\t'
+                << Sim::inSteps(surveyDate.date - Sim::startDate()) << '\t'
                 << surveyDate.date << std::endl;
         }
     }
@@ -210,16 +210,16 @@ void initCohorts(const scnXml::Monitoring& monitoring)
         const interventions::ComponentId compId = interventions::InterventionManager::getComponentId(it->getId());
         const bool inserted = runtime.cohortSubPopIds.insert(std::make_pair(compId, nextId)).second;
         if (!inserted) {
-            throw util::xml_scenario_error(
+            throw util::XmlScenarioError(
                 std::string("cohort specification uses sub-population \"").append(it->getId()).append("\" more than once"));
         }
         const auto number = it->getNumber();
-        if (number < 1 || number > maxCohortNumber ||
+        if (number < 1 || number > MaxCohortNumber ||
             !std::has_single_bit(static_cast<uint32_t>(number))) {
-            throw util::xml_scenario_error(
+            throw util::XmlScenarioError(
                 std::string("cohort specification assigns sub-population \"").append(it->getId())
                     .append("\" a number which is not a power of 2 between 1 and ")
-                    .append(std::to_string(maxCohortNumber)));
+                    .append(std::to_string(MaxCohortNumber)));
         }
         runtime.cohortSubPopNumbers.push_back(number);
         nextId += 1;

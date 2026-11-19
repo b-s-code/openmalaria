@@ -250,7 +250,7 @@ public:
     double avEIR;
     node["averageEIR"] >> avEIR;
     ETS_ASSERT_APPROX (resultEIR / vtm->timeStepNumEntoInnocs, avEIR);
-    _ETS_ASSERT_VECTOR_APPROX (f,l, species->P_A, yaml2Std<double> (node["P_A"]));
+    _ETS_ASSERT_VECTOR_APPROX (f,l, species->pA, yaml2Std<double> (node["P_A"]));
     _ETS_ASSERT_VECTOR_APPROX (f,l, species->P_df, yaml2Std<double> (node["P_df"]));
     _ETS_ASSERT_VECTOR_APPROX (f,l, species->P_dif, yaml2Std<double> (node["P_dif"]));
     _ETS_ASSERT_VECTOR_APPROX (f,l, species->N_v, yaml2Std<double> (node["N_v"]));
@@ -262,7 +262,7 @@ public:
       // Print values so they can easily be copied into expected output:
       cerr << setprecision(10);
       cerr << "averageEIR: " << resultEIR / vtm->timeStepNumEntoInnocs;
-      cerr << "\nP_A:\t" << species->P_A;
+      cerr << "\nP_A:\t" << species->pA;
       cerr << "\nP_df:\t" << species->P_df;
       cerr << "\nP_dif:\t" << species->P_dif;
       cerr << "\nN_v:\t" << species->N_v;

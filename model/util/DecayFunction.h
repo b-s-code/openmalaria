@@ -43,13 +43,13 @@ class DecayFunction
 {
 public:
     DecayFunction(bool increasing = false, double initialEfficacy = 1.0, double CV = 0.0) : 
-        increasing(increasing), initialEfficacy(initialEfficacy), het(std::move(LognormalSampler::fromMeanCV(1.0, CV))) {}
+        m_increasing(increasing), m_initialEfficacy(initialEfficacy), m_het(std::move(LognormalSampler::fromMeanCV(1.0, CV))) {}
 
     DecayFunction(const DecayFunction& other) : 
-        increasing(other.increasing),
-        initialEfficacy(other.initialEfficacy),
-        het(other.het ? other.het->clone() : nullptr),
-        hetFactor(other.hetFactor) {}
+        m_increasing(other.m_increasing),
+        m_initialEfficacy(other.m_initialEfficacy),
+        m_het(other.m_het ? other.m_het->clone() : nullptr),
+        m_hetFactor(other.m_hetFactor) {}
 
     virtual ~DecayFunction() {}
 
@@ -68,18 +68,18 @@ public:
      * is not wanted. If sigma = 0 then the random number stream will not be
      * touched. */
     unique_ptr<DecayFunction> hetSample(LocalRng& rng) const {
-        return hetSample(het->sample(rng));
+        return hetSample(m_het->sample(rng));
     }
     
     /** Generate a DecayFunction value from an existing sample. */
     std::unique_ptr<DecayFunction> hetSample(NormalSample sample) const {
-        return hetSample(het->sample(sample));
+        return hetSample(m_het->sample(sample));
     }
     
     /** Generate a DecayFunction value from an existing sample. */
     unique_ptr<DecayFunction> hetSample(double factor) const {
         unique_ptr<DecayFunction> sample = makeHetSample(factor);
-        sample->hetFactor = factor;
+        sample->m_hetFactor = factor;
         return sample;
     }
 
@@ -94,10 +94,10 @@ public:
     virtual SimTime sampleAgeOfDecay (LocalRng& rng) const =0;
     
     inline double eval(double ageDays) const {
-        if(increasing)
-            return 1.0 - compute( ageDays ) * initialEfficacy;
+        if(m_increasing)
+            return 1.0 - compute( ageDays ) * m_initialEfficacy;
         else
-            return compute( ageDays ) * initialEfficacy;
+            return compute( ageDays ) * m_initialEfficacy;
     }
 
     virtual double compute(double ageDays) const = 0;
@@ -107,13 +107,13 @@ public:
     void checkpointSample(unique_ptr<DecayFunction>& sample, istream& stream) const;
 
 private:
-    bool increasing;
-    double initialEfficacy;
-    std::unique_ptr<util::Sampler> het;
+    bool m_increasing;
+    double m_initialEfficacy;
+    std::unique_ptr<util::Sampler> m_het;
 
 protected:
     virtual unique_ptr<DecayFunction> makeHetSample(double factor) const = 0;
-    double hetFactor = 0.0;
+    double m_hetFactor = 0.0;
 };
 
 } }

@@ -61,78 +61,78 @@ protected:
 private:
     /// Maximum number of time steps (including first of case) an individual
     /// will remember they are sick before resetting.
-    static SimTime maxUCSeekingMemory;
+    static SimTime s_maxUcSeekingMemory;
     /// Length of an uncomplicated case
-    static SimTime uncomplicatedCaseDuration;
+    static SimTime s_uncomplicatedCaseDuration;
     /// Length of a complicated case
-    static SimTime complicatedCaseDuration;
+    static SimTime s_complicatedCaseDuration;
     /// Time-span for which individual is at risk of death in complicated case
     /// minus length of complicated case (must be <= 0)
-    static SimTime extraDaysAtRisk;
+    static SimTime s_extraDaysAtRisk;
     /// First value is probability immediate treatment, second is first +
     /// probability 1-day delay to treatment seeking, etc. Last value must be 1.
     /// Index units are days.
-    static vector<double> cumDailyPrImmUCTS;
+    static vector<double> s_cumDailyPrImmUcts;
 
     /// Parameter of S(t) for t > 0
-    static double neg_v;
+    static double s_negV;
     /// Parameter
-    static double alpha;
+    static double s_alpha;
     
     /** Base log odds of treatment of non-malarial fevers in absense of a
      * malaria diagnostic and irrespective of whether treatment is needed.
      * 
      * In our model, this is logit(P₀), not β₀. */
-    static double logOddsAbBase;
+    static double s_logOddsAbBase;
     /** Added to log odds treatment when a malaria diagnostic indicates no
      * parasites. Symbol in model: β₁. */
-    static double logOddsAbNegTest;
+    static double s_logOddsAbNegTest;
     /** Added to log odds treatment when a malaria diagnostic indicates
      * parasites. Symbol in model: β₂. */
-    static double logOddsAbPosTest;
+    static double s_logOddsAbPosTest;
     /** Added to log odds treatment when NMF is categorized as an illness
      * potentially leading to death (Pathogenesis::NEED_ANTIBIOTIC).
      * Symbol in model: β₃. */
-    static double logOddsAbNeed;
+    static double s_logOddsAbNeed;
     /** Added to log odds treatment when given by an informal provider.
      * Symbol in model: β₄. */
-    static double logOddsAbInformal;
+    static double s_logOddsAbInformal;
     /** One minus the efficacy of antibiotic/NMF treatment (i.e. a multiplier
      * for fatality-rate given that the case is treated). */
-    static double oneMinusEfficacyAb;
+    static double s_oneMinusEfficacyAb;
     /** Case fatality rate of non-malaria fevers requiring treatment given that
      * the case is not treated. */
-    static AgeGroupInterpolator severeNmfMortality;
+    static AgeGroupInterpolator s_severeNmfMortality;
     
     /// Probability that an NMF needs antibiotic treatment and could lead to death.
-    static AgeGroupInterpolator NMF_need_antibiotic;
+    static AgeGroupInterpolator s_nmfNeedAntibiotic;
     /** Probability that a malarial fever classified as uncomplicated requires
      * antibiotic treatment (and death could occur from non-malarial causes).
      * Unclear whether using this at the same time as comorbidity parameters
      * makes any sense. */
-    static AgeGroupInterpolator MF_need_antibiotic;
+    static AgeGroupInterpolator s_mfNeedAntibiotic;
     
     // Note on memory usage: Pathogenesis::State is and enum (an int), so we
     // have a vtable followed by 3 ints, a double and a list. Alignment probably
     // wastes some space.
     /// Current state of sickness
-    Episode::State pgState;
+    Episode::State m_pgState;
 
-    /** Set to when a bout should start. If sim::ts0() equals this, a bout
+    /** Set to when a bout should start. If Sim::ts0() equals this, a bout
      * is started (UC & severe behaviour different).
      *
      * Note: medications are not delayed by this. */
-    SimTime caseStartTime = sim::never();
+    SimTime m_caseStartTime = Sim::never();
 
-    /** The individual recovers when sim::ts0() >= timeOfRecovery,
+    /** The individual recovers when Sim::ts0() >= timeOfRecovery,
      * assuming they didn't die. */
-    SimTime timeOfRecovery = sim::never();
+    SimTime m_timeOfRecovery = Sim::never();
 
     /// Time at which last treatment was recieved (for second-case considerations).
-    SimTime timeLastTreatment = sim::never();
+    SimTime m_timeLastTreatment = Sim::never();
 
     /// Total parasite density at last time step (used during a bout).
-    double previousDensity;
+    double m_previousDensity;
 };
 
 }

@@ -38,7 +38,7 @@ namespace OM { namespace util {
      */
     class NormalSample {
     public:
-        NormalSample() : x(numeric_limits<double>::signaling_NaN()) {}
+        NormalSample() : m_x(numeric_limits<double>::signaling_NaN()) {}
         
         /// convert sample to N(mu,sigma)
         double asNormal( double mu, double sigma ) const;
@@ -55,20 +55,20 @@ namespace OM { namespace util {
         ///     (note: if this is used to sample a log-normal, then the
         ///     correlation is on the log-scale)
         /// @param factor should equal sqrt(1 - correlation^2); may be cached
-        static NormalSample generate_correlated(NormalSample base, double correlation, double factor, LocalRng& rng);
+        static NormalSample generateCorrelated(NormalSample base, double correlation, double factor, LocalRng& rng);
         
     private:
-        NormalSample( double variate ) : x(variate) {}
+        NormalSample( double variate ) : m_x(variate) {}
         
-        double x;   // variate (sampled from N(0,1))
+        double m_x;   // variate (sampled from N(0,1))
     };
     
     /** Sampler for normal values */
     class NormalSampler {
     public:
         NormalSampler() :
-            mu( numeric_limits<double>::signaling_NaN() ),
-            sigma( numeric_limits<double>::signaling_NaN() )
+            m_mu( numeric_limits<double>::signaling_NaN() ),
+            m_sigma( numeric_limits<double>::signaling_NaN() )
         {}
         
         /** Set parameters such that samples taken are:
@@ -87,21 +87,21 @@ namespace OM { namespace util {
 
         /** Create a log-normal sample from an existing normal sample. */
         inline double sample(NormalSample sample) const{
-            return sample.asNormal( mu, sigma );
+            return sample.asNormal( m_mu, m_sigma );
         }
         
         /// Return mu / mean of distribution
         inline double getMu() const{
-            return mu;
+            return m_mu;
         }
 
         /// Return sigma / standard deviation of distribution
         inline double getSigma() const{
-            return sigma;
+            return m_sigma;
         }
         
     private:
-        double mu, sigma;
+        double m_mu, m_sigma;
     };
     
     class Sampler
@@ -139,7 +139,7 @@ namespace OM { namespace util {
          *
          * @param mean  Desired mean of X (must be ≥ 0; if mean == 0 then CV must be 0).
          * @param CV    Desired coefficient of variation (must be ≥ 0).
-         * @throws util::xml_scenario_error  If mean < 0 or CV < 0, or if mean > 0 but CV == 0 is invalid.
+         * @throws util::XmlScenarioError  If mean < 0 or CV < 0, or if mean > 0 but CV == 0 is invalid.
          */
         static unique_ptr<util::LognormalSampler> fromMeanCV( double mean, double CV, std::optional<double> truncate = std::nullopt);
 
@@ -156,7 +156,7 @@ namespace OM { namespace util {
          *
          * @param mean      Desired mean of X (must be > 0).
          * @param variance  Desired variance of X (must be ≥ 0).
-         * @throws util::xml_scenario_error  If mean ≤ 0 or variance < 0.
+         * @throws util::XmlScenarioError  If mean ≤ 0 or variance < 0.
          */
         static unique_ptr<util::LognormalSampler> fromMeanVariance( double mean, double variance, std::optional<double> truncate = std::nullopt);
 
@@ -174,7 +174,7 @@ namespace OM { namespace util {
         
         /** Create a log-normal sample from an existing normal sample. */
         double sample(NormalSample sample) const override {
-            return sample.asLognormal( mu, sigma );
+            return sample.asLognormal( m_mu, m_sigma );
         }
 
         /**
@@ -193,10 +193,10 @@ namespace OM { namespace util {
         
     private:
         // log-space parameters
-        double mu       = std::numeric_limits<double>::signaling_NaN(); 
-        double sigma    = std::numeric_limits<double>::signaling_NaN();
+        double m_mu       = std::numeric_limits<double>::signaling_NaN(); 
+        double m_sigma    = std::numeric_limits<double>::signaling_NaN();
         double CV       = std::numeric_limits<double>::signaling_NaN();
-        std::optional<double> truncate = std::nullopt;
+        std::optional<double> m_truncate = std::nullopt;
     };
 
     /** Sampler for gamma values */
@@ -222,7 +222,7 @@ namespace OM { namespace util {
          *
          * @param mean  Desired mean of the distribution (must be > 0).
          * @param CV    Desired coefficient of variation (must be ≥ 0).
-         * @throws util::xml_scenario_error  If mean ≤ 0 or CV < 0.
+         * @throws util::XmlScenarioError  If mean ≤ 0 or CV < 0.
          */
         static unique_ptr<util::GammaSampler> fromMeanCV( double mean, double CV, std::optional<double> truncate = std::nullopt);
 
@@ -239,7 +239,7 @@ namespace OM { namespace util {
          *
          * @param mean      Desired mean of the distribution (must be > 0).
          * @param variance  Desired variance of the distribution (must be ≥ 0).
-         * @throws util::xml_scenario_error  If mean ≤ 0 or variance < 0.
+         * @throws util::XmlScenarioError  If mean ≤ 0 or variance < 0.
          */
         static unique_ptr<util::GammaSampler> fromMeanVariance( double mean, double variance, std::optional<double> truncate = std::nullopt);
         
@@ -266,12 +266,12 @@ namespace OM { namespace util {
         double cdf(double x) const override;
         
     private:
-        double mu       = std::numeric_limits<double>::signaling_NaN();
-        double k        = std::numeric_limits<double>::signaling_NaN();
-        double theta    = std::numeric_limits<double>::signaling_NaN();
-        double variance = std::numeric_limits<double>::signaling_NaN();
+        double m_mu       = std::numeric_limits<double>::signaling_NaN();
+        double m_k        = std::numeric_limits<double>::signaling_NaN();
+        double m_theta    = std::numeric_limits<double>::signaling_NaN();
+        double m_variance = std::numeric_limits<double>::signaling_NaN();
         double CV       = std::numeric_limits<double>::signaling_NaN();
-        std::optional<double> truncate = std::nullopt;
+        std::optional<double> m_truncate = std::nullopt;
     };
 
     /** Create a new <SamplerT> from a xml snippet. */
@@ -279,11 +279,11 @@ namespace OM { namespace util {
     inline unique_ptr<SamplerT> createSampler(double mean, const scnXml::SampledValueCV& elt)
     {
         // 1.  Compile‑time identify which concrete sampler we are handling ─────
-        constexpr bool isLognormal = std::is_same_v<SamplerT, LognormalSampler>;
-        constexpr bool isGamma     = std::is_same_v<SamplerT, GammaSampler>;
-        constexpr const char* expectedDistr =
-            isLognormal ? "lognormal" :
-            isGamma     ? "gamma"
+        constexpr bool IsLognormal = std::is_same_v<SamplerT, LognormalSampler>;
+        constexpr bool IsGamma     = std::is_same_v<SamplerT, GammaSampler>;
+        constexpr const char* ExpectedDistr =
+            IsLognormal ? "lognormal" :
+            IsGamma     ? "gamma"
                         : nullptr;
 
         const std::string& d = elt.getDistr();
@@ -291,30 +291,30 @@ namespace OM { namespace util {
         // 2. Special handling for the “const” alias (lognormal with CV = 0)
         if( d == "const" )
         {
-            if constexpr (!isLognormal) // only allowed for lognormal
-                throw util::xml_scenario_error("\"distr=\"const\": expected \"lognormal\"");
+            if constexpr (!IsLognormal) // only allowed for lognormal
+                throw util::XmlScenarioError("\"distr=\"const\": expected \"lognormal\"");
 
             if( elt.getCV().present() && elt.getCV().get() != 0.0 )
-                throw util::xml_scenario_error( "\"distr="+d+"\": attribute \"CV\" must be zero or omitted when distr=\"const\" or is omitted" );
+                throw util::XmlScenarioError( "\"distr="+d+"\": attribute \"CV\" must be zero or omitted when distr=\"const\" or is omitted" );
             if( elt.getVariance().present() && elt.getVariance().get() != 0.0 )
-                throw util::xml_scenario_error( "\"distr="+d+"\": attribute \"variance\" must be zero or omitted when distr=\"const\" or is omitted" );
+                throw util::XmlScenarioError( "\"distr="+d+"\": attribute \"variance\" must be zero or omitted when distr=\"const\" or is omitted" );
             
             return SamplerT::fromMeanCV(mean, 0.0);
         }
 
         // 3. Check that XML 'distr' matches the compile‑time sampler type
-        if (expectedDistr == nullptr)
-            throw util::xml_scenario_error("createSampler<SamplerT>: expected SamplerT to be a valid Sampler");
+        if (ExpectedDistr == nullptr)
+            throw util::XmlScenarioError("createSampler<SamplerT>: expected SamplerT to be a valid Sampler");
 
-        if (d != expectedDistr)
-            throw util::xml_scenario_error("\"distr=" + d + "\": expected \"" + expectedDistr + "\" or \"const\"");
+        if (d != ExpectedDistr)
+            throw util::XmlScenarioError("\"distr=" + d + "\": expected \"" + ExpectedDistr + "\" or \"const\"");
 
         // 4. Exactly one of CV / variance must be supplied
         const bool hasCV  = elt.getCV().present();
         const bool hasVar = elt.getVariance().present();
 
         if (hasCV == hasVar)   // both present or both absent
-            throw util::xml_scenario_error("\"distr=" + d + "\": exactly one of attributes \"CV\" or \"variance\" must be specified");
+            throw util::XmlScenarioError("\"distr=" + d + "\": exactly one of attributes \"CV\" or \"variance\" must be specified");
 
         // 5. Check for the optional truncation parameter
         std::optional<double> truncate = elt.getTruncate().present()
@@ -338,7 +338,7 @@ namespace OM { namespace util {
         else if (d == "gamma")
             return createSampler<util::GammaSampler>(mean,  elt);
         else
-            throw util::xml_scenario_error("\"distr=" + d + "\": expected \"const\", \"lognormal\" or \"gamma\"");
+            throw util::XmlScenarioError("\"distr=" + d + "\": expected \"const\", \"lognormal\" or \"gamma\"");
     }
 
     /** Create a LognormalSampler from a SampledValueLN xml snippet. */
@@ -354,8 +354,8 @@ namespace OM { namespace util {
     class BetaSampler {
     public:
         BetaSampler() :
-            a( numeric_limits<double>::signaling_NaN() ),
-            b( numeric_limits<double>::signaling_NaN() )
+            m_a( numeric_limits<double>::signaling_NaN() ),
+            m_b( numeric_limits<double>::signaling_NaN() )
         {}
         
         /** Set parameters: alpha, beta.
@@ -363,8 +363,8 @@ namespace OM { namespace util {
          * As a special case, when beta=0, alpha is interpreted as the mean and
          * is returned without sampling. */
         inline void setParams( double alpha, double beta ){
-            a=alpha;
-            b=beta;
+            m_a=alpha;
+            m_b=beta;
         }
         
         /** Set parameters: alpha and beta are calculated such that the mean
@@ -383,21 +383,21 @@ namespace OM { namespace util {
     private:
         //Note: if b is 0, then alpha is mean. Otherwise a and b are
         //the expected (α,β) parameters to the beta distribution.
-        double a, b;
+        double m_a, m_b;
     };
     
     /** Sampler for the Weibull distribution. */
     class WeibullSampler {
     public:
         WeibullSampler() :
-            scale( numeric_limits<double>::signaling_NaN() ),
-            shape( numeric_limits<double>::signaling_NaN() )
+            m_scale( numeric_limits<double>::signaling_NaN() ),
+            m_shape( numeric_limits<double>::signaling_NaN() )
         {}
         
         /** Set parameters from scale, shape. */
         inline void setScaleShape( double lambda, double k ){
-            scale = lambda;
-            shape = k;
+            m_scale = lambda;
+            m_shape = k;
         }
         
         /** Set parameters from an XML element. */
@@ -407,11 +407,11 @@ namespace OM { namespace util {
         
         /** Sample a value. */
         inline double sample(LocalRng& rng) const{
-            return rng.weibull( scale, shape );
+            return rng.weibull( m_scale, m_shape );
         }
         
     private:
-        double scale, shape;    // λ, k
+        double m_scale, m_shape;    // λ, k
     };
     
 } }

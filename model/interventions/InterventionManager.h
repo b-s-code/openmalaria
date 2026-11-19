@@ -52,7 +52,7 @@ public:
         using namespace OM::util::checkpoint;
         // most members are only set from XML,
         // nextTimed varies but is re-set by loadFromCheckpoint
-        importedInfections & stream;
+        s_importedInfections & stream;
     }
 
     /** Call after loading a checkpoint, passing the intervention-period time.
@@ -73,33 +73,33 @@ public:
     
     /** Get a constant reference to a component class with a certain index.
      * 
-     * @throws util::base_exception if the index is out-of-range */
+     * @throws util::BaseException if the index is out-of-range */
     inline static const HumanInterventionComponent& getComponent( ComponentId id ){
-        if( id.id >= humanComponents.size() )
-            throw util::base_exception( "invalid component id" );
-        return *humanComponents[id.id];
+        if( id.id >= s_humanComponents.size() )
+            throw util::BaseException( "invalid component id" );
+        return *s_humanComponents[id.id];
     }
     
     /** Get a numeric ComponentId from the textual identifier used in the XML.
      * 
-     * If textId is unknown, an xml_scenario_error is thrown. */
+     * If textId is unknown, an XmlScenarioError is thrown. */
     static ComponentId getComponentId( const std::string textId );
     
 private:
     // Map of textual identifiers to numeric identifiers for components
-    static std::map<std::string,ComponentId> identifierMap;
+    static std::map<std::string,ComponentId> s_identifierMap;
     // All human intervention components, indexed by a number. This list is used
     // during initialisation and thereafter only for memory management.
-    static vector<unique_ptr<HumanInterventionComponent>> humanComponents;
+    static vector<unique_ptr<HumanInterventionComponent>> s_humanComponents;
     // Continuous interventions, sorted by deployment age (weakly increasing)
-    static vector<ContinuousHumanDeployment> continuous;
+    static vector<ContinuousHumanDeployment> s_continuous;
     // List of all timed interventions. Should be sorted (time weakly increasing).
-    static vector<unique_ptr<TimedDeployment>> timed;
-    static uint32_t nextTimed;  // not chcekpointed (see loadFromCheckpoint)
+    static vector<unique_ptr<TimedDeployment>> s_timed;
+    static uint32_t s_nextTimed;  // not chcekpointed (see loadFromCheckpoint)
     
     // imported infections are not really interventions, and handled by a separate class
     // (but are grouped here for convenience and due toassociation in schema)
-    static OM::Host::ImportedInfections importedInfections;
+    static OM::Host::ImportedInfections s_importedInfections;
 };
 
 } }

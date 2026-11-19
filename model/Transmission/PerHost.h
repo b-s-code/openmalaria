@@ -55,17 +55,17 @@ public:
     PerHostAnophParams& operator=(const PerHostAnophParams&) = delete;
 
     static inline void init (const scnXml::Mosq& mosq) {
-        params.emplace_back(mosq);
+        s_params.emplace_back(mosq);
     }
     
     /// Get the number of vector species
     static inline size_t numSpecies() {
-        return params.size();
+        return s_params.size();
     }
     
     /// Get parameters for the given vector species
     static inline const PerHostAnophParams& get(size_t species) {
-        return params[species];
+        return s_params[species];
     }
     
     /** entoAvailability is calculated externally, then set after other
@@ -76,7 +76,7 @@ public:
      * It should be called exactly once.
       */
     inline static void setEntoAvailabilityFactor(size_t species, double entoAvailability){
-        params[species].entoAvailabilityFactor = entoAvailability;
+        s_params[species].entoAvailabilityFactor = entoAvailability;
     }
 
     inline static void calcAvailabilityPercentiles(){
@@ -102,20 +102,20 @@ public:
         // Sort samples
         sort(samples.begin(), samples.end());
 
-        entoAvailabilityPercentiles.resize(100);
+        s_entoAvailabilityPercentiles.resize(100);
 
         // Calc percetiles threshold values
         for(int i=0; i<100; i++)
-            entoAvailabilityPercentiles[i] = samples[int(i*nSamples/100)];
-        entoAvailabilityPercentiles[0] = 0.0;
+            s_entoAvailabilityPercentiles[i] = samples[int(i*nSamples/100)];
+        s_entoAvailabilityPercentiles[0] = 0.0;
     }
 
     inline static double getEntoAvailabilityPercentile(int p){
         if(p >= 0 && p < 100)
-            return entoAvailabilityPercentiles[p];
+            return s_entoAvailabilityPercentiles[p];
         else if(p == 100)
             return std::numeric_limits<double>::max();
-        else throw util::xml_scenario_error("Availability percentiles in intervention specifications can only be in [0 and 100]");
+        else throw util::XmlScenarioError("Availability percentiles in intervention specifications can only be in [0 and 100]");
     }
 
     /** @brief Probabilities of finding a host and surviving a feeding cycle
@@ -143,8 +143,8 @@ public:
     //@}
     
 private:
-    static vector<PerHostAnophParams> params;
-    static vector<double> entoAvailabilityPercentiles;
+    static vector<PerHostAnophParams> s_params;
+    static vector<double> s_entoAvailabilityPercentiles;
 
 };
 
@@ -152,7 +152,7 @@ private:
  * A base class for interventions affecting human-vector interaction.
  * 
  * The constructor should initialise the data to represent an intervention
- * deployed at this time (sim::now()).
+ * deployed at this time (Sim::now()).
  * 
  * redeploy() should reset the intervention to a freshly deployed state. If
  * necessary, PerHost::deployComponent can be updated to make it create a new
@@ -188,7 +188,7 @@ public:
     inline interventions::ComponentId id() const { return m_id; }
     
     /// Return true if this component is deployed (i.e. currently active)
-    inline bool isDeployed() const{ return deployTime != sim::never(); }
+    inline bool isDeployed() const{ return m_deployTime != Sim::never(); }
     
     /// Checkpointing (write only)
     void operator& (ostream& stream) {
@@ -200,13 +200,13 @@ public:
 protected:
     /// Set the component id
     explicit PerHostInterventionData( interventions::ComponentId id ) :
-            deployTime( sim::now() ),
+            m_deployTime( Sim::now() ),
             m_id(id) {}
     
     /// Checkpointing: write
     virtual void checkpoint( ostream& stream ) =0;
     
-    SimTime deployTime = sim::never();        // time of deployment or sim::never()
+    SimTime m_deployTime = Sim::never();        // time of deployment or Sim::never()
     interventions::ComponentId m_id;       // component id; don't change
 };
 
@@ -264,7 +264,7 @@ public:
      * 
      * Also has a switch to put individuals entirely outside transmission. */
     inline double relativeAvailabilityAge (double ageYears) const {
-        return outsideTransmission ? 0.0 : relAvailAge.eval( ageYears );
+        return outsideTransmission ? 0.0 : s_relAvailAge.eval( ageYears );
     }
     
     /** Get the availability of this host to mosquitoes relative to an average
@@ -325,7 +325,7 @@ public:
     /** Get the age at which individuals are considered adults (i.e. where
      * availability to mosquitoes reaches its maximum). */
     static inline SimTime adultAge() {
-        return sim::fromYearsD( relAvailAge.firstGlobalMaximum() );
+        return Sim::fromYearsD( s_relAvailAge.firstGlobalMaximum() );
     }
     
     /** Get whether the user has any active deployments of interventions of
@@ -381,9 +381,9 @@ private:
     void checkpointIntervs( ostream& stream );
     void checkpointIntervs( istream& stream );
 
-    vector<unique_ptr<PerHostInterventionData>> activeComponents;
+    vector<unique_ptr<PerHostInterventionData>> m_activeComponents;
     
-    static AgeGroupInterpolator relAvailAge;
+    static AgeGroupInterpolator s_relAvailAge;
 };
 
 }

@@ -51,21 +51,21 @@ namespace OM {
 
 using namespace OM;
 
-void print_progress(int lastPercent, SimTime &estEndTime)
+void printProgress(int lastPercent, SimTime &estEndTime)
 {
-    int percent = (sim::now() * 100) / estEndTime;
+    int percent = (Sim::now() * 100) / estEndTime;
     if( percent != lastPercent ) {   // avoid huge amounts of output for performance/log-file size reasons
         lastPercent = percent;
         cerr << "\r" << percent << "%\t" << flush;
     }
 }
 
-void print_errno()
+void printErrno()
 {
     if( errno != 0 )
     {
        char err[256];
-       sprintf(err, "t = %d Please report! Error: ", int(sim::now()));
+       sprintf(err, "t = %d Please report! Error: ", int(Sim::now()));
        std::perror(err);
        errno = 0;
     }
@@ -78,27 +78,27 @@ void run(Population &population, TransmissionModel &transmission, SimTime humanW
 
     if (util::CommandLine::option(util::CommandLine::VERBOSE)) cout << "Starting " << phase << "..." << endl;
 
-    while (sim::now() < endTime)
+    while (Sim::now() < endTime)
     {
-        if (util::CommandLine::option(util::CommandLine::VERBOSE) && sim::intervDate() > 0)
-            cout << "Time step: " << sim::now() / sim::oneTS() << ", internal days: " << sim::now() << " | " << estEndTime << ", Intervention Date: " << sim::intervDate() << endl;
+        if (util::CommandLine::option(util::CommandLine::VERBOSE) && Sim::intervDate() > 0)
+            cout << "Time step: " << Sim::now() / Sim::oneTS() << ", internal days: " << Sim::now() << " | " << estEndTime << ", Intervention Date: " << Sim::intervDate() << endl;
 
-        // Monitoring. sim::now() gives time of end of last step,
+        // Monitoring. Sim::now() gives time of end of last step,
         // and is when reporting happens in our time-series.
         mon::Continuous::update( population );
-        if( sim::intervDate() == mon::nextSurveyDate() ){
+        if( Sim::intervDate() == mon::nextSurveyDate() ){
             for(Host::Human &human : population.humans)
                 Host::summarize(human, surveyOnlyNewEp);
             transmission.summarize();
             mon::concludeSurvey();
         }
         
-        // Deploy interventions, at time sim::now().
+        // Deploy interventions, at time Sim::now().
         InterventionManager::deploy( population.humans, transmission );
         
         // Time step updates. Time steps are mid-day to mid-day.
-        // sim::ts0() gives the date at the start of the step, sim::ts1() the date at the end.
-        sim::start_update();
+        // Sim::ts0() gives the date at the start of the step, Sim::ts1() the date at the end.
+        Sim::startUpdate();
 
         // This should be called before humans contract new infections in the simulation step.
         // This needs the whole population (it is an approximation before all humans are updated).
@@ -110,7 +110,7 @@ void run(Population &population, TransmissionModel &transmission, SimTime humanW
         
         for (Host::Human& human : population.humans)
         {
-            if (human.getDOB() + sim::maxHumanAge() >= humanWarmupLength) // this is last time of possible update
+            if (human.getDOB() + Sim::maxHumanAge() >= humanWarmupLength) // this is last time of possible update
                 Host::update(human, transmission);
         }
        
@@ -121,11 +121,11 @@ void run(Population &population, TransmissionModel &transmission, SimTime humanW
         transmission.updateKappa(population.humans);
         transmission.surveyEIR();
 
-        sim::end_update();
+        Sim::endUpdate();
 
         if (util::CommandLine::option(util::CommandLine::PROGRESS))
-            print_progress(lastPercent, estEndTime);
-        print_errno();
+            printProgress(lastPercent, estEndTime);
+        printErrno();
     }
 
     if (util::CommandLine::option(util::CommandLine::VERBOSE)) cout << "Finishing " << phase << "..." << endl;
@@ -142,27 +142,27 @@ int main(int argc, char* argv[])
     SimTime estEndTime, endTime;
     
     try {
-        util::set_gsl_handler();
+        util::setGslHandler();
         
         scenarioFile = util::CommandLine::parse (argc, argv);
         unique_ptr<scnXml::Scenario> scenario = util::loadScenario(scenarioFile);
 
-        util::XMLChecker().PerformPostValidationChecks(*scenario);
+        util::XMLChecker().performPostValidationChecks(*scenario);
 
         // 1) elements with no dependencies on other elements initialised here:
         WithinHost::Genotypes::init( *scenario );
-        util::master_RNG.seed( scenario->getModel().getComputationParameters().getIseed(), 0 ); // Init RNG with Iseed
+        util::masterRng.seed( scenario->getModel().getComputationParameters().getIseed(), 0 ); // Init RNG with Iseed
         util::ModelNameProvider modelNameProvider(scenario->getModel());
 
         // 2) elements depending on only elements initialised in (1):
-        sim::init(*scenario, modelNameProvider); // Also reads survey dates.
+        Sim::init(*scenario, modelNameProvider); // Also reads survey dates.
 
         // 3) elements depending on only elements initialised in (2).
         Parameters parameters( scenario->getModel().getParameters(), modelNameProvider ); // Depends on ModelNameProvider.
         util::ModelOptions::init( scenario->getModel().getModelOptions(), modelNameProvider ); // Depends on ModelNameProvider.
 
         // 4) elements depending on only elements initialised in (3).
-        WithinHost::diagnostics::init( parameters, *scenario ); // Depends on Parameters.
+        WithinHost::Diagnostics::init( parameters, *scenario ); // Depends on Parameters.
 
         // 5) elements depending on only elements initialised in (4).
         mon::initReporting( *scenario ); // Reporting init depends on diagnostics and monitoring
@@ -195,16 +195,16 @@ int main(int argc, char* argv[])
 
         bool surveyOnlyNewEp = scenario->getMonitoring().getSurveyOptions().getOnlyNewEpisode();
 
-        sim::s_t0 = sim::zero();
-        sim::s_t1 = sim::zero();
+        Sim::s_t0 = Sim::zero();
+        Sim::s_t1 = Sim::zero();
         
         // Make sure warmup period is at least as long as a human lifespan, as the
         // length required by vector warmup, and is a whole number of years.
-        SimTime humanWarmupLength = sim::maxHumanAge();
+        SimTime humanWarmupLength = Sim::maxHumanAge();
         if(transmission->interventionMode != Transmission::forcedEIR)
-            humanWarmupLength = max(humanWarmupLength, sim::fromYearsI(55)); // Data is summed over 5 years; add an extra 50 for stabilization.
+            humanWarmupLength = max(humanWarmupLength, Sim::fromYearsI(55)); // Data is summed over 5 years; add an extra 50 for stabilization.
 
-        humanWarmupLength = sim::fromYearsI( static_cast<int>(ceil(sim::inYears(humanWarmupLength))) );
+        humanWarmupLength = Sim::fromYearsI( static_cast<int>(ceil(Sim::inYears(humanWarmupLength))) );
 
         // ———  End of static data initialisation  ———
         checkpointFileName = util::CommandLine::getCheckpointName();
@@ -222,8 +222,8 @@ int main(int argc, char* argv[])
         else
             startedFromCheckpoint = false;
         
-        estEndTime = humanWarmupLength + (sim::endDate() - sim::startDate()) + sim::oneTS();
-        assert( estEndTime + sim::never() < sim::zero() );
+        estEndTime = humanWarmupLength + (Sim::endDate() - Sim::startDate()) + Sim::oneTS();
+        assert( estEndTime + Sim::never() < Sim::zero() );
 
         if (startedFromCheckpoint)
         {
@@ -244,7 +244,7 @@ int main(int argc, char* argv[])
 
             /** Warm-up phase: 
              * Run the simulation using the equilibrium inoculation rates over one
-             * complete lifespan (sim::maxHumanAge()) to reach immunological
+             * complete lifespan (Sim::maxHumanAge()) to reach immunological
              * equilibrium in all age classes. Don't report any events. */
             endTime = humanWarmupLength;
             run(*population, *transmission, humanWarmupLength, endTime, estEndTime, surveyOnlyNewEp, "Warmup");
@@ -252,11 +252,11 @@ int main(int argc, char* argv[])
             /** Transmission init phase:
              * Fit the emergence rate to the input EIR */
             SimTime iterate = transmission->initIterate();
-            while(iterate > sim::zero())
+            while(iterate > Sim::zero())
             {
                 endTime = endTime + iterate;
                 // adjust estimation of final time step: end of current period + length of main phase
-                estEndTime = endTime + (sim::endDate() - sim::startDate()) + sim::oneTS();
+                estEndTime = endTime + (Sim::endDate() - Sim::startDate()) + Sim::oneTS();
                 run(*population, *transmission, humanWarmupLength, endTime, estEndTime, surveyOnlyNewEp, "EIR Calibration");
                 iterate = transmission->initIterate();
             }
@@ -269,8 +269,8 @@ int main(int argc, char* argv[])
              * (iii)       the intervention packages defined in Intervention()
              * (iv)        the survey times defined in Survey() */
             // reset endTime and estEndTime to their exact value after initIterate()
-            estEndTime = endTime = endTime + (sim::endDate() - sim::startDate()) + sim::oneTS();
-            sim::s_interv = sim::zero();
+            estEndTime = endTime = endTime + (Sim::endDate() - Sim::startDate()) + Sim::oneTS();
+            Sim::s_interv = Sim::zero();
             Host::InfectionIncidenceModel::preMainSimInit();
             Clinical::InfantMortality::preMainSimInit();
             WithinHost::Genotypes::preMainSimInit();
@@ -282,7 +282,7 @@ int main(int argc, char* argv[])
             {
                 writeCheckpoint(startedFromCheckpoint, checkpointFileName, endTime, estEndTime, *population, *transmission);
                 if( util::CommandLine::option (util::CommandLine::CHECKPOINT_STOP) )
-                    throw util::cmd_exception ("Checkpoint test: checkpoint written", util::Error::None);
+                    throw util::CmdException ("Checkpoint test: checkpoint written", util::Error::None);
             }
         }
 
@@ -301,7 +301,7 @@ int main(int argc, char* argv[])
     # endif
         
         // simulation's destructor runs
-    } catch (const OM::util::cmd_exception& e) {
+    } catch (const OM::util::CmdException& e) {
         if( e.getCode() == 0 ){
             // this is not an error, but exiting due to command line
             std::cerr << e.what() << "; exiting..." << endl;
@@ -325,20 +325,20 @@ int main(int argc, char* argv[])
             std::cerr << "Parsing scenario file failed.\n\tLikely the XSD schema is named/located correctly but the scenario does not conform to the schema." << std::endl;
         }
         exitStatus = OM::util::Error::XSD;
-    } catch (const OM::util::checkpoint_error& e) {
+    } catch (const OM::util::CheckpointError& e) {
         std::cerr << "Checkpoint error: " << e.what() << endl;
         std::cerr << e << flush;
         exitStatus = e.getCode();
-    } catch (const OM::util::traced_exception& e) {
+    } catch (const OM::util::TracedException& e) {
         std::cerr << "Code error: " << e.what() << endl;
         std::cerr << e << flush;
         std::cerr << "This is likely an error in the C++ code. Please report!" << endl;
         exitStatus = e.getCode();
-    } catch (const OM::util::xml_scenario_error& e) {
+    } catch (const OM::util::XmlScenarioError& e) {
         std::cerr << "Error: " << e.what() << endl;
         std::cerr << "In: " << scenarioFile << endl;
         exitStatus = e.getCode();
-    } catch (const OM::util::base_exception& e) {
+    } catch (const OM::util::BaseException& e) {
         std::cerr << "Error: " << e.message() << endl;
         exitStatus = e.getCode();
     } catch (const exception& e) {

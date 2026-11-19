@@ -181,20 +181,20 @@ namespace ExtraAsserts {
   public:
     ExtraAssertsSuite () :
       NaN (numeric_limits<double>::quiet_NaN()),
-      Inf (numeric_limits<double>::infinity())
+      m_inf (numeric_limits<double>::infinity())
     {}
     
     /// Check some IEEE 754 compliance
     void testIEEE754 () {
       TS_ASSERT_DIFFERS (NaN, NaN);
-      TS_ASSERT_DIFFERS (NaN, Inf);
-      TS_ASSERT_DIFFERS (NaN, -Inf);
-      TS_ASSERT_DIFFERS (Inf, -Inf);
+      TS_ASSERT_DIFFERS (NaN, m_inf);
+      TS_ASSERT_DIFFERS (NaN, -m_inf);
+      TS_ASSERT_DIFFERS (m_inf, -m_inf);
       
-      TS_ASSERT_EQUALS (Inf, Inf);
-      TS_ASSERT_EQUALS (-Inf, -Inf);
+      TS_ASSERT_EQUALS (m_inf, m_inf);
+      TS_ASSERT_EQUALS (-m_inf, -m_inf);
       
-      TS_ASSERT_IS_NAN_ (Inf - Inf);
+      TS_ASSERT_IS_NAN_ (m_inf - m_inf);
     }
     
     /// Check ExtraAsserts::approx works as expected.
@@ -206,18 +206,18 @@ namespace ExtraAsserts {
       TS_ASSERT (!approx (NaN, 1))
       TS_ASSERT (!approx (NaN, 0))
       TS_ASSERT (!approx (NaN, NaN))
-      TS_ASSERT (!approx (NaN, Inf))
+      TS_ASSERT (!approx (NaN, m_inf))
       
       // These 2 tests pass without explicitly checking for inf in tolerance
       // because an NaN is produced in the test:
-      TS_ASSERT (!approx (Inf, 1))
-      TS_ASSERT (!approx (Inf, 0))
+      TS_ASSERT (!approx (m_inf, 1))
+      TS_ASSERT (!approx (m_inf, 0))
       // However, these 2 fail in this case, because (inf <= inf):
-      TS_ASSERT (!approx (1, Inf))
-      TS_ASSERT (!approx (0, Inf))
+      TS_ASSERT (!approx (1, m_inf))
+      TS_ASSERT (!approx (0, m_inf))
       // This is contrary to IEEE 754 rules, however preferred for unit testing:
-      TS_ASSERT (!approx (Inf, Inf))
-      TS_ASSERT (!approx (Inf, -Inf))
+      TS_ASSERT (!approx (m_inf, m_inf))
+      TS_ASSERT (!approx (m_inf, -m_inf))
       
       TS_ASSERT (!approx (0, 1e-6))
       TS_ASSERT ( approx (0, 1e-7))
@@ -237,7 +237,7 @@ namespace ExtraAsserts {
     }
     
   protected:
-    double NaN, Inf;
+    double NaN, m_inf;
   };
 }
 

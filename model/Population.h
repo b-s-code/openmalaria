@@ -64,10 +64,10 @@ public:
 
 private:
     /** Size of the human population */
-    size_t size = 0;
+    size_t m_size = 0;
     
     /** Births count since last continuous output */
-    int recentBirths = 0;
+    int m_recentBirths = 0;
 };
 
 void registerContinousPopulationCallbacks();
@@ -93,15 +93,15 @@ void ctsIRSCoverage (Population &population, ostream& stream);
 void ctsGVICoverage (Population &population, ostream& stream);
 
 inline size_t Population::getSize() const {
-    return size;
+    return m_size;
 }
 
 inline int Population::getRecentBirths() const {
-    return recentBirths;
+    return m_recentBirths;
 }
 
 inline void Population::resetRecentBirths() {
-    recentBirths = 0;
+    m_recentBirths = 0;
 }
 
 }

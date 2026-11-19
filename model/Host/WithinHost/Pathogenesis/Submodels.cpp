@@ -39,7 +39,7 @@ double densityExponent_32;
 
 void MuellerPathogenesis::init( const Parameters& parameters ){
     rateMultiplier_31 = parameters[Parameter::MUELLER_RATE_MULTIPLIER]
-        * sim::yearsPerStep();
+        * Sim::yearsPerStep();
     densityExponent_32 = parameters[Parameter::MUELLER_DENSITY_EXPONENT];
 }
 
@@ -59,7 +59,7 @@ double Ystar2_13;
 double Ystar1_26;
 
 //Number of categories in the numerical approximation used in updatePyrogenThres()
-const size_t n = 11;
+const size_t N = 11;
 // Derived parameters without good names:
 double a = numeric_limits<double>::signaling_NaN(),
     b = numeric_limits<double>::signaling_NaN();
@@ -67,55 +67,55 @@ double a = numeric_limits<double>::signaling_NaN(),
 void PyrogenPathogenesis::init( const Parameters& parameters ){
     initPyroThres = parameters[Parameter::Y_STAR_0];
     
-    double delt = 1.0 / n;
+    double delt = 1.0 / N;
     double smuY = -log(0.5) /
-        (sim::stepsPerYear() * parameters[Parameter::Y_STAR_HALF_LIFE]);
+        (Sim::stepsPerYear() * parameters[Parameter::Y_STAR_HALF_LIFE]);
     b = -smuY * delt;
     
     Ystar2_13 = parameters[Parameter::Y_STAR_SQ];
     
     //alpha: factor determining increase in pyrogenic threshold
     double alpha14 = parameters[Parameter::ALPHA];
-    a = alpha14 * sim::oneTS() * delt;  
+    a = alpha14 * Sim::oneTS() * delt;  
     
     //Ystar1: critical value of parasite density in determing increase in pyrog t
     Ystar1_26 = parameters[Parameter::Y_STAR_1];
 }
 
 PyrogenPathogenesis::PyrogenPathogenesis(double cF) :
-     PathogenesisModel (cF), _pyrogenThres (initPyroThres)
+     PathogenesisModel (cF), m_pyrogenThres (initPyroThres)
 {}
 
 
 double PyrogenPathogenesis::getPEpisode(double timeStepMaxDensity, double totalDensity) {
     updatePyrogenThres(totalDensity);
-    return timeStepMaxDensity / (timeStepMaxDensity + _pyrogenThres);
+    return timeStepMaxDensity / (timeStepMaxDensity + m_pyrogenThres);
 }
 
 void PyrogenPathogenesis::summarize (const Host::Human& human) {
-    mon::recordStat(mon::measure("sumPyrogenThresh"), human, _pyrogenThres);
-    mon::recordStat(mon::measure("sumLogPyrogenThres"), human, log(_pyrogenThres+1.0) );
+    mon::recordStat(mon::measure("sumPyrogenThresh"), human, m_pyrogenThres);
+    mon::recordStat(mon::measure("sumLogPyrogenThres"), human, log(m_pyrogenThres+1.0) );
 }
 
 void PyrogenPathogenesis::updatePyrogenThres(double totalDensity){
     // Note: this calculation is slow (something like 5% of runtime)
     
     //Numerical approximation to equation 2, AJTMH p.57
-    for( size_t i = 1; i <= n; ++i ){
-        _pyrogenThres += totalDensity * a /
-            ( (Ystar1_26 + totalDensity) * (Ystar2_13 + _pyrogenThres) )
-            + b * _pyrogenThres;
+    for( size_t i = 1; i <= N; ++i ){
+        m_pyrogenThres += totalDensity * a /
+            ( (Ystar1_26 + totalDensity) * (Ystar2_13 + m_pyrogenThres) )
+            + b * m_pyrogenThres;
     }
 }
 
 
 void PyrogenPathogenesis::checkpoint (istream& stream) {
     PathogenesisModel::checkpoint (stream);
-    _pyrogenThres & stream;
+    m_pyrogenThres & stream;
 }
 void PyrogenPathogenesis::checkpoint (ostream& stream) {
     PathogenesisModel::checkpoint (stream);
-    _pyrogenThres & stream;
+    m_pyrogenThres & stream;
 }
 
 
@@ -123,7 +123,7 @@ void PyrogenPathogenesis::checkpoint (ostream& stream) {
 
 double PredetPathogenesis::getPEpisode(double timeStepMaxDensity, double totalDensity) {
     updatePyrogenThres(totalDensity);
-    return (timeStepMaxDensity > _pyrogenThres) ? 1 : 0;
+    return (timeStepMaxDensity > m_pyrogenThres) ? 1 : 0;
 }
 
 } } }

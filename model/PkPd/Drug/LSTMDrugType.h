@@ -77,18 +77,18 @@ public:
      * @param duration Timespan over which the factor is being calculated. Units: days.
      * @return survival factor (unitless)
      */
-    double calcFactor( double Kn, double neg_elim_rate, double* C0, double duration ) const;
+    double calcFactor( double Kn, double negElimRate, double* C0, double duration ) const;
     
-    inline double slope() const{ return n; }
+    inline double slope() const{ return m_n; }
     double IC50_pow_slope(LocalRng& rng, size_t index, WithinHost::CommonInfection *inf) const;
     inline double IC50_pow_slope(NormalSample normal) const {
-        return pow(IC50->sample(normal), n);
+        return pow(IC50->sample(normal), m_n);
     }
-    inline double max_killing_rate() const{ return V; }
+    inline double maxKillingRate() const{ return V; }
     
 private:
     /// Slope of the dose response curve (no unit)
-    double n;   // slope
+    double m_n;   // slope
     /// Concentration with 50% of the maximal parasite killing
     std::unique_ptr<LognormalSampler> IC50;  // IC50
     /// Maximal drug killing rate per day (units: 1/days)
@@ -147,33 +147,33 @@ public:
     LSTMDrugType& operator=(LSTMDrugType&&) = default;
     
     inline size_t getIndex() const {
-        return index;
+        return m_index;
     }
     inline double getNegligibleConcentration() const{
-        return negligible_concentration;
+        return m_negligibleConcentration;
     }
-    inline double neg_m_exponent() const{ return neg_m_exp; }
-    inline double molecular_weight_ratio() const{ return mwr; }
+    inline double negMExponent() const{ return m_negMExp; }
+    inline double molecularWeightRatio() const{ return m_mwr; }
     
     /// Generate IC50 sample of metabolite
-    inline NormalSample IC50_correlated_sample(NormalSample parent, LocalRng& rng) const {
-        return NormalSample::generate_correlated(parent, ic50_log_corr, ic50_corr_factor, rng);
+    inline NormalSample iC50CorrelatedSample(NormalSample parent, LocalRng& rng) const {
+        return NormalSample::generateCorrelated(parent, m_ic50LogCorr, m_ic50CorrFactor, rng);
     }
 
-    inline double sample_Vd(LocalRng& rng) const{
-        return vol_dist->sample(rng);
+    inline double sampleVd(LocalRng& rng) const{
+        return m_volDist->sample(rng);
     }
-    inline double sample_elim_rate(LocalRng& rng) const{
-        return elimination_rate->sample(rng);
+    inline double sampleElimRate(LocalRng& rng) const{
+        return m_eliminationRate->sample(rng);
     }
-    inline double sample_conv_rate(LocalRng& rng) const{
-        return conversion_rate->sample(rng);
+    inline double sampleConvRate(LocalRng& rng) const{
+        return m_conversionRate->sample(rng);
     }
-    inline double sample_k12(LocalRng& rng) const{ return k12->sample(rng); }
-    inline double sample_k21(LocalRng& rng) const{ return k21->sample(rng); }
-    inline double sample_k13(LocalRng& rng) const{ return k13->sample(rng); }
-    inline double sample_k31(LocalRng& rng) const{ return k31->sample(rng); }
-    inline double sample_ka(LocalRng& rng) const{ return absorption_rate->sample(rng); }
+    inline double sampleK12(LocalRng& rng) const{ return m_k12->sample(rng); }
+    inline double sampleK21(LocalRng& rng) const{ return m_k21->sample(rng); }
+    inline double sampleK13(LocalRng& rng) const{ return m_k13->sample(rng); }
+    inline double sampleK31(LocalRng& rng) const{ return m_k31->sample(rng); }
+    inline double sampleKa(LocalRng& rng) const{ return m_absorptionRate->sample(rng); }
     
     /** Return reference to correct drug-phenotype data. */
     const LSTMDrugPD& getPD( uint32_t genotype ) const;
@@ -186,13 +186,13 @@ private:
     
     /** The drug index in drugTypes and a unique identifier for the drug type.
      * Stored here since LTSMDrug stores a pointer to this struct object, not the index. */
-    size_t index;
+    size_t m_index;
     
     /// Index of metabolite
-    size_t metabolite;
+    size_t m_metabolite;
     
     /** A mapping from genotype codes to phenotypes for this drug. */
-    vector<uint32_t> genotype_mapping;
+    vector<uint32_t> m_genotypeMapping;
     
     // TODO: at the moment we're storing all PK & PD data regardless of which
     // model is used. Evaluate whether this is sensible or not.
@@ -203,33 +203,33 @@ private:
     /*PK parameters required - varies with humans age and severity of disease*/
     /** Concentration, below which drug is deemed not to have an effect and is
      * removed for performance reasons. (mg/l) */
-    double negligible_concentration;
+    double m_negligibleConcentration;
 
     // Used to calculate elimination rate
-    double neg_m_exp;
-    double mwr;      // set for parent, not metabolite
-    double ic50_log_corr;
-    double ic50_corr_factor;
+    double m_negMExp;
+    double m_mwr;      // set for parent, not metabolite
+    double m_ic50LogCorr;
+    double m_ic50CorrFactor;
     
     /// Volume of distribution (l/kg)
-    std::unique_ptr<LognormalSampler> vol_dist;
+    std::unique_ptr<LognormalSampler> m_volDist;
 
     /// Absorbtion rate
-    std::unique_ptr<LognormalSampler> absorption_rate;
+    std::unique_ptr<LognormalSampler> m_absorptionRate;
 
     /** Terminal elimination rate constant (k). Equals ln(2)/half_life.
      * Units: (1 / days) */
-    std::unique_ptr<LognormalSampler> elimination_rate;
+    std::unique_ptr<LognormalSampler> m_eliminationRate;
 
     /// Convertion rate
-    std::unique_ptr<LognormalSampler> conversion_rate;
+    std::unique_ptr<LognormalSampler> m_conversionRate;
 
     /// Parameters for absorption rates in two- and three-compartment models.
-    std::unique_ptr<LognormalSampler> k12, k21, k13, k31;
+    std::unique_ptr<LognormalSampler> m_k12, m_k21, m_k13, m_k31;
     
     // Allow LSTMDrug to access private members
     friend class LSTMDrugPD;
-    friend inline double drugEffect (const LSTMDrugType& drugType, double& concentration, double duration, double weight_kg, double dose_mg);
+    friend inline double drugEffect (const LSTMDrugType& drugType, double& concentration, double duration, double weightKg, double doseMg);
 };
 
 } }

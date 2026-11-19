@@ -42,7 +42,7 @@ namespace OM { namespace util {
         }
         ofstream fstream( (name+".csv").c_str() );
         
-        double max = sim::inYears(sim::maxHumanAge());
+        double max = Sim::inYears(Sim::maxHumanAge());
         for( double age = 0.0; age < max; age += 0.1 ){
             fstream << age << "," << this->eval( age ) << endl;
         }
@@ -53,7 +53,7 @@ namespace OM { namespace util {
     class AgeGroupDummy : public AgeGroupInterpolation
     {
     public:
-        static AgeGroupDummy singleton;
+        static AgeGroupDummy s_singleton;
         
         virtual double eval( double ageYears ) const {
             throw TRACED_EXCEPTION_DEFAULT( "AgeGroupDummy" );
@@ -65,7 +65,7 @@ namespace OM { namespace util {
             throw TRACED_EXCEPTION_DEFAULT( "AgeGroupDummy" );
         }
     };
-    AgeGroupDummy AgeGroupDummy::singleton;
+    AgeGroupDummy AgeGroupDummy::s_singleton;
     
     
     /** This class gives direct access to input age-group
@@ -78,45 +78,45 @@ namespace OM { namespace util {
                                     const char* eltName )
         {
             if( ageGroups.getGroup().size() == 0 ){
-                throw util::xml_scenario_error(string(eltName) + ": at least one age group required" );
+                throw util::XmlScenarioError(string(eltName) + ": at least one age group required" );
             }
 
-            auto pos = dataGroups.begin();
-            assert(pos == dataGroups.end());
+            auto pos = m_dataGroups.begin();
+            assert(pos == m_dataGroups.end());
 
             double greatestLbound = -1.0;
             for( const scnXml::Group& group : ageGroups.getGroup() ){
                 double lbound = group.getLowerbound();
                 if( lbound >= greatestLbound ){
                     greatestLbound = lbound;
-                    pos = dataGroups.insert( pos, make_pair( lbound, group.getValue() ) );
+                    pos = m_dataGroups.insert( pos, make_pair( lbound, group.getValue() ) );
                 } else
-                    throw util::xml_scenario_error(string(eltName) + ": lower bound " + to_string(lbound) + " not greater than previous " + to_string(greatestLbound));
+                    throw util::XmlScenarioError(string(eltName) + ": lower bound " + to_string(lbound) + " not greater than previous " + to_string(greatestLbound));
             }
 
             // first lower-bound must be 0
-            if( dataGroups.begin()->first != 0.0 )
-                throw util::xml_scenario_error(string(eltName) + ": first lower-bound must be 0");
+            if( m_dataGroups.begin()->first != 0.0 )
+                throw util::XmlScenarioError(string(eltName) + ": first lower-bound must be 0");
 
             outputSamples( eltName );
         }
 
         virtual double eval( double ageYears ) const {
             assert ( ageYears >= 0.0 );
-            auto it = dataGroups.upper_bound( ageYears );
+            auto it = m_dataGroups.upper_bound( ageYears );
             --it;   // previous point when ordered by age (it->first <= ageYears < (it+1)->first)
             return it->second;
         }
         
         virtual void scale( double factor ){
-            for( auto it = dataGroups.begin(); it != dataGroups.end(); ++it ){
+            for( auto it = m_dataGroups.begin(); it != m_dataGroups.end(); ++it ){
                 it->second *= factor;
             }
         }
 
         virtual double firstGlobalMaximum() {
             double age = 0.0, max = numeric_limits<double>::min();
-            for( auto it = dataGroups.begin(); it != dataGroups.end(); ++it ){
+            for( auto it = m_dataGroups.begin(); it != m_dataGroups.end(); ++it ){
                 if( it->second > max ){
                     max = it->second;
                     age = it->first;
@@ -127,7 +127,7 @@ namespace OM { namespace util {
 
     protected:
         // All data groups as (lower-age-bound, value) pairs.
-        map<double,double> dataGroups;
+        map<double,double> m_dataGroups;
     };
 
     
@@ -144,15 +144,15 @@ namespace OM { namespace util {
             auto it = ageGroups.getGroup().begin();
 
             if( it == ageGroups.getGroup().end() )
-                throw util::xml_scenario_error(string(eltName) + ": at least one age group required");
+                throw util::XmlScenarioError(string(eltName) + ": at least one age group required");
 
             // first lower-bound must be 0
             if( it->getLowerbound() != 0.0 )
-                throw util::xml_scenario_error(string(eltName) + ": first lower-bound must be 0");
+                throw util::XmlScenarioError(string(eltName) + ": first lower-bound must be 0");
 
             // Our insert iterator (used for performance)
-            auto pos = dataPoints.begin();
-            assert(pos == dataPoints.end());
+            auto pos = m_dataPoints.begin();
+            assert(pos == m_dataPoints.end());
 
             double greatestLbound = 0.0;    // also last lbound: age groups must be ordered lowest to highest
             double lastValue =it->getValue();       // first value is repeated for const start
@@ -160,19 +160,19 @@ namespace OM { namespace util {
                 double lbound = it->getLowerbound();
                 if( lbound >= greatestLbound ){
                     double insBound = 0.5*(greatestLbound + lbound);
-                    pos = dataPoints.insert( pos, make_pair( insBound, lastValue ) );
+                    pos = m_dataPoints.insert( pos, make_pair( insBound, lastValue ) );
                     greatestLbound = lbound;
                     lastValue = it->getValue();     // always insert previous value
                 } else
-                    throw util::xml_scenario_error(string(eltName) + ": lower bound " + to_string(lbound) + " less than previous " + to_string(greatestLbound));
+                    throw util::XmlScenarioError(string(eltName) + ": lower bound " + to_string(lbound) + " less than previous " + to_string(greatestLbound));
             }
 
             // add a point in middle of last age group (taking upper bound as max-age-years:
-            dataPoints[ 0.5*(greatestLbound + sim::inYears(sim::maxHumanAge())) ] = lastValue;
+            m_dataPoints[ 0.5*(greatestLbound + Sim::inYears(Sim::maxHumanAge())) ] = lastValue;
         }
 
         virtual void scale( double factor ){
-            for( auto it = dataPoints.begin(); it != dataPoints.end(); ++it ){
+            for( auto it = m_dataPoints.begin(); it != m_dataPoints.end(); ++it ){
                 it->second *= factor;
             }
         }
@@ -181,7 +181,7 @@ namespace OM { namespace util {
         // Points to interpolate between in the middle of input age groups. Extra
         // points at zero and infinity are added with equal value to first and last
         // points respectively.
-        map<double,double> dataPoints;
+        map<double,double> m_dataPoints;
     };
 
     
@@ -196,9 +196,9 @@ namespace OM { namespace util {
         ) : AgeGroupInterpolationPoints(ageGroups, eltName)
         {
             // Add first point at zero
-            dataPoints[ 0.0 ] = dataPoints.begin()->second;
+            m_dataPoints[ 0.0 ] = m_dataPoints.begin()->second;
             // add a point at infinity to catch remaining values
-            dataPoints[ numeric_limits<double>::infinity() ] = dataPoints.rbegin()->second;
+            m_dataPoints[ numeric_limits<double>::infinity() ] = m_dataPoints.rbegin()->second;
             
             outputSamples( eltName );
         }
@@ -207,8 +207,8 @@ namespace OM { namespace util {
             assert ( ageYears >= 0.0 );
             //TODO: optimise by putting (f1-f0)/(a1-a0) into the array and checking usage
             // Get the first point with age greater than ageYears:
-            auto it = dataPoints.upper_bound( ageYears );
-            assert( it != dataPoints.end() );
+            auto it = m_dataPoints.upper_bound( ageYears );
+            assert( it != m_dataPoints.end() );
             double a1 = it->first;  // a1 > ageYears
             double f1 = it->second;
             --it;   // previous point when ordered by age
@@ -219,7 +219,7 @@ namespace OM { namespace util {
 
         virtual double firstGlobalMaximum() {
             double age = 0.0, max = numeric_limits<double>::min();
-            for( auto it = dataPoints.begin(); it != dataPoints.end(); ++it ){
+            for( auto it = m_dataPoints.begin(); it != m_dataPoints.end(); ++it ){
                 if( it->second > max ){
                     max = it->second;
                     age = it->first;
@@ -276,7 +276,7 @@ namespace OM { namespace util {
     // -----  AgeGroupInterpolator  -----
     
     AgeGroupInterpolator::AgeGroupInterpolator() :
-        obj(&AgeGroupDummy::singleton) {}
+        m_obj(&AgeGroupDummy::s_singleton) {}
     
     void AgeGroupInterpolator::set(
         const scnXml::AgeGroupValues& ageGroups, const char* eltName
@@ -285,20 +285,20 @@ namespace OM { namespace util {
         // Type mostly equivalent to a std::string:
         const scnXml::AgeGroupValues::InterpolationOptional& interp = ageGroups.getInterpolation();
         if( !interp.present() || interp.get() == "linear" ){
-            obj = new AgeGroupPiecewiseLinear( ageGroups, eltName );
+            m_obj = new AgeGroupPiecewiseLinear( ageGroups, eltName );
         }else if( interp.get() == "none" ){
-            obj = new AgeGroupPiecewiseConstant( ageGroups, eltName );
+            m_obj = new AgeGroupPiecewiseConstant( ageGroups, eltName );
         }else
-            throw util::xml_scenario_error(string("age group interpolation ") + interp.get() + " not implemented" );
+            throw util::XmlScenarioError(string("age group interpolation ") + interp.get() + " not implemented" );
     }
     void AgeGroupInterpolator::reset(){
-        assert( obj != nullptr );  // should not do that
-        if( obj != &AgeGroupDummy::singleton ){
-            delete obj;
-            obj = &AgeGroupDummy::singleton;
+        assert( m_obj != nullptr );  // should not do that
+        if( m_obj != &AgeGroupDummy::s_singleton ){
+            delete m_obj;
+            m_obj = &AgeGroupDummy::s_singleton;
         }
     }
     bool AgeGroupInterpolator::isSet()    {
-        return obj != &AgeGroupDummy::singleton;
+        return m_obj != &AgeGroupDummy::s_singleton;
     }
 } }

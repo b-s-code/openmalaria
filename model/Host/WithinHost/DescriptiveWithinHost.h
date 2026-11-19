@@ -52,7 +52,7 @@ public:
     virtual void clearImmunity();
     
     virtual void update(Host::Human &human, LocalRng& rng, int &nNewInfs_i, int &nNewInfs_l, 
-        vector<double>& genotype_weights_i, vector<double>& genotype_weights_l, double ageInYears);
+        vector<double>& genotypeWeightsI, vector<double>& genotypeWeightsL, double ageInYears);
     
     virtual InfectionOrigin getInfectionOrigin() const;
 
@@ -65,15 +65,15 @@ protected:
     virtual void checkpoint (ostream& stream);
     
     // Doesn't do anything in this model:
-    virtual void treatPkPd(size_t schedule, size_t dosages, double age, double delay_d);
+    virtual void treatPkPd(size_t schedule, size_t dosages, double age, double delayD);
     
     /** The list of all infections this human has.
      * 
      * Since infection models and within host models are very much intertwined,
      * the idea is that each WithinHostModel has its own list of infections. */
-     std::list<DescriptiveInfection*> infections;
+     std::list<DescriptiveInfection*> m_infections;
 
-     bool opt_vaccine_genotype = false;
+     bool m_optVaccineGenotype = false;
 };
 
 } }

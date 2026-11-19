@@ -75,7 +75,7 @@ public:
     
     /// Returns true if the human has died.
     inline bool isDead() const {
-        return doomed > NOT_DOOMED;
+        return m_doomed > NOT_DOOMED;
     }
     
     /** Run main part of the model: determine the sickness status and any
@@ -94,21 +94,21 @@ public:
     virtual bool isExistingCase() =0;
     
     inline static SimTime hsMemory() {
-        return healthSystemMemory;
+        return s_healthSystemMemory;
     }
     
     /// Force all pending summaries to be reported. Should only be called when
     /// class is about to be destroyed anyway to avoid affecting output.
     inline void flushReports (){
-        latestReport.flush();
+        m_latestReport.flush();
     }
 
     inline const Episode &getLatestReport () const{
-        return latestReport;
+        return m_latestReport;
     }
     
     inline const Episode::State &getLatestState () const{
-        return latestState;
+        return m_latestState;
     }
     
     /// Checkpointing
@@ -117,8 +117,8 @@ public:
         checkpoint (stream);
     }
 
-    /** Time of the last treatment (sim::never() if never treated). */
-    SimTime m_tLastTreatment = sim::never();
+    /** Time of the last treatment (Sim::never() if never treated). */
+    SimTime tLastTreatment = Sim::never();
     
 protected:
     /// Constructor.
@@ -136,8 +136,8 @@ protected:
     virtual void checkpoint (ostream& stream);
     
     /** Last episode; report to survey pending a new episode or human's death. */
-    Episode latestReport;
-    Episode::State latestState;
+    Episode m_latestReport;
+    Episode::State m_latestState;
 
     /** @brief Positive values of _doomed variable (codes). */
     enum {
@@ -158,18 +158,18 @@ protected:
      * If doomed > 0, the individual is dead, and will be removed from the
      * population at the beginning of the next time step. NOTE:
      * updateInfantDeaths() counts deaths after the fact, thus cannot remove immediately. */
-    int doomed;
+    int m_doomed;
     
     
     /// True if bug-fix is enabled
-    static bool indirectMortBugfix;
+    static bool s_indirectMortBugfix;
     
     /// The maximum age of a sickness bout, for another bout to be considered
     /// part of the same episode.
     /// 
     /// Used by both the clinical models in roughly the same way, but will have
     /// different values in each to match Global::interval.
-    static SimTime healthSystemMemory;
+    static SimTime s_healthSystemMemory;
     
     ///@brief Case fatality and sequelae "rate" data
     //@{
@@ -178,10 +178,10 @@ protected:
     static double getCommunityCFR(double caseFatalityRatio);
     
     /// Age-specific hospital case fatality "rates"
-    static util::AgeGroupInterpolator caseFatalityRate;
+    static util::AgeGroupInterpolator s_caseFatalityRate;
     /// Age-specific in-hospital rates of sequelae given a severe malaria bout
     /// Note: out-patients have currently have the same probabilities of sequelae
-    static util::AgeGroupInterpolator pSequelaeInpatient;
+    static util::AgeGroupInterpolator s_pSequelaeInpatient;
     //@}
 };
 

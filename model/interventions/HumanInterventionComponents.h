@@ -41,7 +41,7 @@
 namespace OM { namespace interventions {
 using Host::Human;
 using WithinHost::Diagnostic;
-using WithinHost::diagnostics;
+using WithinHost::Diagnostics;
 
 // ———  HumanIntervention  ———
 
@@ -51,11 +51,11 @@ bool componentCmp(const HumanInterventionComponent *a, const HumanInterventionCo
 HumanIntervention::HumanIntervention(
     const xsd::cxx::tree::sequence<scnXml::Component>& componentList )
 {
-    components.reserve( componentList.size() );
+    m_components.reserve( componentList.size() );
     for( auto it = componentList.begin(), end = componentList.end(); it != end; ++it ) {
         ComponentId id = InterventionManager::getComponentId( it->getId() );
         const HumanInterventionComponent* component = &InterventionManager::getComponent( id );
-        components.push_back( component );
+        m_components.push_back( component );
     }
     
     /** Sort components according to a standard order.
@@ -68,17 +68,17 @@ HumanIntervention::HumanIntervention(
      * Note that when multiple interventions are deployed simultaneously, the
      * order of their deployments is still dependent on the order in the XML
      * file. */
-    std::stable_sort( components.begin(), components.end(), componentCmp );
+    std::stable_sort( m_components.begin(), m_components.end(), componentCmp );
 }
 HumanIntervention::HumanIntervention(
     const xsd::cxx::tree::sequence<scnXml::Component>& componentList,
     const xsd::cxx::tree::sequence<scnXml::Condition>& conditionList )
 {
-    components.reserve( componentList.size() );
+    m_components.reserve( componentList.size() );
     for( auto it = componentList.begin(), end = componentList.end(); it != end; ++it ) {
         ComponentId id = InterventionManager::getComponentId( it->getId() );
         const HumanInterventionComponent* component = &InterventionManager::getComponent( id );
-        components.push_back( component );
+        m_components.push_back( component );
     }
     
     /** Sort components according to a standard order.
@@ -91,20 +91,20 @@ HumanIntervention::HumanIntervention(
      * Note that when multiple interventions are deployed simultaneously, the
      * order of their deployments is still dependent on the order in the XML
      * file. */
-    std::stable_sort( components.begin(), components.end(), componentCmp );
+    std::stable_sort( m_components.begin(), m_components.end(), componentCmp );
     
     for( auto it = conditionList.begin(), end = conditionList.end(); it != end; ++it ) {
         double min = it->getMinValue().present() ? it->getMinValue().get() : -numeric_limits<double>::infinity();
         double max = it->getMaxValue().present() ? it->getMaxValue().get() : numeric_limits<double>::infinity();
-        conditions.push_back(mon::setupCondition( it->getMeasure(), min, max, it->getInitialState() ));
+        m_conditions.push_back(mon::setupCondition( it->getMeasure(), min, max, it->getInitialState() ));
     }
 }
 HumanIntervention::HumanIntervention( const xsd::cxx::tree::sequence<scnXml::DTDeploy>& componentList ){
-    components.reserve( componentList.size() );
+    m_components.reserve( componentList.size() );
     for( auto it = componentList.begin(), end = componentList.end(); it != end; ++it ) {
         ComponentId id = InterventionManager::getComponentId( it->getComponent() );
         const HumanInterventionComponent* component = &InterventionManager::getComponent( id );
-        components.push_back( component );
+        m_components.push_back( component );
     }
     
     /** Sort components according to a standard order.
@@ -117,18 +117,18 @@ HumanIntervention::HumanIntervention( const xsd::cxx::tree::sequence<scnXml::DTD
      * Note that when multiple interventions are deployed simultaneously, the
      * order of their deployments is still dependent on the order in the XML
      * file. */
-    std::stable_sort( components.begin(), components.end(), componentCmp );
+    std::stable_sort( m_components.begin(), m_components.end(), componentCmp );
 }
 
 void HumanIntervention::deploy( Human& human, mon::Deploy::Method method,
     VaccineLimits vaccLimits ) const
 {
-    for( size_t cond : conditions ){
+    for( size_t cond : m_conditions ){
         // Abort deployment if any condition is false.
         if( !mon::checkCondition(cond) ) return;
     }
     
-    for( auto it = components.begin(); it != components.end(); ++it ) {
+    for( auto it = m_components.begin(); it != m_components.end(); ++it ) {
         const interventions::HumanInterventionComponent& component = **it;
         // we must report first, since it can change cohort and sub-population
         // which may affect what deployment does (at least in the case of reporting deployments)
@@ -137,9 +137,9 @@ void HumanIntervention::deploy( Human& human, mon::Deploy::Method method,
     }
 }
 
-void HumanIntervention::print_details( std::ostream& out )const{
+void HumanIntervention::printDetails( std::ostream& out )const{
     out << "human:";
-    for( auto it = components.begin(); it != components.end(); ++it ){
+    for( auto it = m_components.begin(); it != m_components.end(); ++it ){
         out << '\t' << (*it)->id().id;
     }
 }
@@ -147,38 +147,38 @@ void HumanIntervention::print_details( std::ostream& out )const{
 // ———  Utilities  ———
 
 TriggeredDeployments::TriggeredDeployments(const scnXml::TriggeredDeployments& elt){
-    lists.reserve( elt.getDeploy().size() );
+    m_lists.reserve( elt.getDeploy().size() );
     for( auto it = elt.getDeploy().begin(), end = elt.getDeploy().end(); it != end; ++it ) {
-        lists.push_back( SubList( *it ) );
+        m_lists.push_back( SubList( *it ) );
     }
 }
 void TriggeredDeployments::deploy(Human& human,
         mon::Deploy::Method method, VaccineLimits vaccLimits) const
 {
-    for( auto it = lists.begin(); it != lists.end(); ++it ){
+    for( auto it = m_lists.begin(); it != m_lists.end(); ++it ){
         it->deploy( human, method, vaccLimits );
     }
 }
 
 TriggeredDeployments::SubList::SubList( const scnXml::TriggeredDeployments::DeployType& elt ) :
         HumanIntervention( elt.getComponent() ),
-        minAge( sim::fromYearsN( elt.getMinAge() ) ),
-        maxAge( sim::future() ),
+        minAge( Sim::fromYearsN( elt.getMinAge() ) ),
+        maxAge( Sim::future() ),
         coverage( elt.getP() )
 {
     if( elt.getMaxAge().present() )
-        maxAge = sim::fromYearsN( elt.getMaxAge().get() );
+        maxAge = Sim::fromYearsN( elt.getMaxAge().get() );
     
-    if( minAge < sim::zero() || maxAge < minAge ){
-        throw util::xml_scenario_error("triggered intervention must have 0 <= minAge <= maxAge");
+    if( minAge < Sim::zero() || maxAge < minAge ){
+        throw util::XmlScenarioError("triggered intervention must have 0 <= minAge <= maxAge");
     }
     
     if( coverage < 0.0 || coverage > 1.0 ){
-        throw util::xml_scenario_error( "triggered intervention must have 0 <= coverage <= 1" );
+        throw util::XmlScenarioError( "triggered intervention must have 0 <= coverage <= 1" );
     }
     
     // Zero coverage: optimise
-    if( coverage <= 0.0 || minAge >= maxAge ) components.clear();
+    if( coverage <= 0.0 || minAge >= maxAge ) m_components.clear();
 }
 void TriggeredDeployments::SubList::deploy( Host::Human& human,
         mon::Deploy::Method method, VaccineLimits vaccLimits )const
@@ -187,7 +187,7 @@ void TriggeredDeployments::SubList::deploy( Host::Human& human,
     // the beginning of the step since this gives the expected result with age
     // limits of 0 to 1 time step.
     //TODO: why does the above contradict what we do? Is this due to a date being shifted later?
-    SimTime age = human.age(sim::nowOrTs1());
+    SimTime age = human.age(Sim::nowOrTs1());
     if( age >= minAge && age < maxAge ){
         if( coverage >= 1.0 || human.rng.bernoulli( coverage ) ){
             HumanIntervention::deploy( human, method, vaccLimits );
@@ -214,7 +214,7 @@ public:
         return Component::RECRUIT_ONLY;
     }
     
-    virtual void print_details( std::ostream& out )const{
+    virtual void printDetails( std::ostream& out )const{
         out << id().id << "\tRecruit only";
     }
 };
@@ -223,29 +223,29 @@ class ScreenComponent : public HumanInterventionComponent {
 public:
     ScreenComponent( ComponentId id, const scnXml::Screen& elt ) :
         HumanInterventionComponent(id),
-        diagnostic(diagnostics::get(elt.getDiagnostic())),
-        positive( elt.getPositive() ),
-        negative( elt.getNegative() )
+        m_diagnostic(Diagnostics::get(elt.getDiagnostic())),
+        m_positive( elt.getPositive() ),
+        m_negative( elt.getNegative() )
     {}
     
     void deploy( Human& human, mon::Deploy::Method method, VaccineLimits vaccLimits ) const{
         mon::recordDeploy(mon::measure("nMassScreenings"), mon::measure("nCtsScreenings"), human, method);
-        if( human.withinHostModel->diagnosticResult(human.rng, diagnostic) ){
-            positive.deploy( human, method, vaccLimits );
+        if( human.withinHostModel->diagnosticResult(human.rng, m_diagnostic) ){
+            m_positive.deploy( human, method, vaccLimits );
         }else{
-            negative.deploy( human, method, vaccLimits );
+            m_negative.deploy( human, method, vaccLimits );
         }
     }
     
     virtual Component::Type componentType() const{ return Component::SCREEN; }
     
-    virtual void print_details( std::ostream& out )const{
+    virtual void printDetails( std::ostream& out )const{
         out << id().id << "\tScreen";
     }
     
 private:
-    const Diagnostic& diagnostic;
-    HumanIntervention positive, negative;
+    const Diagnostic& m_diagnostic;
+    HumanIntervention m_positive, m_negative;
 };
 
 /// Simple treatment: no PK/PD, just remove parasites
@@ -258,35 +258,35 @@ public:
         try{
             SimTime durL = UnitParse::readShortDuration( elt.getDurationLiver(), UnitParse::NONE ),
                 durB = UnitParse::readShortDuration( elt.getDurationBlood(), UnitParse::NONE );
-            SimTime neg1 = -sim::oneTS();
+            SimTime neg1 = -Sim::oneTS();
             if( durL < neg1 || durB < neg1 ){
-                throw util::xml_scenario_error( "treatSimple: cannot have durationBlood or durationLiver less than -1" );
+                throw util::XmlScenarioError( "treatSimple: cannot have durationBlood or durationLiver less than -1" );
             }
             if( util::ModelOptions::option( util::VIVAX_SIMPLE_MODEL ) ){
-                if( durL != sim::zero() || durB != neg1 )
-                    throw util::unimplemented_exception( "vivax model only supports timestepsLiver=0, timestepsBlood=-1" );
+                if( durL != Sim::zero() || durB != neg1 )
+                    throw util::UnimplementedException( "vivax model only supports timestepsLiver=0, timestepsBlood=-1" );
                 // Actually, the model ignores these parameters; we just don't want somebody thinking it doesn't.
             }
-            timeLiver = durL;
-            timeBlood = durB;
-        }catch( const util::format_error& e ){
-            throw util::xml_scenario_error( string("treatSimple: ").append(e.message()) );
+            m_timeLiver = durL;
+            m_timeBlood = durB;
+        }catch( const util::FormatError& e ){
+            throw util::XmlScenarioError( string("treatSimple: ").append(e.message()) );
         }
     }
     
     void deploy( Human& human, mon::Deploy::Method method, VaccineLimits ) const{
         mon::recordDeploy(mon::measure("nMDAs"), mon::measure("nCtsMDA"), human, method);
-        human.withinHostModel->treatSimple( human, timeLiver, timeBlood );
+        human.withinHostModel->treatSimple( human, m_timeLiver, m_timeBlood );
     }
     
     virtual Component::Type componentType() const{ return Component::TREAT_SIMPLE; }
     
-    virtual void print_details( std::ostream& out )const{
+    virtual void printDetails( std::ostream& out )const{
         out << id().id << "\ttreatSimple";
     }
     
 private:
-    SimTime timeLiver, timeBlood;
+    SimTime m_timeLiver, m_timeBlood;
 };
 
 //NOTE: this is similar to CMDTTreatPKPD, but supporting only a single "treatment"
@@ -294,40 +294,40 @@ class TreatPKPDComponent : public HumanInterventionComponent {
 public:
     TreatPKPDComponent( ComponentId id, const scnXml::DTTreatPKPD& elt ) :
         HumanInterventionComponent(id),
-            schedule(PkPd::LSTMTreatments::findSchedule(elt.getSchedule())),
-            dosage(PkPd::LSTMTreatments::findDosages(elt.getDosage())),
-            delay_d(elt.getDelay_h() / 24.0 /* convert to days */)
+            m_schedule(PkPd::LSTMTreatments::findSchedule(elt.getSchedule())),
+            m_dosage(PkPd::LSTMTreatments::findDosages(elt.getDosage())),
+            m_delayD(elt.getDelay_h() / 24.0 /* convert to days */)
     {
     }
     
     void deploy( Human& human, mon::Deploy::Method method, VaccineLimits ) const{
         mon::recordDeploy(mon::measure("nMDAs"), mon::measure("nCtsMDA"), human, method);
-        double age = sim::inYears(human.age(sim::nowOrTs1()));
-        human.withinHostModel->treatPkPd( schedule, dosage, age, delay_d );
+        double age = Sim::inYears(human.age(Sim::nowOrTs1()));
+        human.withinHostModel->treatPkPd( m_schedule, m_dosage, age, m_delayD );
     }
     
     virtual Component::Type componentType() const{ return Component::TREAT_PKPD; }
     
-    virtual void print_details( std::ostream& out )const{
+    virtual void printDetails( std::ostream& out )const{
         out << id().id << "\ttreatPKPD";
     }
     
 private:
-    size_t schedule;        // index of the schedule
-    size_t dosage;          // name of the dosage table
-    double delay_d;         // delay in days
+    size_t m_schedule;        // index of the schedule
+    size_t m_dosage;          // name of the dosage table
+    double m_delayD;         // delay in days
 };
 
 class DecisionTreeComponent : public HumanInterventionComponent {
 public:
     DecisionTreeComponent( ComponentId id, const scnXml::DecisionTree& elt ) :
         HumanInterventionComponent(id),
-        tree(Clinical::CMDecisionTree::create(elt, false))
+        m_tree(Clinical::CMDecisionTree::create(elt, false))
     {}
     
     void deploy( Human& human, mon::Deploy::Method method, VaccineLimits )const{
-        Clinical::CMDTOut out = tree.exec( Clinical::CMHostData(human,
-                sim::inYears(human.age(sim::nowOrTs1())),
+        Clinical::CMDTOut out = m_tree.exec( Clinical::CMHostData(human,
+                Sim::inYears(human.age(Sim::nowOrTs1())),
                 human.clinicalModel->getLatestState()) );
         if( out.treated ){
             mon::recordDeploy(mon::measure("nMDAs"), mon::measure("nCtsMDA"), human, method);
@@ -339,12 +339,12 @@ public:
     
     virtual Component::Type componentType() const{ return Component::CM_DT; }
     
-    virtual void print_details( std::ostream& out )const{
+    virtual void printDetails( std::ostream& out )const{
         out << id().id << "\tDecision tree";
     }
     
 private:
-    const Clinical::CMDecisionTree& tree;
+    const Clinical::CMDecisionTree& m_tree;
 };
 
 class ClearImmunityComponent : public HumanInterventionComponent {
@@ -359,7 +359,7 @@ public:
     
     virtual Component::Type componentType() const{ return Component::CLEAR_IMMUNITY; }
     
-    virtual void print_details( std::ostream& out )const{
+    virtual void printDetails( std::ostream& out )const{
         out << id().id << "\tclear immunity";
     }
 };

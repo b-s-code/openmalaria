@@ -40,20 +40,20 @@ namespace OM
             if (!fileStream.good())
             {
                 std::string msg = "Error: unable to open " + lXmlFile;
-                throw util::xml_scenario_error(msg);
+                throw util::XmlScenarioError(msg);
             }
             std::unique_ptr<scnXml::Scenario> scenario = scnXml::parseScenario (fileStream);
             fileStream.close ();
 
             const int scenarioVersion = scenario->getSchemaVersion();
 
-            if (scenarioVersion < SCHEMA_VERSION) {
+            if (scenarioVersion < SchemaVersion) {
                 // Don't bother aborting. Mostly if something really is incompatible
                 // loading will not succeed anyway.
-                std::cerr<<"Warning: "<<lXmlFile<<" uses an old schema version (latest is "<<SCHEMA_VERSION<<")."<<endl;
+                std::cerr<<"Warning: "<<lXmlFile<<" uses an old schema version (latest is "<<SchemaVersion<<")."<<endl;
             }
-            else if (scenarioVersion > SCHEMA_VERSION)
-                throw util::xml_scenario_error ("Error: new schema version unsupported");
+            else if (scenarioVersion > SchemaVersion)
+                throw util::XmlScenarioError ("Error: new schema version unsupported");
 
             return scenario;
         }

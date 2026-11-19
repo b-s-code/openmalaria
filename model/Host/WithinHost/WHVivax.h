@@ -80,16 +80,16 @@ public:
      */
     UpdResult update(LocalRng& rng);
     
-    inline void setHadEvent( bool hadEvent ){ this->hadEvent = hadEvent; }
-    inline bool hasHadEvent()const{ return hadEvent; }
-    inline void setHadRelapse( bool hadRelapse ){ this->hadRelapse = hadRelapse; }
-    inline bool hasHadRelapse()const{ return hadRelapse; }
+    inline void setHadEvent( bool hadEvent ){ this->m_hadEvent = hadEvent; }
+    inline bool hasHadEvent()const{ return m_hadEvent; }
+    inline void setHadRelapse( bool hadRelapse ){ this->m_hadRelapse = hadRelapse; }
+    inline bool hasHadRelapse()const{ return m_hadRelapse; }
     
     /** Equivalent to a blood stage existing. We do not model incidence of
      * gametocytes independently, thus this also tests existance of
      * gametocytes. */
     inline bool isPatent() const{
-        return bloodStageClearDate > sim::latestTs0();
+        return m_bloodStageClearDate > Sim::latestTs0();
     }
     
     /** Fully clear blood stage parasites. */
@@ -103,29 +103,29 @@ private:
     
     // list of times at which the merozoite and hypnozoites release, ordered by
     // time of release, soonest last (i.e. last element is next one to release)
-    vector<SimTime> releaseDates;
+    vector<SimTime> m_releaseDates;
     
-    // Either sim::never() (no blood stage) or the start of the time step on
+    // Either Sim::never() (no blood stage) or the start of the time step on
     // which the blood stage will clear.
-    SimTime bloodStageClearDate = sim::never();
+    SimTime m_bloodStageClearDate = Sim::never();
     
     // Whether the primary blood stage infection has started
-    bool primaryHasStarted;
+    bool m_primaryHasStarted;
 
     // Whether the relapse blood stage infection has started
-    bool relapseHasStarted;
+    bool m_relapseHasStarted;
 	
 	//Whether the later category of relapses has started
-	bool relapsebHasStarted;
+	bool m_relapsebHasStarted;
 
     // Whether any clinical event has been triggered by this brood
-    bool hadEvent;
+    bool m_hadEvent;
 
     // Whether a relapse event has been triggered by this brood
-    bool hadRelapse;
+    bool m_hadRelapse;
 	
 	// Infection origin
-	int origin;
+	int m_origin;
 };
 
 
@@ -160,7 +160,7 @@ public:
 	
 	
 	virtual void update(Host::Human &human, LocalRng& rng, int &nNewInfs_i, int &nNewInfs_l, 
-        vector<double>& genotype_weights_i, vector<double>& genotype_weights_l, double ageInYears);
+        vector<double>& genotypeWeightsI, vector<double>& genotypeWeightsL, double ageInYears);
     
     virtual bool diagnosticResult( LocalRng& rng, const Diagnostic& diagnostic ) const;
 
@@ -183,7 +183,7 @@ protected:
     virtual void checkpoint (ostream& stream);
     
     // None of these do anything in this model:
-    virtual void treatPkPd(size_t schedule, size_t dosages, double age, double delay_d);
+    virtual void treatPkPd(size_t schedule, size_t dosages, double age, double delayD);
     virtual double getTotalDensity() const;
     virtual double getCumulative_h() const;
     virtual double getCumulative_Y() const;
@@ -193,32 +193,32 @@ private:
     WHVivax( const WHVivax& ) = delete;
     WHVivax& operator= (const WHVivax& ) = delete;
     
-    list<VivaxBrood> infections;
+    list<VivaxBrood> m_infections;
     
     /* Is flagged as never getting PQ: this is a heterogeneity factor. Example:
      * Set to zero if everyone can get PQ, 0.5 if females can't get PQ and
      * males aren't tested (i.e. all can get it) or (1+p)/2 where p is the
      * chance a male being tested and found to be G6PD deficient. */
-    bool noPQ;
+    bool m_noPq;
     
-    Pathogenesis::State morbidity;
+    Pathogenesis::State m_morbidity;
     
     // The number of primary blood stage infections to have started since this
     // human was born.
-    uint32_t cumPrimInf;
+    uint32_t m_cumPrimInf;
     
     // Either never or expiry time of treatment
-    SimTime treatExpiryLiver, treatExpiryBlood;
+    SimTime m_treatExpiryLiver, m_treatExpiryBlood;
 
     // The probability of a clinical event from a primary infection
-    double pEvent;
+    double m_pEvent;
     // The probability of a clinical event from an early relapse
-    double pFirstRelapseEvent;
+    double m_pFirstRelapseEvent;
 	// The probability of a clinical event from a later relapse
-	double pSecondRelapseEvent;
+	double m_pSecondRelapseEvent;
     
     // Used for reporting; updated by update()
-    double pSevere;
+    double m_pSevere;
 
     friend class ::UnittestUtil;
 };

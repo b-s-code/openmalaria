@@ -38,8 +38,8 @@ CommonInfection* checkpointedDummyInfection (istream& stream) {
 }
 
 void DummyInfection::init () {
-    CommonWithinHost::createInfection = &createDummyInfection;
-    CommonWithinHost::checkpointedInfection = &checkpointedDummyInfection;
+    CommonWithinHost::s_createInfection = &createDummyInfection;
+    CommonWithinHost::s_checkpointedInfection = &checkpointedDummyInfection;
 }
 
 DummyInfection::DummyInfection (LocalRng& rng, uint32_t protID, int origin) :
@@ -49,13 +49,13 @@ DummyInfection::DummyInfection (LocalRng& rng, uint32_t protID, int origin) :
 }
 
 bool DummyInfection::updateDensity( LocalRng& rng, double survivalFactor, SimTime, double ){
-    const double GROWTH_RATE = 8.0;
-    const double PARASITE_THRESHOLD = 1;
+    const double growthRate = 8.0;
+    const double parasiteThreshold = 1;
     
-    m_density = (mod_nn(int(m_density*GROWTH_RATE), 20000)) * survivalFactor;
+    m_density = (modNn(int(m_density*growthRate), 20000)) * survivalFactor;
     m_cumulativeExposureJ += m_density;
     
-    if (m_density < PARASITE_THRESHOLD) {
+    if (m_density < parasiteThreshold) {
         return true;
     } else {
         return false;

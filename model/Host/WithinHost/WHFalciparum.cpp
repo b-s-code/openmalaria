@@ -52,7 +52,7 @@ using namespace OM::util;
 // -----  private model parameters  -----
 
 //Standard dev innate immunity for densities
-static double sigma_i;
+static double sigmaI;
 
 // contribution of parasite densities to acquired immunity in the presence of fever
 static double immPenalty_22;
@@ -72,21 +72,21 @@ static double invCumulativeYstar;
 static double invCumulativeHstar;
 
 /// Maternal protection at birth
-static double alpha_m;
+static double alphaM;
 
 /// More or less (up to 0.693) inverse quantity of alphaMStar (AJTM p. 9 eq. 12),
 /// decay rate of maternal protection in years^(-1).
 static double decayM;
 
-SimTime Infection::s_latentP = sim::never();
-int WHFalciparum::y_lag_len = 0;
+SimTime Infection::s_latentP = Sim::never();
+int WHFalciparum::s_yLagLen = 0;
 
 
 
 // -----  static functions  -----
 
 void WHFalciparum::init( const OM::Parameters& parameters, const scnXml::Model& model ) {
-    sigma_i=sqrt(parameters[Parameter::SIGMA_I_SQ]);
+    sigmaI=sqrt(parameters[Parameter::SIGMA_I_SQ]);
     immPenalty_22=1-exp(parameters[Parameter::IMMUNITY_PENALTY]);
     immEffectorRemain=exp(-parameters[Parameter::IMMUNE_EFFECTOR_DECAY]);
     asexImmRemain=exp(-parameters[Parameter::ASEXUAL_IMMUNITY_DECAY]);
@@ -94,10 +94,10 @@ void WHFalciparum::init( const OM::Parameters& parameters, const scnXml::Model& 
     // calculate inverses here, so we can use multiplication later (faster):
     invCumulativeYstar = 1.0 / parameters[Parameter::CUMULATIVE_Y_STAR];
     invCumulativeHstar = 1.0 / parameters[Parameter::CUMULATIVE_H_STAR];
-    alpha_m = 1.0 - exp(-parameters[Parameter::NEG_LOG_ONE_MINUS_ALPHA_M]);
+    alphaM = 1.0 - exp(-parameters[Parameter::NEG_LOG_ONE_MINUS_ALPHA_M]);
     decayM = parameters[Parameter::DECAY_M];
     
-    y_lag_len = sim::inSteps(sim::fromDays(20)) + 1;
+    s_yLagLen = Sim::inSteps(Sim::fromDays(20)) + 1;
     
     //NOTE: should also call cleanup() on the PathogenesisModel, but it only frees memory which the OS does anyway
     Pathogenesis::PathogenesisModel::init( parameters, model.getClinical(), false );
@@ -112,9 +112,9 @@ void WHFalciparum::init( const OM::Parameters& parameters, const scnXml::Model& 
                 model.getParameters().get().getLatentp(), UnitParse::NONE);
         }
     }
-    catch( const util::format_error& e )
+    catch( const util::FormatError& e )
     {
-            throw util::xml_scenario_error( string("model/parameters/latentP: ").append(e.message()) );
+            throw util::XmlScenarioError( string("model/parameters/latentP: ").append(e.message()) );
     }
 
     Infection::init( latentP );
@@ -123,7 +123,7 @@ void WHFalciparum::init( const OM::Parameters& parameters, const scnXml::Model& 
 void WHFalciparum::setParams(double cumYStar, double cumHStar, double aM, double dM) {
     invCumulativeYstar = cumYStar;
     invCumulativeHstar = cumHStar;
-    alpha_m = aM;
+    alphaM = aM;
     decayM = dM;
 }
 
@@ -132,19 +132,19 @@ void WHFalciparum::setParams(double cumYStar, double cumHStar, double aM, double
 
 WHFalciparum::WHFalciparum( LocalRng& rng, double comorbidityFactor ):
     WHInterface(),
-    m_cumulative_h(0.0), m_cumulative_Y(0.0), m_cumulative_Y_lag(0.0),
-    totalDensity(0.0), hrp2Density(0.0), timeStepMaxDensity(0.0),
-    pathogenesisModel( Pathogenesis::PathogenesisModel::createPathogenesisModel( comorbidityFactor ) ),
-    treatExpiryLiver(0), treatExpiryBlood(0)
+    m_cumulativeH(0.0), m_cumulativeY(0.0), m_cumulativeYLag(0.0),
+    m_totalDensity(0.0), m_hrp2Density(0.0), m_timeStepMaxDensity(0.0),
+    m_pathogenesisModel( Pathogenesis::PathogenesisModel::createPathogenesisModel( comorbidityFactor ) ),
+    m_treatExpiryLiver(0), m_treatExpiryBlood(0)
 {
     // NOTE: negating a Gaussian sample with mean 0 is pointless — except that
     // the individual samples change. In any case the overhead is negligible.
     //FIXME: Should this be allowed to be greater than 1?
     // Oldest code on GoogleCode: _innateImmunity=(double)(W_GAUSS((0), (sigma_i)));
-    _innateImmSurvFact = exp(-rng.gauss(0.0, sigma_i));
+    m_innateImmSurvFact = exp(-rng.gauss(0.0, sigmaI));
     
-    m_y_lag_i.resize(y_lag_len * Genotypes::N());
-    m_y_lag_l.resize(y_lag_len * Genotypes::N());
+    m_yLagI.resize(s_yLagLen * Genotypes::N());
+    m_yLagL.resize(s_yLagLen * Genotypes::N());
 }
 
 WHFalciparum::~WHFalciparum()
@@ -153,8 +153,8 @@ WHFalciparum::~WHFalciparum()
 
 double WHFalciparum::immunitySurvivalFactor (double ageInYears, double cumulativeExposureJ) {
     if (std::isnan(ageInYears) || std::isnan(cumulativeExposureJ) ||
-        std::isnan(m_cumulative_h) || std::isnan(m_cumulative_Y)) {
-        throw base_exception("nan in immunitySurvivalFactor");
+        std::isnan(m_cumulativeH) || std::isnan(m_cumulativeY)) {
+        throw BaseException("nan in immunitySurvivalFactor");
     }
     
     // Documentation: AJTMH pp22-23
@@ -163,13 +163,13 @@ double WHFalciparum::immunitySurvivalFactor (double ageInYears, double cumulativ
     double dY = 1.0;
     // Effect of number of infections experienced since birth (named Dh in AJTM)
     double dH = 1.0;
-    if (m_cumulative_h > 1.0) {
-        dH = 1.0 / (1.0 + (m_cumulative_h - 1.0) * invCumulativeHstar);
-        dY = 1.0 / (1.0 + (m_cumulative_Y - cumulativeExposureJ) * invCumulativeYstar);
+    if (m_cumulativeH > 1.0) {
+        dH = 1.0 / (1.0 + (m_cumulativeH - 1.0) * invCumulativeHstar);
+        dY = 1.0 / (1.0 + (m_cumulativeY - cumulativeExposureJ) * invCumulativeYstar);
     }
     
     // Effect of age-dependent maternal immunity (named Dm in AJTM)
-    double dA = 1.0 - alpha_m * exp(-decayM * ageInYears);
+    double dA = 1.0 - alphaM * exp(-decayM * ageInYears);
     
     return util::streamValidate( std::min(dY*dH*dA, 1.0) );
 }
@@ -182,29 +182,29 @@ const double PTM_tau= 0.066;
 const double PTM_tau_prime = 1.0 / sqrt(1.0 / PTM_tau);
 const double PTM_mu= -8.1;
 
-inline double compute_y_lag(const vector<double> &y_lag, int y_lag_len, vector<double> &y_lag_g)
+inline double computeYLag(const vector<double> &yLag, int yLagLen, vector<double> &yLagG)
 {
     const size_t n = Genotypes::N();
 
     // Take weighted sum of total asexual blood stage density 10, 15 and 20 days
     // before. Add y_lag_len to index to ensure positive.
-    size_t d10 = mod_nn(y_lag_len + sim::inSteps(sim::ts1() - sim::fromDays(10)), y_lag_len);
-    size_t d15 = mod_nn(y_lag_len + sim::inSteps(sim::ts1() - sim::fromDays(15)), y_lag_len);
-    size_t d20 = mod_nn(y_lag_len + sim::inSteps(sim::ts1() - sim::fromDays(20)), y_lag_len);
+    size_t d10 = modNn(yLagLen + Sim::inSteps(Sim::ts1() - Sim::fromDays(10)), yLagLen);
+    size_t d15 = modNn(yLagLen + Sim::inSteps(Sim::ts1() - Sim::fromDays(15)), yLagLen);
+    size_t d20 = modNn(yLagLen + Sim::inSteps(Sim::ts1() - Sim::fromDays(20)), yLagLen);
 
-    double y10_sum = 0.0, y15_sum = 0.0, y20_sum = 0.0;
+    double y10Sum = 0.0, y15Sum = 0.0, y20Sum = 0.0;
     for( size_t g = 0; g < n; ++g ){
-        double y10 = y_lag[d10 * n + g];
-        double y15 = y_lag[d15 * n + g];
-        double y20 = y_lag[d20 * n + g];
-        y10_sum += y10;
-        y15_sum += y15;
-        y20_sum += y20;
-        y_lag_g[g] = PTM_beta1 * y10 + PTM_beta2 * y15 + PTM_beta3 * y20;
+        double y10 = yLag[d10 * n + g];
+        double y15 = yLag[d15 * n + g];
+        double y20 = yLag[d20 * n + g];
+        y10Sum += y10;
+        y15Sum += y15;
+        y20Sum += y20;
+        yLagG[g] = PTM_beta1 * y10 + PTM_beta2 * y15 + PTM_beta3 * y20;
     }
     
     // Weighted sum:
-    return PTM_beta1 * y10_sum + PTM_beta2 * y15_sum + PTM_beta3 * y20_sum;
+    return PTM_beta1 * y10Sum + PTM_beta2 * y15Sum + PTM_beta3 * y20Sum;
 }
 
 double WHFalciparum::probTransmissionToMosquito(vector<double> &probTransGenotype_i, vector<double> &probTransGenotype_l) const{
@@ -217,15 +217,15 @@ double WHFalciparum::probTransmissionToMosquito(vector<double> &probTransGenotyp
     const size_t n = Genotypes::N();
 
     // Sum lagged densities across genotypes:
-    vector<double> y_lag_g_i(n), y_lag_g_l(n);
-    const double y_lag_sum_i = compute_y_lag(m_y_lag_i, y_lag_len, y_lag_g_i);
-    const double y_lag_sum_l = compute_y_lag(m_y_lag_l, y_lag_len, y_lag_g_l);
-    const double y_lag_sum = y_lag_sum_i + y_lag_sum_l;
+    vector<double> yLagGI(n), yLagGL(n);
+    const double yLagSumI = computeYLag(m_yLagI, s_yLagLen, yLagGI);
+    const double yLagSumL = computeYLag(m_yLagL, s_yLagLen, yLagGL);
+    const double yLagSum = yLagSumI + yLagSumL;
 
-    if( y_lag_sum < 0.001 ) return 0.0; // cut off for uninfectious humans
+    if( yLagSum < 0.001 ) return 0.0; // cut off for uninfectious humans
     
     // Get a zval, convert to equivalent Normal sample:
-    const double zval = (log(y_lag_sum) + PTM_mu) * PTM_tau_prime;
+    const double zval = (log(yLagSum) + PTM_mu) * PTM_tau_prime;
     const double pone = gsl_cdf_ugaussian_P(zval);
     double pTransmit = pone*pone;
 
@@ -238,8 +238,8 @@ double WHFalciparum::probTransmissionToMosquito(vector<double> &probTransGenotyp
 
     for( size_t g = 0; g < n; ++g )
     {
-        probTransGenotype_i[g] = pTransmit * y_lag_g_i[g] / y_lag_sum;
-        probTransGenotype_l[g] = pTransmit * y_lag_g_l[g] / y_lag_sum;
+        probTransGenotype_i[g] = pTransmit * yLagGI[g] / yLagSum;
+        probTransGenotype_l[g] = pTransmit * yLagGL[g] / yLagSum;
     }
 
     // Include here the effect of transmission-blocking vaccination:
@@ -248,7 +248,7 @@ double WHFalciparum::probTransmissionToMosquito(vector<double> &probTransGenotyp
 }
 
 bool WHFalciparum::diagnosticResult( LocalRng& rng, const Diagnostic& diagnostic ) const{
-    return diagnostic.isPositive( rng, totalDensity, hrp2Density );
+    return diagnostic.isPositive( rng, m_totalDensity, m_hrp2Density );
 }
 
 void WHFalciparum::treatment( Host::Human& human, TreatmentId treatId ){
@@ -261,18 +261,18 @@ void WHFalciparum::treatment( Host::Human& human, TreatmentId treatId ){
                   interventions::VaccineLimits(/*default initialise: no limits*/) );
 }
 bool WHFalciparum::treatSimple( Host::Human& human, SimTime timeLiver, SimTime timeBlood ){
-    if( timeLiver != sim::zero() ){
-        if( timeLiver < sim::zero() )
+    if( timeLiver != Sim::zero() ){
+        if( timeLiver < Sim::zero() )
             clearInfections( Treatments::LIVER );
         else
-            treatExpiryLiver = max( int(treatExpiryLiver), int(sim::nowOrTs1()) + timeLiver );
+            m_treatExpiryLiver = max( int(m_treatExpiryLiver), int(Sim::nowOrTs1()) + timeLiver );
         mon::recordEvent(mon::measure("nLiverStageTreatments"), human);
     }
-    if( timeBlood != sim::zero() ){
-        if( timeBlood < sim::zero() )
+    if( timeBlood != Sim::zero() ){
+        if( timeBlood < Sim::zero() )
             clearInfections( Treatments::BLOOD );
         else
-            treatExpiryBlood = max( int(treatExpiryBlood), int(sim::nowOrTs1()) + timeBlood );
+            m_treatExpiryBlood = max( int(m_treatExpiryBlood), int(Sim::nowOrTs1()) + timeBlood );
         return true;    // blood stage treatment
     }
     return false;    // no blood stage treatment
@@ -281,8 +281,8 @@ bool WHFalciparum::treatSimple( Host::Human& human, SimTime timeLiver, SimTime t
 Pathogenesis::StatePair WHFalciparum::determineMorbidity( Host::Human& human,
         double ageYears, bool isDoomed )
 {
-    Pathogenesis::StatePair result = pathogenesisModel->determineState( human,
-            ageYears, timeStepMaxDensity, totalDensity, isDoomed );
+    Pathogenesis::StatePair result = m_pathogenesisModel->determineState( human,
+            ageYears, m_timeStepMaxDensity, m_totalDensity, isDoomed );
     
     /* Note: this model can easily be re-enabled, but is not used and not considered to be a good model.
     if( (result.state & Pathogenesis::MALARIA) && util::ModelOptions::option( util::PENALISATION_EPISODES ) ){
@@ -301,16 +301,16 @@ Pathogenesis::StatePair WHFalciparum::determineMorbidity( Host::Human& human,
 
 void WHFalciparum::updateImmuneStatus() {
     if (immEffectorRemain < 1) {
-        m_cumulative_h *= immEffectorRemain;
-        m_cumulative_Y *= immEffectorRemain;
+        m_cumulativeH *= immEffectorRemain;
+        m_cumulativeY *= immEffectorRemain;
     }
     if (asexImmRemain < 1) {
-        m_cumulative_h *= asexImmRemain /
-                      (1+(m_cumulative_h*(1-asexImmRemain) * invCumulativeHstar));
-        m_cumulative_Y *= asexImmRemain /
-                      (1+(m_cumulative_Y*(1-asexImmRemain) * invCumulativeYstar));
+        m_cumulativeH *= asexImmRemain /
+                      (1+(m_cumulativeH*(1-asexImmRemain) * invCumulativeHstar));
+        m_cumulativeY *= asexImmRemain /
+                      (1+(m_cumulativeY*(1-asexImmRemain) * invCumulativeYstar));
     }
-    m_cumulative_Y_lag = m_cumulative_Y;
+    m_cumulativeYLag = m_cumulativeY;
 }
 
 
@@ -318,33 +318,33 @@ void WHFalciparum::updateImmuneStatus() {
 
 void WHFalciparum::checkpoint (istream& stream) {
     WHInterface::checkpoint( stream );
-    _innateImmSurvFact & stream;
-    m_cumulative_h & stream;
-    m_cumulative_Y & stream;
-    m_cumulative_Y_lag & stream;
-    totalDensity & stream;
-    hrp2Density & stream;
-    timeStepMaxDensity & stream;
-    m_y_lag_i & stream;
-    m_y_lag_l & stream;
-    (*pathogenesisModel) & stream;
-    treatExpiryLiver & stream;
-    treatExpiryBlood & stream;
+    m_innateImmSurvFact & stream;
+    m_cumulativeH & stream;
+    m_cumulativeY & stream;
+    m_cumulativeYLag & stream;
+    m_totalDensity & stream;
+    m_hrp2Density & stream;
+    m_timeStepMaxDensity & stream;
+    m_yLagI & stream;
+    m_yLagL & stream;
+    (*m_pathogenesisModel) & stream;
+    m_treatExpiryLiver & stream;
+    m_treatExpiryBlood & stream;
 }
 void WHFalciparum::checkpoint (ostream& stream) {
     WHInterface::checkpoint( stream );
-    _innateImmSurvFact & stream;
-    m_cumulative_h & stream;
-    m_cumulative_Y & stream;
-    m_cumulative_Y_lag & stream;
-    totalDensity & stream;
-    hrp2Density & stream;
-    timeStepMaxDensity & stream;
-    m_y_lag_i & stream;
-    m_y_lag_l & stream;
-    (*pathogenesisModel) & stream;
-    treatExpiryLiver & stream;
-    treatExpiryBlood & stream;
+    m_innateImmSurvFact & stream;
+    m_cumulativeH & stream;
+    m_cumulativeY & stream;
+    m_cumulativeYLag & stream;
+    m_totalDensity & stream;
+    m_hrp2Density & stream;
+    m_timeStepMaxDensity & stream;
+    m_yLagI & stream;
+    m_yLagL & stream;
+    (*m_pathogenesisModel) & stream;
+    m_treatExpiryLiver & stream;
+    m_treatExpiryBlood & stream;
 }
 
 }

@@ -40,42 +40,42 @@ using util::AgeGroupInterpolator;
 
 //BEGIN static
 /// Comorbidity prevalence at birth as a risk factor for indirect mortality
-double pg_indirRiskCoFactor;
+double pgIndirRiskCoFactor;
 /// sevMal: critical density for severe malaria bout (Y*B1)
-double pg_severeMalThreshold;
+double pgSevereMalThreshold;
 /// Comorbidity prevalence at birth as a risk factor for severe
-double pg_comorbIntercept;
+double pgComorbIntercept;
 /// One over critical age for co-morbidity (for both severe and indirect)
-double pg_inv_critAgeComorb;
+double pgInvCritAgeComorb;
 
 /// Rate of Non-Malaria Fever incidence by age. Non-seasonal.
-AgeGroupInterpolator pg_NMF_incidence;
+AgeGroupInterpolator pgNmfIncidence;
 
-bool opt_predetermined_episodes = false, opt_mueller_pres_model = false;
+bool optPredeterminedEpisodes = false, optMuellerPresModel = false;
 
 
 void PathogenesisModel::init( const Parameters& parameters, const scnXml::Clinical& clinical, bool nmfOnly ){
     if( util::ModelOptions::option( util::NON_MALARIA_FEVERS ) ){
         if( !clinical.getNonMalariaFevers().present() ){
-            throw util::xml_scenario_error("NonMalariaFevers element of model->clinical required");
+            throw util::XmlScenarioError("NonMalariaFevers element of model->clinical required");
         }
         const scnXml::Clinical::NonMalariaFeversType& nmfDesc = clinical.getNonMalariaFevers().get();
-        pg_NMF_incidence.set( nmfDesc.getIncidence(), "incidence" );
+        pgNmfIncidence.set( nmfDesc.getIncidence(), "incidence" );
     }
     if( nmfOnly ) return;
     
-    pg_indirRiskCoFactor = 1 - exp(-parameters[Parameter::INDIRECT_RISK_COFACTOR]);
-    pg_severeMalThreshold = parameters[Parameter::SEVERE_MALARIA_THRESHHOLD] + 1;
-    pg_comorbIntercept = 1 - exp(-parameters[Parameter::COMORBIDITY_INTERCEPT]);
-    pg_inv_critAgeComorb = 1 / parameters[Parameter::CRITICAL_AGE_FOR_COMORBIDITY];
+    pgIndirRiskCoFactor = 1 - exp(-parameters[Parameter::INDIRECT_RISK_COFACTOR]);
+    pgSevereMalThreshold = parameters[Parameter::SEVERE_MALARIA_THRESHHOLD] + 1;
+    pgComorbIntercept = 1 - exp(-parameters[Parameter::COMORBIDITY_INTERCEPT]);
+    pgInvCritAgeComorb = 1 / parameters[Parameter::CRITICAL_AGE_FOR_COMORBIDITY];
 
     if (util::ModelOptions::option (util::PREDETERMINED_EPISODES)) {
-        opt_predetermined_episodes = true;
+        optPredeterminedEpisodes = true;
         //no separate init:
         PyrogenPathogenesis::init( parameters );
     } else {
         if (util::ModelOptions::option (util::MUELLER_PRESENTATION_MODEL)){
-            opt_mueller_pres_model = true;
+            optMuellerPresModel = true;
             MuellerPathogenesis::init( parameters );
         }else{
             PyrogenPathogenesis::init( parameters );
@@ -84,11 +84,11 @@ void PathogenesisModel::init( const Parameters& parameters, const scnXml::Clinic
 }
 
 PathogenesisModel* PathogenesisModel::createPathogenesisModel(double cF) {
-    if (opt_predetermined_episodes) {
+    if (optPredeterminedEpisodes) {
         return new PredetPathogenesis(cF);
     }
     else {
-        if (opt_mueller_pres_model) {
+        if (optMuellerPresModel) {
             return new MuellerPathogenesis(cF);
         }
         else {
@@ -100,7 +100,7 @@ PathogenesisModel* PathogenesisModel::createPathogenesisModel(double cF) {
 
 
 PathogenesisModel::PathogenesisModel(double cF) :
-        _comorbidityFactor(cF)
+        m_comorbidityFactor(cF)
 {}
 
 Pathogenesis::StatePair PathogenesisModel::determineState(Host::Human& human,
@@ -111,9 +111,9 @@ Pathogenesis::StatePair PathogenesisModel::determineState(Host::Human& human,
     //TODO(performance): would using a single RNG sample and manipulating probabilities be faster?
     //Decide whether a clinical episode occurs and if so, which type
     if( human.rng.bernoulli( pMalariaFever ) ){
-        const double prSevereEpisode = timeStepMaxDensity / (timeStepMaxDensity + pg_severeMalThreshold);
-        const double comorb_factor = _comorbidityFactor / (1.0 + ageYears * pg_inv_critAgeComorb);
-        const double pCoinfection = pg_comorbIntercept * comorb_factor;
+        const double prSevereEpisode = timeStepMaxDensity / (timeStepMaxDensity + pgSevereMalThreshold);
+        const double comorbFactor = m_comorbidityFactor / (1.0 + ageYears * pgInvCritAgeComorb);
+        const double pCoinfection = pgComorbIntercept * comorbFactor;
         
         // Expectation of a severe bout:
         const double exSevere = prSevereEpisode + (1.0 - prSevereEpisode) * pCoinfection;
@@ -132,7 +132,7 @@ Pathogenesis::StatePair PathogenesisModel::determineState(Host::Human& human,
         // Indirect mortality:
         // IndirectRisk is the probability of dying from the indirect effects
         // of malaria conditional on not having an acute attack of malaria
-        double indirectRisk = pg_indirRiskCoFactor * comorb_factor;
+        double indirectRisk = pgIndirRiskCoFactor * comorbFactor;
         if( !isDoomed ){
             mon::recordStat(mon::measure("expectedIndirectDeaths"), human, indirectRisk);
         }
@@ -149,8 +149,8 @@ Pathogenesis::StatePair PathogenesisModel::determineState(Host::Human& human,
 }
 
 Pathogenesis::State PathogenesisModel::sampleNMF( LocalRng& rng, double ageYears ){
-    if ( pg_NMF_incidence.isSet() ) {
-        double pNMF = pg_NMF_incidence.eval( ageYears );
+    if ( pgNmfIncidence.isSet() ) {
+        double pNMF = pgNmfIncidence.eval( ageYears );
         if( rng.bernoulli( pNMF ) )
             return Pathogenesis::STATE_NMF;
     }
@@ -159,10 +159,10 @@ Pathogenesis::State PathogenesisModel::sampleNMF( LocalRng& rng, double ageYears
 
 
 void PathogenesisModel::checkpoint (istream& stream) {
-    _comorbidityFactor & stream;
+    m_comorbidityFactor & stream;
 }
 void PathogenesisModel::checkpoint (ostream& stream) {
-    _comorbidityFactor & stream;
+    m_comorbidityFactor & stream;
 }
 
 } } }

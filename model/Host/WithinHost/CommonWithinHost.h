@@ -49,11 +49,11 @@ public:
     
     virtual void importInfection(LocalRng& rng);
     
-    virtual void treatPkPd(size_t schedule, size_t dosage, double age, double delay_d);
+    virtual void treatPkPd(size_t schedule, size_t dosage, double age, double delayD);
     virtual void clearImmunity();
     
     virtual void update(Host::Human &human, LocalRng& rng, int &nNewInfs_i, int &nNewInfs_l, 
-        vector<double>& genotype_weights_i, vector<double>& genotype_weights_l, double ageInYears);
+        vector<double>& genotypeWeightsI, vector<double>& genotypeWeightsL, double ageInYears);
     
     virtual void addProphylacticEffects(const vector<double>& pClearanceByTime);
     
@@ -64,8 +64,8 @@ public:
      * The first variant is for creating a new infection, the second for loading
      * one from a checkpoint. */
     //@{
-    static CommonInfection* (* createInfection) (LocalRng& rng, uint32_t protID, int origin);
-    static CommonInfection* (* checkpointedInfection) (istream& stream);
+    static CommonInfection* (* s_createInfection) (LocalRng& rng, uint32_t protID, int origin);
+    static CommonInfection* (* s_checkpointedInfection) (istream& stream);
     //@}
 
     virtual InfectionOrigin getInfectionOrigin() const;
@@ -80,19 +80,19 @@ protected:
     
 private:
     /// Multiplies the mean mass (for this age) as a heterogeneity factor.
-    double hetMassMultiplier;
+    double m_hetMassMultiplier;
     
     /// Encapsulates drug code for each human
-    PkPd::LSTMModel pkpdModel;
+    PkPd::LSTMModel m_pkpdModel;
     
     /** The list of all infections this human has.
      *
      * Since infection models and within host models are very much intertwined,
      * the idea is that each WithinHostModel has its own list of infections. */
     //TODO: better to template class over infection type than use dynamic type?
-    std::list<CommonInfection*> infections;
+    std::list<CommonInfection*> m_infections;
 
-    bool opt_vaccine_genotype = false;
+    bool m_optVaccineGenotype = false;
 };
 
 } }

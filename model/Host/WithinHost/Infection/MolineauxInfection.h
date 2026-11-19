@@ -47,9 +47,9 @@ public:
     // v: number of variants per clone (one infection = one new clone); 50 in paper
     //TODO(optimisation): v should have a significant effect on performance, but reducing by,
     // say, half, may not have a big effect on the model. Evaluate.
-    static const size_t v = 50;
+    static const size_t V = 50;
     // taus: used for the variantTranscending and variantSpecific array, 4 Molineaux time steps = 8 days
-    static const size_t taus = 4;
+    static const size_t Taus = 4;
     //@}
     
     // Initialise. Samples several parameters.
@@ -58,7 +58,7 @@ public:
     MolineauxInfection (istream& stream);
     virtual ~MolineauxInfection () {};
     
-    virtual bool updateDensity( LocalRng& rng, double survivalFactor, SimTime bsAge, double body_mass );
+    virtual bool updateDensity( LocalRng& rng, double survivalFactor, SimTime bsAge, double bodyMass );
     
 protected:
     virtual void checkpoint (ostream& stream);
@@ -71,10 +71,10 @@ private:
     // m_density is equivalent to Pc in paper
     // m_cumulativeExposureJ is cumulative parasite density (used by external immunity function)
     
-    float mi[v];        // base multiplication factor per two-day cycle of variant i
+    float m_mi[V];        // base multiplication factor per two-day cycle of variant i
     float Sm_summation; // sum in eqn 7
     // index: we use ((bsAge/2) mod 4) for τ = t - δ_v respectively τ = t
-    float lagged_Pc[taus];       // Pc(τ) for τ ∈ {t - δ_v, ..., t - 2}
+    float lagged_Pc[Taus];       // Pc(τ) for τ ∈ {t - δ_v, ..., t - 2}
     /* Pc_star, Pm_star: two host-specific critical densities.
      * These two values depend on the first local maximum or the difference
      * between the last positive day and the first positive day. */
@@ -91,10 +91,10 @@ private:
         float Pi1, Pi2;   // Pi(t+1), Pi(t+2): variant's i density (PRBC/μl blood)
         float Si_summation;     // sum in eqn 6
         // index: we use ((bsAge/2) mod 4) for τ = t - δ_v respectively τ = t
-        float lagged_Pi[taus];   // Pi(τ) for τ ∈ {t - δ_v, ..., t - 2}
+        float lagged_Pi[Taus];   // Pi(τ) for τ ∈ {t - δ_v, ..., t - 2}
     };
     // variant-specific data; variants[i-1] corresponds to variant i in the paper
-    vector<Variant> variants;
+    vector<Variant> m_variants;
     
     // allow unittest to access private vars
     friend class ::MolineauxInfectionSuite;

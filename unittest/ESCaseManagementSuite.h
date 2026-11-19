@@ -186,7 +186,7 @@ public:
 	// "result" decision is optimised out.
 	
 	UnittestUtil::initTime( 1 );
-	UnittestUtil::EmpiricalWHM_setup();
+	UnittestUtil::empiricalWhmSetup();
 	WHFalciparum* whm = dynamic_cast<WHFalciparum*>( WHInterface::createWithinHostModel( 1.0 ) );
         ETS_ASSERT( whm != 0 );
 	UnittestUtil::setTotalParasiteDensity( *whm, numeric_limits< double >::infinity() );	// infinite, which means P(true outcome) should be 1.0 with an RDT test

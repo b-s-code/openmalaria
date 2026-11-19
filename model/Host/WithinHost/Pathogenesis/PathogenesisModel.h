@@ -89,7 +89,7 @@ protected:
     virtual double getPEpisode(double timeStepMaxDensity, double totalDensity)=0;
 
     //! comorbidity factor for heterogeneity
-    double _comorbidityFactor;
+    double m_comorbidityFactor;
 };
 
 } } }

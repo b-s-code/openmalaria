@@ -70,7 +70,7 @@ void StreamValidatorType::saveStream() {
     if( storeMode ){
 	ofstream f_str( OM_SV_FILE, ios::out | ios::binary );
 	if( !f_str.is_open() )
-	    throw util::base_exception( "unable to write " OM_SV_FILE, Error::FileIO );
+	    throw util::BaseException( "unable to write " OM_SV_FILE, Error::FileIO );
 	f_str.write( reinterpret_cast<const char*>(&OM_SV_HEAD), sizeof(char)*4 );
         
         stream & f_str;
@@ -87,11 +87,11 @@ void StreamValidatorType::loadStream( const string& path ){
     storeMode = false;
     ifstream f_str( file.c_str(), ios::in | ios::binary );
     if( !f_str.is_open() )
-	throw util::base_exception("unable to read " + string(file), Error::FileIO);
+	throw util::BaseException("unable to read " + string(file), Error::FileIO);
     char head[4];
     f_str.read( reinterpret_cast<char*>(&head), sizeof(char)*4 );
     if( memcmp( &OM_SV_HEAD, &head, sizeof(char)*4 ) != 0 )
-	throw util::base_exception(string(file) + " is not a valid StreamValidator file", Error::FileIO);
+	throw util::BaseException(string(file) + " is not a valid StreamValidator file", Error::FileIO);
     
     stream & f_str;
     
@@ -99,9 +99,9 @@ void StreamValidatorType::loadStream( const string& path ){
     if (f_str.gcount () != 0) {
 	ostringstream msg;
 	msg << file<<" has " << f_str.gcount() << " bytes remaining." << endl;
-	throw util::base_exception (msg.str(), Error::FileIO);
+	throw util::BaseException (msg.str(), Error::FileIO);
     } else if (f_str.fail())
-	throw util::base_exception ("StreamValidator load error", Error::FileIO);
+	throw util::BaseException ("StreamValidator load error", Error::FileIO);
     
     f_str.close();
     readIt = stream.begin();
@@ -113,7 +113,7 @@ void StreamValidatorType::handle( SVType value ){
     }else{
 	if( value != *readIt ){
 	    // Attach a debugger with a breakpoint here to get the backtrace,
-	    // if the one caught by traced_exception isn't enough.
+	    // if the one caught by TracedException isn't enough.
 	    throw TRACED_EXCEPTION_DEFAULT ("StreamValidator: out of sync! Examine the stack trace to work out why (you may want to re-run this in a debugger with a break point on this line to get a better trace).");
 	}
 	++readIt;

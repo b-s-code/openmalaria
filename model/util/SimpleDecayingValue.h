@@ -40,55 +40,55 @@ class SimpleDecayingValue
 public:
     /** Default construction: always return 0. */
     SimpleDecayingValue() :
-            initial(0.0),
-            deploy_t(sim::never()) {}
+            m_initial(0.0),
+            m_deployT(Sim::never()) {}
     
     /** Configure from an XML element. */
-    inline void set (double initial_value, const scnXml::DecayFunction& elt, const char* name){
-        decay = DecayFunction::makeObject(elt, name);
-        initial = initial_value;
+    inline void set (double initialValue, const scnXml::DecayFunction& elt, const char* name){
+        m_decay = DecayFunction::makeObject(elt, name);
+        m_initial = initialValue;
     }
 
     /** Configure from an XML element. */
-    inline void set (double initial_value){
-        initial = initial_value;
+    inline void set (double initialValue){
+        m_initial = initialValue;
     }
     
     /** Trigger a deployment, if decay function was set. */
     inline void deploy (LocalRng& rng, SimTime time){
-        if( decay.get() == 0 ) return;  // cannot deploy
-        deploy_t = time;
-        het = decay->hetSample(rng);
+        if( m_decay.get() == 0 ) return;  // cannot deploy
+        m_deployT = time;
+        m_het = m_decay->hetSample(rng);
     }
     
     /** Get the value (0 if before any deployment or after complete decay,
      * also 0 if no decay function or initial value was set,
      * otherwise between zero and the inital value). */
-    inline double current_value (SimTime time) const{
-        if( decay.get() == 0 || het == nullptr) return 0.0;  // decay wasn't set: the always return 0
-        else return initial * het->eval( time - deploy_t );
+    inline double currentValue (SimTime time) const{
+        if( m_decay.get() == 0 || m_het == nullptr) return 0.0;  // decay wasn't set: the always return 0
+        else return m_initial * m_het->eval( time - m_deployT );
     }
     
     /** Checkpointing: only checkpoint parameters which change after initial
      * set-up. */
     template<class S>
     void operator& (S& stream) {
-        if (decay) decay->checkpointSample(het, stream);
-        deploy_t & stream;
+        if (m_decay) m_decay->checkpointSample(m_het, stream);
+        m_deployT & stream;
     }
     
 private:
     /** Description of decay of effects on emergence. */
-    unique_ptr<util::DecayFunction> decay;
+    unique_ptr<util::DecayFunction> m_decay;
     
     /** Initial value. Is initialised to 0. */
-    double initial;
+    double m_initial;
     
     /** Description of larviciding decay. */
-    unique_ptr<util::DecayFunction> het;
+    unique_ptr<util::DecayFunction> m_het;
     
     /** Time of larviciding deployment. */
-    SimTime deploy_t = sim::never();
+    SimTime m_deployT = Sim::never();
 };
 
 } }

@@ -138,7 +138,7 @@ namespace {
 void updateConditions()
 {
     const size_t survey = statSurveyNumber();
-    if (survey == NOT_USED) return;
+    if (survey == NotUsed) return;
     for (Condition& cond : runtime.conditions) {
         const double val = internal::surveySum(cond.measure, survey);
         cond.value = (val >= cond.min && val <= cond.max);
@@ -264,21 +264,21 @@ void writeOutput(const string& filename, ios::openmode mode, Writer writer)
 {
     Stream stream(filename.c_str(), mode);
     if (!stream.rdbuf()->is_open()) {
-        throw util::base_exception("Unable to open monitoring output file \"" + filename + "\"", util::Error::FileIO);
+        throw util::BaseException("Unable to open monitoring output file \"" + filename + "\"", util::Error::FileIO);
     }
     writer(stream);
     stream.close();
     if (!stream) {
-        throw util::base_exception("Unable to write monitoring output file \"" + filename + "\"", util::Error::FileIO);
+        throw util::BaseException("Unable to write monitoring output file \"" + filename + "\"", util::Error::FileIO);
     }
 }
 
 void updateSurveyNumbers()
 {
-    runtime.survNumEvent = NOT_USED;
+    runtime.survNumEvent = NotUsed;
     for (size_t i = runtime.surveyIndex; i < runtime.surveyDates.size(); ++i) {
         runtime.survNumEvent = runtime.surveyDates[i].num;
-        if (runtime.survNumEvent != NOT_USED) break;
+        if (runtime.survNumEvent != NotUsed) break;
     }
 }
 
@@ -286,12 +286,12 @@ void updateSurveyNumbers()
 size_t setupCondition(const string& measureName, double minValue, double maxValue, bool initialState)
 {
     const OutMeasure om = findOutMeasure(measureName);
-    if (om.measure == invalidMeasure) {
-        throw util::xml_scenario_error("unrecognised measure: " + measureName);
+    if (om.measure == InvalidMeasure) {
+        throw util::XmlScenarioError("unrecognised measure: " + measureName);
     }
 
     if (!isValidCondition(om.measure)) {
-        throw util::xml_scenario_error("cannot use measure " + measureName + " as condition of deployment");
+        throw util::XmlScenarioError("cannot use measure " + measureName + " as condition of deployment");
     }
     internal::ensureConditionStore(om);
 
@@ -308,7 +308,7 @@ bool checkCondition(size_t conditionKey)
 static void recordValue(Measure measure, size_t survey, size_t age, uint32_t cohort,
                         size_t species, size_t genotype, size_t drug, double val, int outId = 0)
 {
-    if (survey == NOT_USED) return;
+    if (survey == NotUsed) return;
     assert(measure < runtime.storesByMeasure.size());
     for (size_t idx : runtime.storesByMeasure[measure]) {
         internal::MeasureStore& store = runtime.stores[idx];
@@ -355,7 +355,7 @@ void checkpoint(Stream& stream)
             size_t storedSize = expectedSize;
             storedSize & stream;
             if (storedSize != expectedSize) {
-                throw util::checkpoint_error("Monitoring report size mismatch: checkpoint has " +
+                throw util::CheckpointError("Monitoring report size mismatch: checkpoint has " +
                     std::to_string(storedSize) + ", expected " + std::to_string(expectedSize));
             }
             for (auto& report : reports) report & stream;

@@ -35,7 +35,7 @@ namespace WithinHost {
 namespace GT /*for genotype impl details*/{
 // ———  Model constants (after init)  ———
 // keys are cumulative probabilities; last entry should equal 1; values are genotype codes
-map<double,uint32_t> cum_initial_freqs;
+map<double,uint32_t> cumInitialFreqs;
 
 // we give each allele of each loci a unique code
 map<string, map<string, uint32_t> > alleleCodes;
@@ -44,20 +44,20 @@ uint32_t nextAlleleCode = 0;
 // Represent a set of loci: all possible combinations of alleles
 // This is actually just machinery to calculate the list of all genotypes
 struct LocusSet{
-    LocusSet( const scnXml::ParasiteLocus& elt_l ){
-        alleles.reserve( elt_l.getAllele().size() );
-        double cum_p = 0.0;
-        for( const scnXml::ParasiteAllele& elt_a : elt_l.getAllele() ){
+    LocusSet( const scnXml::ParasiteLocus& eltL ){
+        alleles.reserve( eltL.getAllele().size() );
+        double cumP = 0.0;
+        for( const scnXml::ParasiteAllele& eltA : eltL.getAllele() ){
             uint32_t alleleCode = (nextAlleleCode++);
-            alleleCodes[elt_l.getName()][elt_a.getName()] = alleleCode;
-            cum_p += elt_a.getInitialFrequency();
-            alleles.push_back( Genotypes::Genotype( alleleCode, elt_a.getInitialFrequency(), elt_a.getFitness(), elt_a.getHrp2_deletion() ) );
+            alleleCodes[eltL.getName()][eltA.getName()] = alleleCode;
+            cumP += eltA.getInitialFrequency();
+            alleles.push_back( Genotypes::Genotype( alleleCode, eltA.getInitialFrequency(), eltA.getFitness(), eltA.getHrp2_deletion() ) );
         }
-        if( cum_p < 0.999 || cum_p > 1.001 )
-            throw util::xml_scenario_error("expected sum of initial probabilities of alleles to be 1, but for the " 
-                + to_string(alleles.size()) + " alleles under locus " + string(elt_l.getName()) + " this is " + to_string(cum_p));
+        if( cumP < 0.999 || cumP > 1.001 )
+            throw util::XmlScenarioError("expected sum of initial probabilities of alleles to be 1, but for the " 
+                + to_string(alleles.size()) + " alleles under locus " + string(eltL.getName()) + " this is " + to_string(cumP));
 
-        alleles[0].init_freq += 1.0 - cum_p;     // account for any small errors by adjusting the first frequency
+        alleles[0].initFreq += 1.0 - cumP;     // account for any small errors by adjusting the first frequency
     }
     void include( LocusSet& that ){
         vector<Genotypes::Genotype> newAlleles;
@@ -82,15 +82,15 @@ enum SampleMode{
     SAMPLE_TRACKING    // sample from tracked success at genotype level (no recombination)
 };
 // Mode to use now (until switched) and from the start of the intervention period.
-SampleMode current_mode = SAMPLE_FIRST, interv_mode = SAMPLE_FIRST;
+SampleMode currentMode = SAMPLE_FIRST, intervMode = SAMPLE_FIRST;
 }
-size_t Genotypes::N_genotypes = 1;
+size_t Genotypes::s_nGenotypes = 1;
 
 Genotypes::Genotype Genotypes::Genotype::cross( const Genotype& that )const{
     Genotype result(*that.alleles.begin(),
-                    init_freq*that.init_freq,
+                    initFreq*that.initFreq,
                     fitness*that.fitness,
-                    hrp2_deficient || that.hrp2_deficient);
+                    hrp2Deficient || that.hrp2Deficient);
     result.alleles.insert( alleles.begin(), alleles.end() );
     result.alleles.insert( that.alleles.begin(), that.alleles.end() );
     return result;
@@ -101,7 +101,7 @@ void Genotypes::initSingle()
     // no specification implies there is a single genotype
     GT::genotypes.assign( 1, Genotypes::Genotype(
         0 /*allele code*/, 1.0/*frequency*/, 1.0/*fitness*/, false /*hrp2 deficiency*/) );
-    N_genotypes = 1;
+    s_nGenotypes = 1;
 }
 
 // utility function: does a vector contain an element?
@@ -118,23 +118,23 @@ void Genotypes::init( const scnXml::Scenario& scenario ){
         const scnXml::ParasiteGenetics& genetics =
             scenario.getParasiteGenetics().get();
         
-        GT::current_mode = GT::SAMPLE_INITIAL;      // turn on sampling
+        GT::currentMode = GT::SAMPLE_INITIAL;      // turn on sampling
         if( genetics.getSamplingMode() == "initial" ){
-            GT::interv_mode = GT::SAMPLE_INITIAL;
+            GT::intervMode = GT::SAMPLE_INITIAL;
         }else if( genetics.getSamplingMode() == "tracking" ){
-            GT::interv_mode = GT::SAMPLE_TRACKING;
+            GT::intervMode = GT::SAMPLE_TRACKING;
             if( !scenario.getEntomology().getVector().present() ){
-                throw util::xml_scenario_error( "incompatibility; either use "
+                throw util::XmlScenarioError( "incompatibility; either use "
                     "entomology/vector (not nonVector) or set "
                     "parasiteGenetics/samplingMode to \"initial\" (not \"tracking\")" );
             }
             if( scenario.getEntomology().getMode() != "dynamic" ){
-                throw util::xml_scenario_error( "incompatibility; either set "
+                throw util::XmlScenarioError( "incompatibility; either set "
                     "entomology/mode to \"dynamic\" (not \"forced\") or set "
                     "parasiteGenetics/samplingMode to \"initial\" (not \"tracking\")" );
             }
         }else{
-            throw util::xml_scenario_error( "parasiteGenetics/samplingMode: expected \"initial\" or \"tracking\"" );
+            throw util::XmlScenarioError( "parasiteGenetics/samplingMode: expected \"initial\" or \"tracking\"" );
         }
         
         // Build the list of all allele combinations by iterating over loci (plural of locus):
@@ -144,30 +144,30 @@ void Genotypes::init( const scnXml::Scenario& scenario ){
             loci.include( newLocus );
         }
         GT::genotypes.swap( loci.alleles );
-        N_genotypes = GT::genotypes.size();
+        s_nGenotypes = GT::genotypes.size();
         
-        double cum_p = 0.0;
+        double cumP = 0.0;
         for( size_t i = 0; i < GT::genotypes.size(); ++i ){
-            cum_p += GT::genotypes[i].init_freq;
-            uint32_t genotype_id = static_cast<uint32_t>(i);
-            assert( genotype_id == i );
-            GT::cum_initial_freqs.insert( make_pair(cum_p, genotype_id) );
+            cumP += GT::genotypes[i].initFreq;
+            uint32_t genotypeId = static_cast<uint32_t>(i);
+            assert( genotypeId == i );
+            GT::cumInitialFreqs.insert( make_pair(cumP, genotypeId) );
         }
         
         // Test cum_p is approx. 1.0 in case the input tree is wrong.
-        if (cum_p < 0.999 || cum_p > 1.001)
-            throw util::xml_scenario_error ("decision tree (random node): expected probability sum to be 1.0 but found " + to_string(cum_p));
+        if (cumP < 0.999 || cumP > 1.001)
+            throw util::XmlScenarioError ("decision tree (random node): expected probability sum to be 1.0 but found " + to_string(cumP));
 
         // last cum_p might be slightless less than 1 due to arithmetic errors; add a failsafe:
-        GT::cum_initial_freqs[1.0] = GT::genotypes.size() - 1;
+        GT::cumInitialFreqs[1.0] = GT::genotypes.size() - 1;
     }else{
         initSingle();
-        GT::cum_initial_freqs[1.0] = GT::genotypes.size() - 1;
+        GT::cumInitialFreqs[1.0] = GT::genotypes.size() - 1;
     }
     
     if( util::CommandLine::option( util::CommandLine::PRINT_GENOTYPES ) ){
         // reorganise GT::alleleCodes so that we can look up codes, not names
-        vector<pair<string,string> > allele_codes( GT::cum_initial_freqs.size() );
+        vector<pair<string,string> > alleleCodes( GT::cumInitialFreqs.size() );
         for( auto i = GT::alleleCodes.begin(), iend = GT::alleleCodes.end(); i != iend; ++i ) {
             const string locus = i->first;
             for( auto j = i->second.begin(),
@@ -175,8 +175,8 @@ void Genotypes::init( const scnXml::Scenario& scenario ){
             {
                 uint32_t code = j->second;
                 const string allele = j->first;
-                assert( code < allele_codes.size() );
-                allele_codes[code] = make_pair( locus, allele );
+                assert( code < alleleCodes.size() );
+                alleleCodes[code] = make_pair( locus, allele );
             }
         }
         
@@ -188,7 +188,7 @@ void Genotypes::init( const scnXml::Scenario& scenario ){
             if( longest.size() == 0 ){
                 for( auto j = i->alleles.begin();
                     j != i->alleles.end(); ++j ){
-                    const string& locus = allele_codes[*j].first;
+                    const string& locus = alleleCodes[*j].first;
 
                     longest[locus] = locus.length();  // locus name is included in column
                 }
@@ -196,10 +196,10 @@ void Genotypes::init( const scnXml::Scenario& scenario ){
             
             for( auto j = i->alleles.begin();
                 j != i->alleles.end(); ++j ){
-                auto it = longest.find(allele_codes[*j].first);
+                auto it = longest.find(alleleCodes[*j].first);
                 assert( it != longest.end() );
-                uint32_t len_allele = allele_codes[*j].second.length();
-                if( len_allele > it->second ) it->second = len_allele;
+                uint32_t lenAllele = alleleCodes[*j].second.length();
+                if( lenAllele > it->second ) it->second = lenAllele;
             }
         }
         
@@ -207,8 +207,8 @@ void Genotypes::init( const scnXml::Scenario& scenario ){
         vector<string> loci;
         loci.reserve( longest.size() );
         for( size_t i = 0; loci.size() < longest.size(); ++i ){
-            assert( i < allele_codes.size() );
-            const string& locus = allele_codes[i].first;
+            assert( i < alleleCodes.size() );
+            const string& locus = alleleCodes[i].first;
             if( !contains(loci, locus) ){
                 loci.push_back( locus );
             }
@@ -242,26 +242,26 @@ void Genotypes::init( const scnXml::Scenario& scenario ){
         cout << std::fixed << setprecision(3);
         for( size_t i = 0; i < GT::genotypes.size(); ++i ){
             const Genotype& genotype = GT::genotypes[i];
-            map<string,string> locus_allele;    // to find allele for each locus
+            map<string,string> locusAllele;    // to find allele for each locus
             for( auto a = genotype.alleles.begin(); a != genotype.alleles.end(); ++a ){
-                assert( *a < allele_codes.size() );
-                locus_allele[allele_codes[*a].first] = allele_codes[*a].second;
+                assert( *a < alleleCodes.size() );
+                locusAllele[alleleCodes[*a].first] = alleleCodes[*a].second;
             }
 
             cout << "|" << std::setw(8) << (i*100000);
             for( auto it = loci.begin(); it !=loci.end(); ++it ){
-                auto la = locus_allele.find( *it );
-                assert( la != locus_allele.end() );
+                auto la = locusAllele.find( *it );
+                assert( la != locusAllele.end() );
                 cout << "|" << std::setw(longest[*it]) << la->second << "|";
 
             }
-            cout << std::setw(9) << genotype.init_freq << "|" << std::setw(7) << genotype.fitness << "|" << endl;
+            cout << std::setw(9) << genotype.initFreq << "|" << std::setw(7) << genotype.fitness << "|" << endl;
         }
     }
 }
 
 void Genotypes::preMainSimInit(){
-    GT::current_mode = GT::interv_mode;
+    GT::currentMode = GT::intervMode;
 }
 
 uint32_t Genotypes::findAlleleCode(const string& locus, const string& allele){
@@ -276,25 +276,25 @@ const vector< Genotypes::Genotype >& Genotypes::getGenotypes(){
     return GT::genotypes;
 }
 
-uint32_t Genotypes::sampleGenotype( LocalRng& rng, vector<double>& genotype_weights ){
-    if( GT::current_mode == GT::SAMPLE_FIRST ){
+uint32_t Genotypes::sampleGenotype( LocalRng& rng, vector<double>& genotypeWeights ){
+    if( GT::currentMode == GT::SAMPLE_FIRST ){
         return 0;       // always the first genotype code
-    }else if( GT::current_mode == GT::SAMPLE_INITIAL
-            || genotype_weights.size() == 0 )
+    }else if( GT::currentMode == GT::SAMPLE_INITIAL
+            || genotypeWeights.size() == 0 )
     {
-        double sample = rng.uniform_01();
-        auto it = GT::cum_initial_freqs.upper_bound( sample );
-        assert( it != GT::cum_initial_freqs.end() );
+        double sample = rng.uniform01();
+        auto it = GT::cumInitialFreqs.upper_bound( sample );
+        assert( it != GT::cumInitialFreqs.end() );
         return it->second;
     }else{
-        assert( GT::current_mode == GT::SAMPLE_TRACKING );
-        assert( genotype_weights.size() == N_genotypes );
-        double weight_sum = util::vectors::sum( genotype_weights );
-        assert( weight_sum >= 0.0 && weight_sum < 1e5 );        // possible loss of precision or other error
-        double sample = rng.uniform_01() * weight_sum;
+        assert( GT::currentMode == GT::SAMPLE_TRACKING );
+        assert( genotypeWeights.size() == s_nGenotypes );
+        double weightSum = util::vectors::sum( genotypeWeights );
+        assert( weightSum >= 0.0 && weightSum < 1e5 );        // possible loss of precision or other error
+        double sample = rng.uniform01() * weightSum;
         double cum = 0.0;
-        for( size_t g = 0; g < N_genotypes; ++g ){
-            cum += genotype_weights[g];
+        for( size_t g = 0; g < s_nGenotypes; ++g ){
+            cum += genotypeWeights[g];
             if( sample < cum ) return g;
         }
         return 0;       // just to be safe (could happen if weight_sum == 0.0)
@@ -304,10 +304,10 @@ uint32_t Genotypes::sampleGenotype( LocalRng& rng, vector<double>& genotype_weig
 double Genotypes::initialFreq( size_t genotype ){
     if( GT::genotypes.size() == 0 ){
         assert( genotype == 0 );
-        assert( N_genotypes == 1 );
+        assert( s_nGenotypes == 1 );
         return 1.0;     // only 1 genotype, thus initial frequency is 100%
     }else{
-        return GT::genotypes[genotype].init_freq;
+        return GT::genotypes[genotype].initFreq;
     }
 }
 
@@ -315,16 +315,16 @@ double Genotypes::initialFreq( size_t genotype ){
 // ———  checkpointing  ———
 
 void Genotypes::staticCheckpoint( ostream& stream ){
-    int t = GT::current_mode;
+    int t = GT::currentMode;
     t & stream;
 }
 void Genotypes::staticCheckpoint( istream& stream ){
     int t;
     t & stream;
-    GT::current_mode = static_cast<GT::SampleMode>(t);
-    assert( GT::current_mode == GT::SAMPLE_FIRST ||
-        GT::current_mode == GT::SAMPLE_INITIAL ||
-        GT::current_mode == GT::SAMPLE_TRACKING );
+    GT::currentMode = static_cast<GT::SampleMode>(t);
+    assert( GT::currentMode == GT::SAMPLE_FIRST ||
+        GT::currentMode == GT::SAMPLE_INITIAL ||
+        GT::currentMode == GT::SAMPLE_TRACKING );
 }
 
 }

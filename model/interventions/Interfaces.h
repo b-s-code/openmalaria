@@ -95,7 +95,7 @@ public:
     /** Deploy the component to a pre-selected human.
      * 
      * This may be called between updates (usual intervention deployment time)
-     * or from case management. It should use time sim::nowOrTs1().
+     * or from case management. It should use time Sim::nowOrTs1().
      * 
      * @param human Individual receiving the intervention
      * @param method Channel of deployment (mass, continuous)
@@ -115,7 +115,7 @@ public:
      * to be fast. */
     virtual Component::Type componentType() const=0;
     
-    virtual void print_details( std::ostream& out )const =0;
+    virtual void printDetails( std::ostream& out )const =0;
     
     // Only for use by InterventionManager:
     inline void setExpireAfter( SimTime duration ){
@@ -137,7 +137,7 @@ private:
     HumanInterventionComponent& operator= ( const HumanInterventionComponent& ) = delete;
     
     ComponentId m_id;
-    SimTime m_duration = sim::never();
+    SimTime m_duration = Sim::never();
 };
 
 /** A description of a human intervention (as a list of components). */
@@ -165,13 +165,13 @@ public:
     void deploy( Host::Human& human, mon::Deploy::Method method,
         VaccineLimits vaccLimits ) const;
     
-    void print_details( std::ostream& out )const;
+    void printDetails( std::ostream& out )const;
     
 protected:
     // List of pointers to components. Does not manage memory (InterventionManager::humanComponents does that).
-    vector<const HumanInterventionComponent*> components;
+    vector<const HumanInterventionComponent*> m_components;
     // List of conditions of deployment. All must be satisfied to deploy.
-    vector<size_t> conditions;
+    vector<size_t> m_conditions;
 };
 
 //TODO: this class is likely more complicated than it needs to be (e.g. SubList
@@ -195,7 +195,7 @@ private:
         double coverage;
     };
     
-    vector<SubList> lists;
+    vector<SubList> m_lists;
 };
 
 } }

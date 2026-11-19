@@ -73,23 +73,23 @@ struct AgeGroupInterpolator
     
     /** Return a value interpolated for age ageYears. */
     inline double eval( double ageYears )const{
-        return obj->eval( ageYears );
+        return m_obj->eval( ageYears );
     }
     
     /** Scale function by factor. */
     inline void scale( double factor ){
-        obj->scale( factor );
+        m_obj->scale( factor );
     }
 
     /** Find the youngest age which is the global maximum (i.e. the age at
      * which individuals are considered adults where all adults have the same
      * same value). */
     inline double firstGlobalMaximum() const{
-        return obj->firstGlobalMaximum();
+        return m_obj->firstGlobalMaximum();
     }
     
 private:
-    AgeGroupInterpolation *obj;
+    AgeGroupInterpolation *m_obj;
 };
 
 } }

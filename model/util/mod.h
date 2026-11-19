@@ -43,7 +43,7 @@ inline int mod (int a, int b) {
 // release mode. In RelWithRelease (-O2 -g) mode it's 0.03% slower on this
 // scenario and 0.015% slower on the Penny scenario (less usage).
 // Not highly significant, but the optimisation is implemented so it can stay.
-inline int mod_nn (int a, int b) {
+inline int modNn (int a, int b) {
     assert (a>=0 && b>0);
     return a % b;
 }

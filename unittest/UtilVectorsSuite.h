@@ -29,7 +29,7 @@
 #include "util/vectors.h"
 
 using namespace OM::util;
-using OM::sim;
+using OM::Sim;
 
 class UtilVectorsSuite : public CxxTest::TestSuite
 {

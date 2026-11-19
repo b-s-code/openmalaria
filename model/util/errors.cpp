@@ -35,16 +35,16 @@
 /** Standard exception classes for OpenMalaria. */
 namespace OM { namespace util {
 
-const char *Messages::SwitchDefault = "no valid option selected in a switch statement or if/else tree";
+const char *Messages::switchDefault = "no valid option selected in a switch statement or if/else tree";
 
-base_exception::base_exception(const string& msg, int code) :
+BaseException::BaseException(const string& msg, int code) :
     runtime_error(msg),
-    errCode(code)
+    m_errCode(code)
 {}
 
-traced_exception::traced_exception(const string& msg, const char *f, int l, int code, int s) :
-    base_exception(msg,code),
-    file(f), line(l), start(s)
+TracedException::TracedException(const string& msg, const char *f, int l, int code, int s) :
+    BaseException(msg,code),
+    m_file(f), m_line(l), m_start(s)
 {
 #ifdef OM_GNU_STACK_TRACE
     // http://www.gnu.org/software/libc/manual/html_node/Backtraces.html
@@ -52,19 +52,19 @@ traced_exception::traced_exception(const string& msg, const char *f, int l, int 
 #define MAX_STACK_SIZE 100
     void *array[MAX_STACK_SIZE];
     
-    length = backtrace (array, MAX_STACK_SIZE);
-    trace = backtrace_symbols (array, length);
+    m_length = backtrace (array, MAX_STACK_SIZE);
+    m_trace = backtrace_symbols (array, m_length);
 #endif
 }
-traced_exception::~traced_exception() throw(){
+TracedException::~TracedException() throw(){
 #ifdef OM_GNU_STACK_TRACE
-    free (trace);
+    free (m_trace);
 #endif
 }
-ostream& operator<<(ostream& stream, const traced_exception& e){
+ostream& operator<<(ostream& stream, const TracedException& e){
     stream<<"Call stack";
-    if( e.file != 0 )
-        stream << ", starting from "<<e.file<<':'<<e.line;
+    if( e.m_file != 0 )
+        stream << ", starting from "<<e.m_file<<':'<<e.m_line;
     stream<<":\n";
 #ifdef OM_NO_STACK_TRACE
     stream << "backtrace capture disabled\n";
@@ -73,9 +73,9 @@ ostream& operator<<(ostream& stream, const traced_exception& e){
     // spec: http://www.ib.cnea.gov.ar/~oop/biblio/libstdc++/namespaceabi.html
     
     //string binary;
-    // Usually e.start=1: we skip the first frame (traced_exception constructor)
-    for( size_t i=e.start; i<e.length; ++i ){
-        char *line = e.trace[i];
+    // Usually e.start=1: we skip the first frame (TracedException constructor)
+    for( size_t i=e.m_start; i<e.m_length; ++i ){
+        char *line = e.m_trace[i];
         char *lb = strchr(line, '(');
         char *plus = 0;
         char *rb = 0;
@@ -125,52 +125,52 @@ ostream& operator<<(ostream& stream, const traced_exception& e){
     return stream;
 }
 
-unimplemented_exception::unimplemented_exception(const string& msg) :
-        base_exception(msg, Error::NotImplemented)
+UnimplementedException::UnimplementedException(const string& msg) :
+        BaseException(msg, Error::NotImplemented)
 {}
 
-const string msg_pre = "Sorry, this feature hasn't been implemented by OpenMalaria yet: ";
-vector<char> msg_buf;
+const string MsgPre = "Sorry, this feature hasn't been implemented by OpenMalaria yet: ";
+vector<char> msgBuf;
 
-const char *unimplemented_exception::message() const{
-    const char *base_msg = base_exception::what();
-    size_t base_len = strlen( base_msg );
-    size_t required = base_len + msg_pre.size();
-    if( msg_buf.size() == 0 ){
-        msg_buf.assign( required, '0' );
-        memcpy( &msg_buf[0], msg_pre.c_str(), msg_pre.size() );
-    }else if( msg_buf.size() < required ){
-        msg_buf.resize( required );
+const char *UnimplementedException::message() const{
+    const char *baseMsg = BaseException::what();
+    size_t baseLen = strlen( baseMsg );
+    size_t required = baseLen + MsgPre.size();
+    if( msgBuf.size() == 0 ){
+        msgBuf.assign( required, '0' );
+        memcpy( &msgBuf[0], MsgPre.c_str(), MsgPre.size() );
+    }else if( msgBuf.size() < required ){
+        msgBuf.resize( required );
     }
-    memcpy( &msg_buf[msg_pre.size()], base_msg, base_len );
-    return &msg_buf[0];
+    memcpy( &msgBuf[MsgPre.size()], baseMsg, baseLen );
+    return &msgBuf[0];
 }
 
-xml_scenario_error::xml_scenario_error(const string& msg) :
-    base_exception(msg, Error::XmlScenario)
+XmlScenarioError::XmlScenarioError(const string& msg) :
+    BaseException(msg, Error::XmlScenario)
 {}
 
-format_error::format_error(const string& msg) :
-    xml_scenario_error(msg)
+FormatError::FormatError(const string& msg) :
+    XmlScenarioError(msg)
 {}
 
-checkpoint_error::checkpoint_error(const string& msg) :
-    traced_exception(msg, 0, 0, Error::Checkpoint)
+CheckpointError::CheckpointError(const string& msg) :
+    TracedException(msg, 0, 0, Error::Checkpoint)
 {}
 
-cmd_exception::cmd_exception(const string& msg, int code) :
-    base_exception(msg, code)
+CmdException::CmdException(const string& msg, int code) :
+    BaseException(msg, code)
 {}
 
-void gsl_handler( const char *reason,
+void gslHandler( const char *reason,
                   const char *file,
                   int line,
-                  int gsl_errno){
-    throw traced_exception(reason, file, line, Error::GSL, 2);
+                  int gslErrno){
+    throw TracedException(reason, file, line, Error::GSL, 2);
 }
 
-void set_gsl_handler() {
-    gsl_set_error_handler( &gsl_handler );
+void setGslHandler() {
+    gsl_set_error_handler( &gslHandler );
 }
    
 } }

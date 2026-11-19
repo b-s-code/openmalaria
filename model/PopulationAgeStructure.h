@@ -38,7 +38,7 @@ namespace OM
         
         /** Return maximum individual lifetime in intervals that AgeStructure can handle. */
         static inline size_t getMaxTStepsPerLife(){
-            return cumAgeProp.size();
+            return s_cumAgeProp.size();
         }
         
         /** Return the expected population size of individuals aged ageTSteps or
@@ -70,20 +70,20 @@ namespace OM
         * Set by estimateRemovalRates() and used internally (by
         * setDemoParameters()). */
         //@{
-        static vector<double> ageGroupBounds;
-        static vector<double> ageGroupPercent;
+        static vector<double> s_ageGroupBounds;
+        static vector<double> s_ageGroupPercent;
         //@}
         /** Parameters defining smooth curve of target age-distribution.
         *
         * Set by estimateRemovalRates() (via setDemoParameters()) and used by
         * setupPyramid(). */
         //@{
-        static double mu0;
-        static double mu1;
-        static double alpha0;
-        static double alpha1;
+        static double s_mu0;
+        static double s_mu1;
+        static double s_alpha0;
+        static double s_alpha1;
         // rho is growth rate of human population.
-        constexpr static double rho = 0.0;
+        constexpr static double Rho = 0.0;
         //@}
 	//END
 	
@@ -92,7 +92,7 @@ namespace OM
 	*
 	* cumAgeProp[size()+1-i] gives the proportion of people aged i time steps or older.
 	*/
-	static std::vector<double> cumAgeProp;
+	static std::vector<double> s_cumAgeProp;
 	//END
     };
 }

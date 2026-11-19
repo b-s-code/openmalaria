@@ -58,9 +58,9 @@ class PkPdComplianceSuite : public CxxTest::TestSuite
 {
 public:
     PkPdComplianceSuite() :
-            m_rng(0, 0), proxy(0)
+            m_rng(0, 0), m_proxy(0)
     {
-        bodymass = 50 /*kg*/;
+        m_bodymass = 50 /*kg*/;
        
         PCS_VERBOSE(cout << "\n[ Unittest Output Legend: \033[35mDrug "
                 "Factor\033[0m, \033[36mDrug Concentration\033[0m ]" << endl;)
@@ -69,44 +69,44 @@ public:
     void setUp () {
         m_rng.seed(0, 721347520444481703);
         UnittestUtil::initTime(1);
-        UnittestUtil::PkPdSuiteSetup();
-        proxy = new LSTMModel ();
-        inf = createDummyInfection(m_rng, 0, InfectionOrigin::Indigenous);
-        schedule.clear();
+        UnittestUtil::pkPdSuiteSetup();
+        m_proxy = new LSTMModel ();
+        m_inf = createDummyInfection(m_rng, 0, InfectionOrigin::Indigenous);
+        m_schedule.clear();
     }
     
     void tearDown () {
-        delete inf;
-        delete proxy;
+        delete m_inf;
+        delete m_proxy;
         LSTMDrugType::clear();
     }
     
     void assembleTripleDosageSchedule ( double dosage ){
-        schedule.clear();
-        schedule.insert(make_pair(0, make_pair(0, dosage)));
-        schedule.insert(make_pair(1, make_pair(0, dosage)));
-        schedule.insert(make_pair(2, make_pair(0, dosage)));
+        m_schedule.clear();
+        m_schedule.insert(make_pair(0, make_pair(0, dosage)));
+        m_schedule.insert(make_pair(1, make_pair(0, dosage)));
+        m_schedule.insert(make_pair(2, make_pair(0, dosage)));
     }
     void assembleHexDosageSchedule ( double dosage ){
-        schedule.clear();
-        schedule.insert(make_pair(0, make_pair(0, dosage)));
-        schedule.insert(make_pair(0, make_pair(0.5, dosage)));
-        schedule.insert(make_pair(1, make_pair(0, dosage)));
-        schedule.insert(make_pair(1, make_pair(0.5, dosage)));
-        schedule.insert(make_pair(2, make_pair(0, dosage)));
-        schedule.insert(make_pair(2, make_pair(0.5, dosage)));
+        m_schedule.clear();
+        m_schedule.insert(make_pair(0, make_pair(0, dosage)));
+        m_schedule.insert(make_pair(0, make_pair(0.5, dosage)));
+        m_schedule.insert(make_pair(1, make_pair(0, dosage)));
+        m_schedule.insert(make_pair(1, make_pair(0.5, dosage)));
+        m_schedule.insert(make_pair(2, make_pair(0, dosage)));
+        m_schedule.insert(make_pair(2, make_pair(0.5, dosage)));
     }
     
     void assembleCQDosageSchedule ( double dosage ){
         // only used for CQ, which needs 10, 10, 5 dosages instead of constant dosages
-        schedule.clear();
-        schedule.insert(make_pair(0, make_pair(0, dosage)));
-        schedule.insert(make_pair(1, make_pair(0, dosage)));
-        schedule.insert(make_pair(2, make_pair(0, dosage/2)));
+        m_schedule.clear();
+        m_schedule.insert(make_pair(0, make_pair(0, dosage)));
+        m_schedule.insert(make_pair(1, make_pair(0, dosage)));
+        m_schedule.insert(make_pair(2, make_pair(0, dosage/2)));
     }
     
-    struct debugDrugSimulations {
-        double factor, f_error, f_rel_error;
+    struct DebugDrugSimulations {
+        double factor, fError, fRelError;
     };
     
     string drugDebugOutputHeader(bool hasSecondDrug, string drugName){
@@ -141,27 +141,27 @@ public:
     }
     
     void drugDebugOutputLine(size_t day,
-            double factor, double f_abs_error, double f_rel_error,
-            double concentration, double c_abs_error, double c_rel_error,
-            double conc_abs_tol, string type, string fm)
+            double factor, double fAbsError, double fRelError,
+            double concentration, double cAbsError, double cRelError,
+            double concAbsTol, string type, string fm)
     {
         const char* green = "\033[32m";
         const char* red = "\033[31m";
         // rel errors are already percentages
-        const char* col_CR = abs(c_rel_error) > PKPD_CONC_REL_TOL * 100 ? red : green;
-        const char* col_CA = abs(c_abs_error) > conc_abs_tol ? red : green;
-        const char* col_FR = abs(f_rel_error) > PKPD_FACT_REL_TOL * 100 ? red : green;
-        const char* col_FA = abs(f_abs_error) > PKPD_FACT_ABS_TOL ? red : green;
-        printf(fm.c_str(), day, concentration, col_CR, c_rel_error, col_CA, c_abs_error, factor, col_FR, f_rel_error, col_FA, f_abs_error, type.c_str());
+        const char* col_CR = abs(cRelError) > PKPD_CONC_REL_TOL * 100 ? red : green;
+        const char* col_CA = abs(cAbsError) > concAbsTol ? red : green;
+        const char* col_FR = abs(fRelError) > PKPD_FACT_REL_TOL * 100 ? red : green;
+        const char* col_FA = abs(fAbsError) > PKPD_FACT_ABS_TOL ? red : green;
+        printf(fm.c_str(), day, concentration, col_CR, cRelError, col_CA, cAbsError, factor, col_FR, fRelError, col_FA, fAbsError, type.c_str());
         // cout << format(fm) % day % concentration % col_CR % c_rel_error % col_CA % c_abs_error
         //         % factor % col_FR % f_rel_error % col_FA % f_abs_error % type;
     }
     
     void runDrugSimulations (string drugName, string drug2Name,
-                          const double drug_conc[], const double drug2_conc[],
-                          const double drug_factors[])
+                          const double drugConc[], const double drug2Conc[],
+                          const double drugFactors[])
     {
-        bool hasSecondDrug = drug2_conc != 0;
+        bool hasSecondDrug = drug2Conc != 0;
         PCS_VERBOSE(
             cout << "\n\033[32mTesting \033[1m" << drugName ;
             if( hasSecondDrug ) {
@@ -171,8 +171,8 @@ public:
         )
         size_t drugIndex = LSTMDrugType::findDrug( drugName );
         size_t drug2Ind = hasSecondDrug ? LSTMDrugType::findDrug( drug2Name ) : 0;
-        double conc_abs_tol = LSTMDrugType::get(drugIndex).getNegligibleConcentration();
-        double conc_abs_tol2 = hasSecondDrug ? LSTMDrugType::get(drug2Ind).getNegligibleConcentration() : 0;
+        double concAbsTol = LSTMDrugType::get(drugIndex).getNegligibleConcentration();
+        double concAbsTol2 = hasSecondDrug ? LSTMDrugType::get(drug2Ind).getNegligibleConcentration() : 0;
         const size_t maxDays = 6;
         PCS_VERBOSE(double res_Fac[maxDays];)
         double res_Conc[maxDays];
@@ -180,20 +180,20 @@ public:
         double totalFac = 1;
         for( size_t i = 0; i < maxDays; i++){
             // before update (after last step):
-            double fac = proxy->getDrugFactor(m_rng, inf, bodymass);
+            double fac = m_proxy->getDrugFactor(m_rng, m_inf, m_bodymass);
             totalFac *= fac;
-            TS_ASSERT_APPROX_TOL (totalFac, drug_factors[i], PKPD_FACT_REL_TOL, PKPD_FACT_ABS_TOL);
+            TS_ASSERT_APPROX_TOL (totalFac, drugFactors[i], PKPD_FACT_REL_TOL, PKPD_FACT_ABS_TOL);
             PCS_VERBOSE(res_Fac[i] = totalFac;)
             
             // update (two parts):
-            UnittestUtil::incrTime(sim::oneDay());
-            proxy->decayDrugs(bodymass);
+            UnittestUtil::incrTime(Sim::oneDay());
+            m_proxy->decayDrugs(m_bodymass);
             
             // after update:
-            res_Conc[i] = proxy->getDrugConc(drugIndex);
-            TS_ASSERT_APPROX_TOL (res_Conc[i], drug_conc[i], PKPD_CONC_REL_TOL, conc_abs_tol);
-            res_Conc2[i] = hasSecondDrug ? proxy->getDrugConc(drug2Ind) : 0.0;
-            if( hasSecondDrug ) TS_ASSERT_APPROX_TOL (res_Conc2[i], drug2_conc[i], PKPD_CONC_REL_TOL, conc_abs_tol2);
+            res_Conc[i] = m_proxy->getDrugConc(drugIndex);
+            TS_ASSERT_APPROX_TOL (res_Conc[i], drugConc[i], PKPD_CONC_REL_TOL, concAbsTol);
+            res_Conc2[i] = hasSecondDrug ? m_proxy->getDrugConc(drug2Ind) : 0.0;
+            if( hasSecondDrug ) TS_ASSERT_APPROX_TOL (res_Conc2[i], drug2Conc[i], PKPD_CONC_REL_TOL, concAbsTol2);
             
             // medicate (take effect on next update):
             medicate( drugIndex, i );
@@ -227,121 +227,121 @@ public:
 
     }
     
-    void runDrugSimulations (string drugName, const double drug_conc[],
-                          const double drug_factors[])
+    void runDrugSimulations (string drugName, const double drugConc[],
+                          const double drugFactors[])
     {
-        runDrugSimulations(drugName, "", drug_conc, 0, drug_factors);
+        runDrugSimulations(drugName, "", drugConc, 0, drugFactors);
     }
     
     void medicate ( size_t drugIndex,  size_t i) {
-            typedef multimap<size_t,pair<double, double> >::const_iterator iter;
-            pair<iter, iter> doses_tmp = schedule.equal_range(i);
-            for( iter it = doses_tmp.first; it != doses_tmp.second; it++){
+            typedef multimap<size_t,pair<double, double> >::const_iterator Iter;
+            pair<Iter, Iter> dosesTmp = m_schedule.equal_range(i);
+            for( Iter it = dosesTmp.first; it != dosesTmp.second; it++){
                 const double time = it->second.first, qty = it->second.second;
-                UnittestUtil::medicate( m_rng, *proxy, drugIndex, qty, time );
+                UnittestUtil::medicate( m_rng, *m_proxy, drugIndex, qty, time );
             }
     }
     
     void testAR1 () { /* Artemether no conversion */
-        const double dose = 1.7 * bodymass;   // 1.7 mg/kg * 50 kg
+        const double dose = 1.7 * m_bodymass;   // 1.7 mg/kg * 50 kg
         assembleHexDosageSchedule(dose);
-        const double drug_conc[] = { 0.0, 0.01535201, 0.01564467, 0.01565025, 0.0002983425, 5.687336e-06 };
-        const double drug_factors[] = { 1, 1.033933e-12, 1.068873e-24, 1.103296e-36, 1.734223e-42, 1.729046e-42 };
-        runDrugSimulations("AR1", drug_conc, drug_factors);
+        const double drugConc[] = { 0.0, 0.01535201, 0.01564467, 0.01565025, 0.0002983425, 5.687336e-06 };
+        const double drugFactors[] = { 1, 1.033933e-12, 1.068873e-24, 1.103296e-36, 1.734223e-42, 1.729046e-42 };
+        runDrugSimulations("AR1", drugConc, drugFactors);
     }
     
     void testAR () { /* Artemether with conversion */
-        const double dose = 1.7 * bodymass;   // 1.7 mg/kg * 50 kg
+        const double dose = 1.7 * m_bodymass;   // 1.7 mg/kg * 50 kg
         assembleHexDosageSchedule(dose);
         const double AR_conc[] = { 0, 0.0001825220, 0.0001825231, 0.0001825231, 1.146952e-09, 7.189475e-15 };
         const double DHA_conc[] = { 0, 0.0002013114, 0.0002013126, 0.0002013126, 1.266891e-09, 7.941293e-15 };
-        const double drug_factors[] = { 1, 1.695266e-07, 2.838279e-14, 4.740382e-21, 4.751844e-21, 4.751846e-21 };
-        runDrugSimulations("AR", "DHA_AR", AR_conc, DHA_conc, drug_factors);
+        const double drugFactors[] = { 1, 1.695266e-07, 2.838279e-14, 4.740382e-21, 4.751844e-21, 4.751846e-21 };
+        runDrugSimulations("AR", "DHA_AR", AR_conc, DHA_conc, drugFactors);
     }
     
     void testAS1 () { /* Artesunate no conversion */
-        const double dose = 4 * bodymass;   // 4 mg/kg * 50 kg
+        const double dose = 4 * m_bodymass;   // 4 mg/kg * 50 kg
         assembleTripleDosageSchedule(dose);
-        const double drug_conc[] = { 0, 8.983362e-08, 8.983362e-08, 8.983362e-08, 5.54818e-15, 3.42659e-22 };
-        const double drug_factors[] = { 1, 1.204675e-05, 1.451241e-10, 1.748061e-15, 1.748273e-15, 1.748272e-15 };
-        runDrugSimulations("AS1", drug_conc, drug_factors);
+        const double drugConc[] = { 0, 8.983362e-08, 8.983362e-08, 8.983362e-08, 5.54818e-15, 3.42659e-22 };
+        const double drugFactors[] = { 1, 1.204675e-05, 1.451241e-10, 1.748061e-15, 1.748273e-15, 1.748272e-15 };
+        runDrugSimulations("AS1", drugConc, drugFactors);
     }
     
     void testAS () { /* Artesunate with conversion */
-        const double dose = 4 * bodymass;   // 4 mg/kg * 50 kg
+        const double dose = 4 * m_bodymass;   // 4 mg/kg * 50 kg
         assembleTripleDosageSchedule(dose);
         const double AS_conc[] = { 0, 2.301305e-14, 2.301305e-14, 2.301305e-14, 8.245500e-28, 2.954336e-41 };
         const double DHA_conc[] = { 0, 1.142491e-10, 1.142491e-10, 1.142491e-10, 1.067784e-21, 9.940541e-33 };
         // These are the factors produced by Kay et al with a slightly different formula:
-        const double drug_factors[] = { 1, 0.0005152782, 2.655117e-07, 1.368124e-10, 1.368124e-10, 1.368124e-10 };
-        runDrugSimulations("AS", "DHA_AS", AS_conc, DHA_conc, drug_factors);
+        const double drugFactors[] = { 1, 0.0005152782, 2.655117e-07, 1.368124e-10, 1.368124e-10, 1.368124e-10 };
+        runDrugSimulations("AS", "DHA_AS", AS_conc, DHA_conc, drugFactors);
     }
     
     void testCQ () {
-        const double dose = 10 * bodymass;
+        const double dose = 10 * m_bodymass;
         assembleCQDosageSchedule(dose);
-        const double drug_conc[] = { 0.0, 0.03257216, 0.06440052, 0.07921600, 0.07740709, 0.07563948 };
-        const double drug_factors[] = { 1, 9.259311e-02, 4.623815e-03, 2.057661e-04, 9.262133e-06, 4.218529e-07 };
-        runDrugSimulations("CQ", drug_conc, drug_factors);
+        const double drugConc[] = { 0.0, 0.03257216, 0.06440052, 0.07921600, 0.07740709, 0.07563948 };
+        const double drugFactors[] = { 1, 9.259311e-02, 4.623815e-03, 2.057661e-04, 9.262133e-06, 4.218529e-07 };
+        runDrugSimulations("CQ", drugConc, drugFactors);
     }
     
     void testDHA () {
-        const double dose = 4 * bodymass;   // 4 mg/kg * 50 kg
+        const double dose = 4 * m_bodymass;   // 4 mg/kg * 50 kg
         assembleTripleDosageSchedule(dose);
-        const double drug_conc[] = { 0, 6.758386e-09, 6.758386e-09, 6.758386e-09, 1.701423e-17, 4.28333e-26 };
-        const double drug_factors[] = { 1, 0.0003552336, 1.261909e-07,4.482726e-11, 4.482726e-11, 4.482726e-11 };
-        runDrugSimulations("DHA", drug_conc, drug_factors);
+        const double drugConc[] = { 0, 6.758386e-09, 6.758386e-09, 6.758386e-09, 1.701423e-17, 4.28333e-26 };
+        const double drugFactors[] = { 1, 0.0003552336, 1.261909e-07,4.482726e-11, 4.482726e-11, 4.482726e-11 };
+        runDrugSimulations("DHA", drugConc, drugFactors);
     }
     
     void testLF () {
-        const double dose = 12 * bodymass;   // 12 mg/kg * 50 kg
+        const double dose = 12 * m_bodymass;   // 12 mg/kg * 50 kg
         assembleHexDosageSchedule(dose);
-        const double drug_conc[] = { 0, 1.014434363, 1.878878305, 2.615508841, 2.228789614, 1.899249226 };
-        const double drug_factors[] = { 1, 0.03174632, 0.001007809, 3.199346e-05, 1.015654e-06, 3.224254e-08 };
-        runDrugSimulations("LF", drug_conc, drug_factors);
+        const double drugConc[] = { 0, 1.014434363, 1.878878305, 2.615508841, 2.228789614, 1.899249226 };
+        const double drugFactors[] = { 1, 0.03174632, 0.001007809, 3.199346e-05, 1.015654e-06, 3.224254e-08 };
+        runDrugSimulations("LF", drugConc, drugFactors);
     }
     
     void testMQ () {
-        const double dose = 8.3 * bodymass;   // 8.3 mg/kg * 50 kg
+        const double dose = 8.3 * m_bodymass;   // 8.3 mg/kg * 50 kg
         assembleTripleDosageSchedule( dose) ;
-        const double drug_conc[] = { 0, 0.378440101, 0.737345129, 1.077723484, 1.022091411, 0.969331065 };
-        const double drug_factors[] = { 1, 0.03174581, 0.001007791, 3.199298e-05, 1.015638e-06, 3.224205e-08 };
-        runDrugSimulations("MQ", drug_conc, drug_factors);
+        const double drugConc[] = { 0, 0.378440101, 0.737345129, 1.077723484, 1.022091411, 0.969331065 };
+        const double drugFactors[] = { 1, 0.03174581, 0.001007791, 3.199298e-05, 1.015638e-06, 3.224205e-08 };
+        runDrugSimulations("MQ", drugConc, drugFactors);
     }
     
     // PPQ with a 1-compartment model (WinterHasting2011_single; not preferred)
     void testPPQ1C (){
-        const double dose = 18 * bodymass;   // 18 mg/kg * 50 kg
+        const double dose = 18 * m_bodymass;   // 18 mg/kg * 50 kg
         assembleTripleDosageSchedule( dose );
-        const double drug_conc[] = { 0, 0.116453464, 0.2294652081, 0.339137, 0.3291139387, 0.3193871518 };
-        const double drug_factors[] = { 1, 0.03174892, 0.001007891, 3.199625e-05, 1.015747e-06, 3.224518e-08 };
-        runDrugSimulations("PPQ", drug_conc, drug_factors);
+        const double drugConc[] = { 0, 0.116453464, 0.2294652081, 0.339137, 0.3291139387, 0.3193871518 };
+        const double drugFactors[] = { 1, 0.03174892, 0.001007891, 3.199625e-05, 1.015747e-06, 3.224518e-08 };
+        runDrugSimulations("PPQ", drugConc, drugFactors);
     }
     
     // PPQ with a 2-compartment model (Hodel2013)
     void testPPQ_Hodel2013 (){
-        const double dose = 18 * bodymass;   // 18 mg/kg * 50 kg
+        const double dose = 18 * m_bodymass;   // 18 mg/kg * 50 kg
         assembleTripleDosageSchedule( dose );
-        const double drug_conc[] = { 0, 0.08022449, 0.1416033, 0.18962337, 0.14792303, 0.11829172 };
-        const double drug_factors[] = { 1, 0.03422595, 0.001086594, 3.449438e-05, 1.095144e-06, 3.479034e-08 };
-        runDrugSimulations("PPQ2", drug_conc, drug_factors);
+        const double drugConc[] = { 0, 0.08022449, 0.1416033, 0.18962337, 0.14792303, 0.11829172 };
+        const double drugFactors[] = { 1, 0.03422595, 0.001086594, 3.449438e-05, 1.095144e-06, 3.479034e-08 };
+        runDrugSimulations("PPQ2", drugConc, drugFactors);
     }
     
     // PPQ with a 3-compartment model (Tarning 2012 AAC)
     void testPPQ_Tarning2012AAC (){
-        const double dose = 18 * bodymass;   // 18 mg/kg * 50 kg
+        const double dose = 18 * m_bodymass;   // 18 mg/kg * 50 kg
         assembleTripleDosageSchedule( dose );
-        const double drug_conc[] = { 0, 0.075305088, 0.118119866, 0.150210662, 0.100426437, 0.078729041 };
-        const double drug_factors[] = { 1, 0.03421756, 0.001086307, 3.448539e-05, 1.094894e-06, 3.478302e-08 };
-        runDrugSimulations("PPQ3", drug_conc, drug_factors);
+        const double drugConc[] = { 0, 0.075305088, 0.118119866, 0.150210662, 0.100426437, 0.078729041 };
+        const double drugFactors[] = { 1, 0.03421756, 0.001086307, 3.448539e-05, 1.094894e-06, 3.478302e-08 };
+        runDrugSimulations("PPQ3", drugConc, drugFactors);
     }
     
 private:
     LocalRng m_rng;
-    LSTMModel *proxy;
-    CommonInfection *inf;
-    double bodymass;
-    std::multimap<size_t, pair<double, double> > schedule; // < day, pair < part of day, dosage > >
+    LSTMModel *m_proxy;
+    CommonInfection *m_inf;
+    double m_bodymass;
+    std::multimap<size_t, pair<double, double> > m_schedule; // < day, pair < part of day, dosage > >
 };
 
 #endif

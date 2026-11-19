@@ -42,7 +42,7 @@ namespace interventions{
 namespace util {
 namespace checkpoint {
     
-    const long DEFAULT_MAX_LENGTH = 2000;
+    const long DefaultMaxLength = 2000;
     
     ///@brief Utility functions
     //@{
@@ -64,7 +64,7 @@ namespace checkpoint {
    * variables often get completely wrong values which can cause memory
    * allocation to grind the computer to a halt. In this case the values are
    * usually bad enough that a lenient check will still catch them. */
-    void validateListSize (long length, long max = DEFAULT_MAX_LENGTH);
+    void validateListSize (long length, long max = DefaultMaxLength);
     //@}
     
     ///@brief Operator& for simple data-types

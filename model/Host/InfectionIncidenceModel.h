@@ -57,7 +57,7 @@ public:
   
   /// Reset summary outputs at beginning of main simulation
   static inline void preMainSimInit() {
-      ctsNewInfections = 0;
+      s_ctsNewInfections = 0;
   }
   //@}
   
@@ -71,7 +71,7 @@ public:
   /// Static checkpointing
   template<class S>
   static void staticCheckpoint (S& stream){
-      ctsNewInfections & stream;
+      s_ctsNewInfections & stream;
   }
   
 protected:
@@ -145,7 +145,7 @@ protected:
   double m_cumulativeEIRa;//TODO(memory opt): not needed by NegBinomMAII and LogNormalMAII
   
     /// Number of new infections introduced, per continuous reporting period
-    static int ctsNewInfections;
+    static int s_ctsNewInfections;
 };
 
 //TODO(optimisation): none of these add data members, so should we be using

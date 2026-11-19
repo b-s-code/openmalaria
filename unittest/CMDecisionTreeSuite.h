@@ -48,24 +48,24 @@ public:
         UnittestUtil::initTime(5);
         UnittestUtil::setDiagnostics();
 
-        UnittestUtil::EmpiricalWHM_setup();
+        UnittestUtil::empiricalWhmSetup();
 
-        human.reset( UnittestUtil::createHuman(sim::nowOrTs0()).release() );
+        m_human.reset( UnittestUtil::createHuman(Sim::nowOrTs0()).release() );
 
-        ETS_ASSERT( human.get() != 0 );
-        whm = dynamic_cast<WHMock*>(UnittestUtil::setHumanWH( *human,
+        ETS_ASSERT( m_human.get() != 0 );
+        m_whm = dynamic_cast<WHMock*>(UnittestUtil::setHumanWH( *m_human,
                 unique_ptr<WithinHost::WHInterface>(new WHMock()) ));
-        ETS_ASSERT( whm != 0 );
+        ETS_ASSERT( m_whm != 0 );
 
-        hd.reset( new CMHostData( *human, 21 /* any real age will do for most tests */,
+        m_hd.reset( new CMHostData( *m_human, 21 /* any real age will do for most tests */,
                                       Episode::NONE ) );
 
         // could seed random-number-generator, but shouldn't affect outcomes
-        UnittestUtil::PkPdSuiteSetup ();
+        UnittestUtil::pkPdSuiteSetup ();
     }
     void tearDown () {
-        human.reset();
-        whm = nullptr;
+        m_human.reset();
+        m_whm = nullptr;
         PkPd::LSTMDrugType::clear();
         PkPd::LSTMTreatments::clear();
     }
@@ -76,13 +76,13 @@ public:
     double propTreatmentsNReps (int N, const scnXml::DecisionTree& dt) {
         const CMDecisionTree& cmdt = CMDecisionTree::create( dt, true );
         
-	whm->nTreatments = 0;
+	m_whm->nTreatments = 0;
         int secondCounter = 0;
 	for (int i = 0; i < N; ++i) {
-	    secondCounter += (cmdt.exec( *hd ).treated ? 1 : 0);
+	    secondCounter += (cmdt.exec( *m_hd ).treated ? 1 : 0);
 	}
-	TS_ASSERT_EQUALS( whm->nTreatments, secondCounter );
-	return double(whm->nTreatments) / double(N);
+	TS_ASSERT_EQUALS( m_whm->nTreatments, secondCounter );
+	return double(m_whm->nTreatments) / double(N);
     }
     
     void testRandomP () {
@@ -135,10 +135,10 @@ public:
         dt.setCaseType( ct );
 
         using Underlying = std::underlying_type_t<Pathogenesis::State>;
-        hd->pgState = static_cast<Episode::State>( static_cast<Underlying>(Pathogenesis::STATE_MALARIA) );
+        m_hd->pgState = static_cast<Episode::State>( static_cast<Underlying>(Pathogenesis::STATE_MALARIA) );
         TS_ASSERT_EQUALS( propTreatmentsNReps( 1, dt ), 1 );
 
-        hd->pgState = static_cast<Episode::State>( static_cast<Underlying>(Pathogenesis::STATE_MALARIA) | Episode::SECOND_CASE );
+        m_hd->pgState = static_cast<Episode::State>( static_cast<Underlying>(Pathogenesis::STATE_MALARIA) | Episode::SECOND_CASE );
 
         TS_ASSERT_EQUALS( propTreatmentsNReps( 1, dt ), 0 );
     }
@@ -153,30 +153,30 @@ public:
         scnXml::DTDiagnostic microscopy( simpleTreat,  // positive: simple treatment
                             noAction,     // negative: no action
                             "microscopy" );     // type of diagnostic
-        scnXml::DecisionTree dt_mic;
-        dt_mic.setDiagnostic( microscopy );
+        scnXml::DecisionTree dtMic;
+        dtMic.setDiagnostic( microscopy );
         
         scnXml::DTDiagnostic rdt( simpleTreat,  // positive: simple treatment
                             noAction,     // negative: no action
                             "RDT" );     // type of diagnostic
-        scnXml::DecisionTree dt_rdt;
-        dt_rdt.setDiagnostic( rdt );
+        scnXml::DecisionTree dtRdt;
+        dtRdt.setDiagnostic( rdt );
         
-        hd->pgState = static_cast<Episode::State>( Pathogenesis::STATE_MALARIA );
+        m_hd->pgState = static_cast<Episode::State>( Pathogenesis::STATE_MALARIA );
 	const int N = 20000;
 	const double LIM = .02;
 	
-	whm->totalDensity = 0.0;	// no parasites (so we test specificity)
-	TS_ASSERT_DELTA( propTreatmentsNReps( N, dt_mic ), 1 - 0.75, LIM );
-        TS_ASSERT_DELTA( propTreatmentsNReps( N, dt_rdt ), 1 - 0.942, LIM );
+	m_whm->totalDensity = 0.0;	// no parasites (so we test specificity)
+	TS_ASSERT_DELTA( propTreatmentsNReps( N, dtMic ), 1 - 0.75, LIM );
+        TS_ASSERT_DELTA( propTreatmentsNReps( N, dtRdt ), 1 - 0.942, LIM );
 	
-        whm->totalDensity = 80.0;	// a few parasites
-	TS_ASSERT_DELTA( propTreatmentsNReps( N, dt_mic ), 0.96815, LIM );
-        TS_ASSERT_DELTA( propTreatmentsNReps( N, dt_rdt ), 0.90599, LIM );
+        m_whm->totalDensity = 80.0;	// a few parasites
+	TS_ASSERT_DELTA( propTreatmentsNReps( N, dtMic ), 0.96815, LIM );
+        TS_ASSERT_DELTA( propTreatmentsNReps( N, dtRdt ), 0.90599, LIM );
 	
-        whm->totalDensity = 2000.0;	// lots of parasites
-        TS_ASSERT_DELTA( propTreatmentsNReps( N, dt_mic ), 0.99867, LIM );
-        TS_ASSERT_DELTA( propTreatmentsNReps( N, dt_rdt ), 0.99584, LIM );
+        m_whm->totalDensity = 2000.0;	// lots of parasites
+        TS_ASSERT_DELTA( propTreatmentsNReps( N, dtMic ), 0.99867, LIM );
+        TS_ASSERT_DELTA( propTreatmentsNReps( N, dtRdt ), 0.99584, LIM );
     }
     
     void testAgeSwitch(){
@@ -198,42 +198,42 @@ public:
         scnXml::DecisionTree dt;
         dt.setAge( ageSwitch );
         
-        hd->ageYears = 1;
+        m_hd->ageYears = 1;
         TS_ASSERT_EQUALS( propTreatmentsNReps( 1, dt ), 1 );
-        hd->ageYears = 2.5;
+        m_hd->ageYears = 2.5;
         TS_ASSERT_EQUALS( propTreatmentsNReps( 1, dt ), 0 );
-        hd->ageYears = 50;
+        m_hd->ageYears = 50;
         TS_ASSERT_EQUALS( propTreatmentsNReps( 1, dt ), 1 );
-        hd->ageYears = 1e6;     // there is no upper bound, so this should work!
+        m_hd->ageYears = 1e6;     // there is no upper bound, so this should work!
         TS_ASSERT_EQUALS( propTreatmentsNReps( 1, dt ), 1 );
     }
     
     void testSimpleTreat(){
-        TS_ASSERT_EQUALS( whm->lastTimeLiver, sim::never() );
-        TS_ASSERT_EQUALS( whm->lastTimeBlood, sim::never() );
+        TS_ASSERT_EQUALS( m_whm->lastTimeLiver, Sim::never() );
+        TS_ASSERT_EQUALS( m_whm->lastTimeBlood, Sim::never() );
         
         scnXml::DTTreatSimple treat1( "0t", "1t" );   // 0 time steps liver, 1 blood (using 1 day TS)
         scnXml::DecisionTree dt1;
         dt1.getTreatSimple().push_back( treat1 );
         
         TS_ASSERT_EQUALS( propTreatmentsNReps( 1, dt1 ), 1 );
-        TS_ASSERT_EQUALS( whm->lastTimeLiver, 0 );
-        TS_ASSERT_EQUALS( whm->lastTimeBlood, 1*5 );
+        TS_ASSERT_EQUALS( m_whm->lastTimeLiver, 0 );
+        TS_ASSERT_EQUALS( m_whm->lastTimeBlood, 1*5 );
         
         scnXml::DTTreatSimple treat2( "15d", "-1t" );
         scnXml::DecisionTree dt2;
         dt2.getTreatSimple().push_back( treat2 );
         
         TS_ASSERT_EQUALS( propTreatmentsNReps( 1, dt2 ), 1 );
-        TS_ASSERT_EQUALS( whm->lastTimeLiver, 3*5 );
-        TS_ASSERT_EQUALS( whm->lastTimeBlood, -1*5 );
+        TS_ASSERT_EQUALS( m_whm->lastTimeLiver, 3*5 );
+        TS_ASSERT_EQUALS( m_whm->lastTimeBlood, -1*5 );
     }
     
     double runAndGetMgPrescribed( scnXml::DecisionTree& dt, double age ){
-        hd->ageYears = age;
-        UnittestUtil::clearMedicateQueue( whm->pkpd );
+        m_hd->ageYears = age;
+        UnittestUtil::clearMedicateQueue( m_whm->pkpd );
         TS_ASSERT_EQUALS( propTreatmentsNReps( 1, dt ), 1 );
-        return UnittestUtil::getPrescribedMg( whm->pkpd );
+        return UnittestUtil::getPrescribedMg( m_whm->pkpd );
     }
     
     void testDosing(){
@@ -257,9 +257,9 @@ public:
     }
     
 private:
-    unique_ptr<Host::Human> human;
-    WHMock* whm;
-    unique_ptr<CMHostData> hd;
+    unique_ptr<Host::Human> m_human;
+    WHMock* m_whm;
+    unique_ptr<CMHostData> m_hd;
 };
 
 #endif

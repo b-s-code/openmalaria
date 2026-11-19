@@ -62,37 +62,37 @@ protected:
     
 private:
   double getInflatedDensity(LocalRng& rng, double nonInflatedDensity);
-  double sigma_noise(int ageDays);
+  double sigmaNoise(int ageDays);
   double samplePatentValue(LocalRng& rng, double mu, double sigma, double lowerBound);
   double sampleSubPatentValue(LocalRng& rng, double mu, double sigma, double upperBound);
   
-  double _laggedLogDensities[3];
-  double _patentGrowthRateMultiplier;
+  double m_laggedLogDensities[3];
+  double m_patentGrowthRateMultiplier;
   
   ///@brief Static variables
   ///Set by initParameters and some reset by overrideInflationFactors
   //@{
-  static const int _maximumDurationInDays=418; 
-  static double _maximumPermittedAmplificationPerCycle;
-  static double _subPatentLimit;
-  static double _alpha1;
-  static double _alpha2;	
-  static double _alpha3;
-  static double _mu1;	
-  static double _mu2;	
-  static double _mu3;
-  static double _sigma0_res;	
-  static double _sigmat_res;
-  static double _mu_beta1[_maximumDurationInDays];
-  static double _sigma_beta1[_maximumDurationInDays];
-  static double _mu_beta2[_maximumDurationInDays];
-  static double _sigma_beta2[_maximumDurationInDays];
-  static double _mu_beta3[_maximumDurationInDays];
-  static double _sigma_beta3[_maximumDurationInDays];
-  static double _inflationMean;
-  static double _inflationVariance;
-  static double _extinctionLevel;
-  static double _overallMultiplier;
+  static const int MaximumDurationInDays=418; 
+  static double s_maximumPermittedAmplificationPerCycle;
+  static double s_subPatentLimit;
+  static double s_alpha1;
+  static double s_alpha2;	
+  static double s_alpha3;
+  static double s_mu1;	
+  static double s_mu2;	
+  static double s_mu3;
+  static double s_sigma0Res;	
+  static double s_sigmatRes;
+  static double s_muBeta1[MaximumDurationInDays];
+  static double s_sigmaBeta1[MaximumDurationInDays];
+  static double s_muBeta2[MaximumDurationInDays];
+  static double s_sigmaBeta2[MaximumDurationInDays];
+  static double s_muBeta3[MaximumDurationInDays];
+  static double s_sigmaBeta3[MaximumDurationInDays];
+  static double s_inflationMean;
+  static double s_inflationVariance;
+  static double s_extinctionLevel;
+  static double s_overallMultiplier;
   //@}
 };
 

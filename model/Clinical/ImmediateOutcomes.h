@@ -57,10 +57,10 @@ protected:
     virtual void uncomplicatedEvent(Human& human, Episode::State pgState);
     
 private:
-    static double cureRateUCOfficial[CM5DayCommon::NumCaseTypes];
-    static double cureRateUCSelfTreat[CM5DayCommon::NumCaseTypes];
-    static WithinHost::TreatmentId treatmentUC[CM5DayCommon::NumCaseTypes];
-    static bool useDiagnosticUC;
+    static double s_cureRateUcOfficial[CM5DayCommon::NumCaseTypes];
+    static double s_cureRateUcSelfTreat[CM5DayCommon::NumCaseTypes];
+    static WithinHost::TreatmentId s_treatmentUc[CM5DayCommon::NumCaseTypes];
+    static bool s_useDiagnosticUc;
 };
 
 }

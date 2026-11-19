@@ -46,7 +46,7 @@ namespace OM {
 	
 using namespace util::checkpoint;
 using util::mod;
-using util::mod_nn;
+using util::modNn;
 
 }
 #endif

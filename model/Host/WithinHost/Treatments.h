@@ -49,8 +49,8 @@ public:
     
     /** Return the corresponding treatment description. */
     static inline const Treatments& select( TreatmentId treatId ){
-        assert( treatId.id < treatments.size() );
-        return treatments[treatId.id];
+        assert( treatId.m_id < s_treatments.size() );
+        return s_treatments[treatId.m_id];
     }
     //@}
     
@@ -71,22 +71,22 @@ public:
      *
      * 0 implies no action, <0 implies retrospective action, and n>0
      * implies treatment for next n time steps. */
-    inline SimTime liverEffect()const{ return timeLiver; }
+    inline SimTime liverEffect()const{ return m_timeLiver; }
     /** Get the blood stage action.
      *
      * 0 implies no action, <0 implies retrospective action, and n>0
      * implies treatment for next n time steps. */
-    inline SimTime bloodEffect()const{ return timeBlood; }
+    inline SimTime bloodEffect()const{ return m_timeBlood; }
     //@}
     
 private:
     // static:
-    static vector<Treatments> treatments;
+    static vector<Treatments> s_treatments;
     
     // non-static:
     Treatments( const scnXml::TreatmentOption& elt );
     
-    SimTime timeLiver, timeBlood;
+    SimTime m_timeLiver, m_timeBlood;
     
     friend class ::UnittestUtil;
 };

@@ -24,6 +24,6 @@
 
 namespace OM{
     namespace util {
-        MasterRng master_RNG(0, 0);
+        MasterRng masterRng(0, 0);
     }
 }

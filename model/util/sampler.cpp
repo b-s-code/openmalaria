@@ -28,79 +28,79 @@
 namespace OM { namespace util {
 
 double NormalSample::asNormal( double mu, double sigma )const{
-    return sigma*x + mu;
+    return sigma*m_x + mu;
 }
 
 double NormalSample::asLognormal( double mu, double sigma )const{
-    return exp( sigma*x + mu );
+    return exp( sigma*m_x + mu );
 }
 
 NormalSample NormalSample::generate(LocalRng& rng) {
     return NormalSample( rng.gauss(0.0, 1.0) );
 }
 
-NormalSample NormalSample::generate_correlated(NormalSample base, double correlation, double factor, LocalRng& rng) {
+NormalSample NormalSample::generateCorrelated(NormalSample base, double correlation, double factor, LocalRng& rng) {
     if( correlation == 1.0 ) { return base; }
     
     double e = rng.gauss(0.0, factor);
-    return NormalSample( base.x * correlation + e );
+    return NormalSample( base.m_x * correlation + e );
 }
 
 void NormalSampler::setParams( double m, double s ){
-    mu = m;
-    sigma = s;
+    m_mu = m;
+    m_sigma = s;
 }
 
 void NormalSampler::setParams(const scnXml::SampledValueN& elt){
-    mu = elt.getMean();
+    m_mu = elt.getMean();
     if( elt.getDistr() == "const" ){
         if( elt.getSD().present() && elt.getSD().get() != 0.0) {
-            throw util::xml_scenario_error( "attribute SD must be zero or omitted when distr=\"const\" or is omitted" );
+            throw util::XmlScenarioError( "attribute SD must be zero or omitted when distr=\"const\" or is omitted" );
         }
-        sigma = 0.0;
+        m_sigma = 0.0;
         return;
     }
     
     if( elt.getDistr() != "normal" ){
-        throw util::xml_scenario_error( "expected distr to be one of \"const\", \"lognormal\" (note: not all distributions are supported here)" );
+        throw util::XmlScenarioError( "expected distr to be one of \"const\", \"lognormal\" (note: not all distributions are supported here)" );
     }
     if( !elt.getSD().present() ){
-        throw util::xml_scenario_error( "attribute \"SD\" required for sampled normal value when distr is not const" );
+        throw util::XmlScenarioError( "attribute \"SD\" required for sampled normal value when distr is not const" );
     }
-    sigma = elt.getSD().get();
+    m_sigma = elt.getSD().get();
 }
 
 double NormalSampler::sample(LocalRng& rng) const{
-    if( sigma == 0.0 ){
-        return mu;
+    if( m_sigma == 0.0 ){
+        return m_mu;
     }
-    return rng.gauss( mu, sigma );
+    return rng.gauss( m_mu, m_sigma );
 }
 
 unique_ptr<util::LognormalSampler> LognormalSampler::fromMeanCV( double mean, double CV, std::optional<double> truncate )
 {
     unique_ptr<LognormalSampler> sampler = std::make_unique<LognormalSampler>();
-    sampler->truncate = truncate;
+    sampler->m_truncate = truncate;
 
     // The distribution is "const"
     if( CV == 0.0 )
     {
-        sampler->sigma = 0.0;
+        sampler->m_sigma = 0.0;
         // as a special case, we can support mean == CV == 0
         if( mean == 0.0 )
-            sampler->mu = -numeric_limits<double>::infinity();
+            sampler->m_mu = -numeric_limits<double>::infinity();
         else if( mean > 0 )
-            sampler->mu = log(mean);
+            sampler->m_mu = log(mean);
         else
-            throw util::xml_scenario_error( "const: required mean > 0" );
+            throw util::XmlScenarioError( "const: required mean > 0" );
         return sampler;
     }
 
     // The distribution is not "const"
     if( mean <= 0 )
-        throw util::xml_scenario_error( "log-normal: required mean > 0" );
+        throw util::XmlScenarioError( "log-normal: required mean > 0" );
     if( CV < 0 )
-        throw util::xml_scenario_error( "log-normal: required CV >= 0" );
+        throw util::XmlScenarioError( "log-normal: required CV >= 0" );
     
     // The following formulae are derived from:
     // X ~ lognormal(μ, σ)
@@ -110,32 +110,32 @@ unique_ptr<util::LognormalSampler> LognormalSampler::fromMeanCV( double mean, do
     const double a = 1 + (CV * CV);
 
     sampler->CV = CV;
-    sampler->mu = log( mean / sqrt(a) );
-    sampler->sigma = sqrt(log(a));
+    sampler->m_mu = log( mean / sqrt(a) );
+    sampler->m_sigma = sqrt(log(a));
 
     return sampler;
 }
 
 unique_ptr<util::LognormalSampler> LognormalSampler::fromMeanVariance( double mean, double variance, std::optional<double> truncate ){
     unique_ptr<LognormalSampler> sampler = std::make_unique<LognormalSampler>();
-    sampler->truncate = truncate;
+    sampler->m_truncate = truncate;
 
     // The distribution is "const"
     if( variance == 0.0)
     {
-        sampler->sigma = 0.0;
+        sampler->m_sigma = 0.0;
         if(mean > 0)
-            sampler->mu = log(mean);
+            sampler->m_mu = log(mean);
         else
-            throw util::xml_scenario_error( "const: required mean > 0" );
+            throw util::XmlScenarioError( "const: required mean > 0" );
         return sampler;
     }
 
     // The distribution is not "const"
     if( mean <= 0 )
-        throw util::xml_scenario_error( "log-normal: required mean > 0" );
+        throw util::XmlScenarioError( "log-normal: required mean > 0" );
     if( variance < 0 )
-        throw util::xml_scenario_error( "log-normal: required variance >= 0" );
+        throw util::XmlScenarioError( "log-normal: required variance >= 0" );
 
     // The following formulae are derived from:
     // X ~ lognormal(μ, σ)
@@ -144,30 +144,30 @@ unique_ptr<util::LognormalSampler> LognormalSampler::fromMeanVariance( double me
     // Var = (CV * mean)²
     const double CV = variance / mean;
     const double a = 1 + (CV * CV);
-    sampler->mu = log( mean / sqrt(a) );
-    sampler->sigma = sqrt(log(a));
+    sampler->m_mu = log( mean / sqrt(a) );
+    sampler->m_sigma = sqrt(log(a));
 
     return sampler;
 }
 
 void LognormalSampler::scaleMean(double scalar){
-    mu += log(scalar);
+    m_mu += log(scalar);
 }
 
 double LognormalSampler::mean() const{
-    return exp(mu + 0.5*sigma*sigma);
+    return exp(m_mu + 0.5*m_sigma*m_sigma);
 }
 
 double LognormalSampler::sample(LocalRng& rng) const{
      double value;
 
-    if( sigma == 0.0 )
-        value = exp( mu );
+    if( m_sigma == 0.0 )
+        value = exp( m_mu );
     else
-        value = rng.log_normal( mu, sigma );
+        value = rng.logNormal( m_mu, m_sigma );
 
-    if (truncate && value > *truncate)
-        return *truncate;
+    if (m_truncate && value > *m_truncate)
+        return *m_truncate;
 
     return value;
 }
@@ -178,24 +178,24 @@ double LognormalSampler::cdf(double x) const {
         return 0.0;
 
     // 2) Degenerate case
-    if (sigma == 0.0)
+    if (m_sigma == 0.0)
     {
-        if(log(x) >= mu) return 1.0;
+        if(log(x) >= m_mu) return 1.0;
         else return 0.0;
     }
-    return gsl_cdf_lognormal_P(x, mu, sigma);
+    return gsl_cdf_lognormal_P(x, m_mu, m_sigma);
 }
 
 unique_ptr<util::GammaSampler> GammaSampler::fromMeanCV( double mean, double CV, std::optional<double> truncate )
 {
     if( mean <= 0 )
-        throw util::xml_scenario_error( "gamma: required mean > 0" );
+        throw util::XmlScenarioError( "gamma: required mean > 0" );
     if( CV < 0 )
-        throw util::xml_scenario_error( "gamma: required CV >= 0" );
+        throw util::XmlScenarioError( "gamma: required CV >= 0" );
 
     unique_ptr<GammaSampler> sampler = std::make_unique<GammaSampler>();
-    sampler->truncate = truncate;
-    sampler->mu = mean;
+    sampler->m_truncate = truncate;
+    sampler->m_mu = mean;
     sampler->CV = CV;
 
     if( CV == 0.0 )
@@ -204,10 +204,10 @@ unique_ptr<util::GammaSampler> GammaSampler::fromMeanCV( double mean, double CV,
     // 1 / sqrt(k) = CV
     // sqrt(k) = 1/CV
     // k = 1 / CV^2
-    sampler->k = 1.0/(CV*CV);
+    sampler->m_k = 1.0/(CV*CV);
     // k * theta = mean
     // theta = mean / k
-    sampler->theta = sampler->mu / sampler->k;
+    sampler->m_theta = sampler->m_mu / sampler->m_k;
 
     return sampler;
 }
@@ -215,14 +215,14 @@ unique_ptr<util::GammaSampler> GammaSampler::fromMeanCV( double mean, double CV,
 unique_ptr<util::GammaSampler> GammaSampler::fromMeanVariance( double mean, double variance, std::optional<double> truncate )
 {
     if( mean <= 0 )
-        throw util::xml_scenario_error( "gamma: required mean > 0" );
+        throw util::XmlScenarioError( "gamma: required mean > 0" );
     if( variance < 0 )
-        throw util::xml_scenario_error( "gamma: required variance >= 0" );
+        throw util::XmlScenarioError( "gamma: required variance >= 0" );
 
     unique_ptr<GammaSampler> sampler = std::make_unique<GammaSampler>();
-    sampler->truncate = truncate;
-    sampler->mu = mean;
-    sampler->variance = variance;
+    sampler->m_truncate = truncate;
+    sampler->m_mu = mean;
+    sampler->m_variance = variance;
 
     if( variance == 0.0 )
         return sampler;
@@ -230,28 +230,28 @@ unique_ptr<util::GammaSampler> GammaSampler::fromMeanVariance( double mean, doub
     // sigma / mu = 1 / sqrt(k)
     // sqrt(k) = mu / sigma
     // k = mu^2 / variance
-    sampler->k = (sampler->mu*sampler->mu)/sampler->variance;
+    sampler->m_k = (sampler->m_mu*sampler->m_mu)/sampler->m_variance;
     // k * theta = mean
     // theta = mean / k
-    sampler->theta = sampler->mu / sampler->k;
+    sampler->m_theta = sampler->m_mu / sampler->m_k;
 
     return sampler;
 }
 
 double GammaSampler::mean() const {
-    return mu;
+    return m_mu;
 }
 
 double GammaSampler::sample(LocalRng& rng) const{
     double value;
 
-    if (std::isnan(theta)) // CV=0
-        value = mu;
+    if (std::isnan(m_theta)) // CV=0
+        value = m_mu;
     else
-        value = rng.gamma(k, theta);
+        value = rng.gamma(m_k, m_theta);
 
-    if (truncate && value > *truncate)
-        return *truncate;
+    if (m_truncate && value > *m_truncate)
+        return *m_truncate;
 
     return value;
 }
@@ -262,13 +262,13 @@ double GammaSampler::cdf(double x) const {
         return 0.0;
 
     // 2) Degenerate case
-    if(isnan(theta)) // CV=0 or variance=0
+    if(isnan(m_theta)) // CV=0 or variance=0
     {
-        if(x >= mu) return 1.0;
+        if(x >= m_mu) return 1.0;
         else return 0.0;
     }
 
-    return gsl_cdf_gamma_P(x, k, theta);
+    return gsl_cdf_gamma_P(x, m_k, m_theta);
 }
         
 void BetaSampler::setParamsMV( double mean, double variance ){
@@ -280,30 +280,30 @@ void BetaSampler::setParamsMV( double mean, double variance ){
         // a = c*b;
         
         if (variance >= mean * (1.0 - mean))
-            throw util::xml_scenario_error("BetaSampler::setParamsMV: require variance < mean(1.0 - mean)");
+            throw util::XmlScenarioError("BetaSampler::setParamsMV: require variance < mean(1.0 - mean)");
 
         double c = mean * ((1.0 - mean) / variance) - 1.0;
-        a = mean * c;
-        b = c - a;
+        m_a = mean * c;
+        m_b = c - m_a;
     }else if (variance == 0.0)
     {
         // Not using the Beta distirbution, we simply return the mean when sampling
         if( variance != 0.0 ){
-            throw util::xml_scenario_error("BetaSampler::setParamsMV: require variance ≥ 0");
+            throw util::XmlScenarioError("BetaSampler::setParamsMV: require variance ≥ 0");
         }
-        a = mean;
-        b = 0.0;
+        m_a = mean;
+        m_b = 0.0;
     }
     else
-        throw util::xml_scenario_error("BetaSampler::setParamsMV: require variance ≥ 0");
+        throw util::XmlScenarioError("BetaSampler::setParamsMV: require variance ≥ 0");
 }
 
 double BetaSampler::sample(LocalRng& rng) const{
-    if( b == 0.0 ){
-        return a;
+    if( m_b == 0.0 ){
+        return m_a;
     }else{
-        assert( a>0.0 && b>0.0 );
-        return rng.beta( a, b );
+        assert( m_a>0.0 && m_b>0.0 );
+        return rng.beta( m_a, m_b );
     }
 }
 

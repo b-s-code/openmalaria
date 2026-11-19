@@ -31,26 +31,26 @@ using namespace std;
 namespace OM { namespace PkPd {
     
 LSTMDrugOneComp::LSTMDrugOneComp(const LSTMDrugType& type, LocalRng& rng) :
-    LSTMDrug(type.sample_Vd(rng)),
-    typeData(type),
-    concentration (0.0),
-    neg_elim_sample(-type.sample_elim_rate(rng))
+    LSTMDrug(type.sampleVd(rng)),
+    m_typeData(type),
+    m_concentration (0.0),
+    m_negElimSample(-type.sampleElimRate(rng))
 {}
 
 //LSTMDrugOneComp::~LSTMDrugOneComp(){}
 
 size_t LSTMDrugOneComp::getIndex() const {
-    return typeData.getIndex();
+    return m_typeData.getIndex();
 }
 double LSTMDrugOneComp::getConcentration(size_t index) const {
-    if( index == typeData.getIndex() ) return concentration;
+    if( index == m_typeData.getIndex() ) return m_concentration;
     else return 0.0;
 }
 
 // TODO: in high transmission, is this going to get called more often than updateConcentration?
 // When does it make sense to try to optimise (avoid doing decay calcuations here)?
-double LSTMDrugOneComp::calculateDrugFactor(LocalRng& rng, WithinHost::CommonInfection *inf, double body_mass) const {
-    if( concentration == 0.0 && doses.size() == 0 ) return 1.0; // nothing to do
+double LSTMDrugOneComp::calculateDrugFactor(LocalRng& rng, WithinHost::CommonInfection *inf, double bodyMass) const {
+    if( m_concentration == 0.0 && m_doses.size() == 0 ) return 1.0; // nothing to do
     
     /* Survival factor of the parasite (this multiplies the parasite density).
     Calculated below for each time interval. */
@@ -58,72 +58,72 @@ double LSTMDrugOneComp::calculateDrugFactor(LocalRng& rng, WithinHost::CommonInf
     
     // Make a copy of concetration and use that over today. Don't adjust concentration because this
     // function may be called multiple times (or not at all) in a day.
-    double concentration_today = concentration; // mg / l
-    double neg_elim_rate = neg_elim_sample * pow(body_mass, typeData.neg_m_exponent());
+    double concentrationToday = m_concentration; // mg / l
+    double negElimRate = m_negElimSample * pow(bodyMass, m_typeData.negMExponent());
     
-    const LSTMDrugPD& drugPD = typeData.getPD(inf->genotype());
-    const double Kn = drugPD.IC50_pow_slope(rng, typeData.getIndex(), inf);
+    const LSTMDrugPD& drugPD = m_typeData.getPD(inf->genotype());
+    const double Kn = drugPD.IC50_pow_slope(rng, m_typeData.getIndex(), inf);
     
     double time = 0.0;
     typedef pair<double,double> TimeConc;
-    for( TimeConc time_conc : doses ){
+    for( TimeConc timeConc : m_doses ){
         // we iteratate through doses in time order (since doses are sorted)
-        if( time_conc.first < 1.0 /*i.e. today*/ ){
-            if( time < time_conc.first ){
-                totalFactor *= drugPD.calcFactor( Kn, neg_elim_rate, &concentration_today, time_conc.first - time );
-                time = time_conc.first;
-            }else{ assert( time == time_conc.first ); }
+        if( timeConc.first < 1.0 /*i.e. today*/ ){
+            if( time < timeConc.first ){
+                totalFactor *= drugPD.calcFactor( Kn, negElimRate, &concentrationToday, timeConc.first - time );
+                time = timeConc.first;
+            }else{ assert( time == timeConc.first ); }
             // add dose (instantaneous absorption):
-            concentration_today += time_conc.second / (vol_dist * body_mass);
+            concentrationToday += timeConc.second / (m_volDist * bodyMass);
         }else/*i.e. tomorrow or later*/{
             break;
         }
     }
     if( time < 1.0 ){
-        totalFactor *= drugPD.calcFactor( Kn, neg_elim_rate, &concentration_today, 1.0 - time );
+        totalFactor *= drugPD.calcFactor( Kn, negElimRate, &concentrationToday, 1.0 - time );
     }
     
     return totalFactor; // Drug effect per day per drug per parasite
 }
 
-void LSTMDrugOneComp::updateConcentration( double body_mass ){
-    if( concentration == 0.0 && doses.size() == 0 ) return;     // nothing to do
+void LSTMDrugOneComp::updateConcentration( double bodyMass ){
+    if( m_concentration == 0.0 && m_doses.size() == 0 ) return;     // nothing to do
     
     // exponential decay of drug concentration (portion without new doses):
     //TODO: is it faster to pre-calculate this and either store an extra
     // parameter or adapt uses of neg_elim_rate, etc. below?
-    double neg_elim_rate = neg_elim_sample * pow(body_mass, typeData.neg_m_exponent());
-    concentration *= exp(neg_elim_rate);
-    size_t doses_taken = 0;
+    double negElimRate = m_negElimSample * pow(bodyMass, m_typeData.negMExponent());
+    m_concentration *= exp(negElimRate);
+    size_t dosesTaken = 0;
     typedef pair<double,double> TimeConc;
-    for( TimeConc& time_conc : doses ){
+    for( TimeConc& timeConc : m_doses ){
         // we iteratate through doses in time order (since doses are sorted)
-        if( time_conc.first < 1.0 /*i.e. today*/ ){
+        if( timeConc.first < 1.0 /*i.e. today*/ ){
             // calculate decayed dose and add:
-            concentration += time_conc.second / (vol_dist * body_mass) * exp(neg_elim_rate * (1.0 - time_conc.first));
-            doses_taken += 1;
+            m_concentration += timeConc.second / (m_volDist * bodyMass) * exp(negElimRate * (1.0 - timeConc.first));
+            dosesTaken += 1;
         }else /*i.e. tomorrow or later*/{
-            time_conc.first -= 1.0;
+            timeConc.first -= 1.0;
         }
     }
     //NOTE: would be faster if elements were stored in reverse order — though prescribing would probably be slower
-    doses.erase(doses.begin(), doses.begin() + doses_taken);
+    m_doses.erase(m_doses.begin(), m_doses.begin() + dosesTaken);
     
-    util::streamValidate( concentration );
-    if( concentration < typeData.getNegligibleConcentration() ){
+    util::streamValidate( m_concentration );
+    if( m_concentration < m_typeData.getNegligibleConcentration() ){
         // once negligible, try to optimise so that we don't have to do
         // anything next time step
-        concentration = 0.0;
+        m_concentration = 0.0;
     }
 }
 
 void LSTMDrugOneComp::checkpoint(ostream& stream){
-    concentration & stream;
-    neg_elim_sample & stream;
+    m_concentration & stream;
+    m_negElimSample & stream;
 }
 void LSTMDrugOneComp::checkpoint(istream& stream){
-    concentration & stream;
-    neg_elim_sample & stream;
+    m_concentration & stream;
+    m_negElimSample & stream;
 }
 
 }

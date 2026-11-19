@@ -59,21 +59,21 @@ namespace OM
                     const std::string nameFromXML = model.getModelName().get().getName();
                     if (nameFromXML == "base")
                     {
-                        modelInUse = ModelNames::base;
+                        m_modelInUse = ModelNames::base;
                     }
                     else
                     {
-                        throw util::xml_scenario_error("Unrecognized model name: " + nameFromXML);
+                        throw util::XmlScenarioError("Unrecognized model name: " + nameFromXML);
                     }
                 }
             }
 
             ~ModelNameProvider(){}
 
-            ModelNames GetModelName() { return modelInUse; }
+            ModelNames getModelName() { return m_modelInUse; }
 
         private:
-            ModelNames modelInUse = ModelNames::none;
+            ModelNames m_modelInUse = ModelNames::none;
         };
     }
 }

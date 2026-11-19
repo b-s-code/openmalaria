@@ -38,7 +38,7 @@ namespace Host {
 
     class ImportedInfections {
     public:
-        ImportedInfections() : period(sim::zero()), lastIndex(0) {}
+        ImportedInfections() : m_period(Sim::zero()), m_lastIndex(0) {}
         
         /** Initialise, passing intervention description
          * 
@@ -50,39 +50,39 @@ namespace Host {
             const scnXml::ImportedInfections::TimedType& tElt = iiElt.getTimed();
             try{
                 //NOTE: if changing XSD, this should not have a default unit:
-                period = UnitParse::readDuration( tElt.getPeriod(), UnitParse::STEPS );
-                if( period < sim::zero() ){
-                    throw util::format_error( "cannot be negative" );
+                m_period = UnitParse::readDuration( tElt.getPeriod(), UnitParse::STEPS );
+                if( m_period < Sim::zero() ){
+                    throw util::FormatError( "cannot be negative" );
                 }
-            }catch( const util::format_error& e ){
-                throw util::xml_scenario_error( string("interventions/importedInfections/timed/period: ").append(e.message()) );
+            }catch( const util::FormatError& e ){
+                throw util::XmlScenarioError( string("interventions/importedInfections/timed/period: ").append(e.message()) );
             }
-            rate.reserve( tElt.getRate().size() );
+            m_rate.reserve( tElt.getRate().size() );
             try{
                 for( auto it = tElt.getRate().begin(); it != tElt.getRate().end(); ++it ){
                     SimTime date = UnitParse::readDate( it->getTime(), UnitParse::STEPS /*STEPS is only for backwards compatibility*/ );
                     // convert to per-time-step, per-person
-                    double rateVal = it->getValue() * sim::yearsPerStep() * (1.0 / 1000.0);
-                    rate.push_back( Rate( date - sim::startDate(), rateVal ) );
+                    double rateVal = it->getValue() * Sim::yearsPerStep() * (1.0 / 1000.0);
+                    m_rate.push_back( Rate( date - Sim::startDate(), rateVal ) );
                 }
-                sort( rate.begin(), rate.end() );
-                if( rate.size() > 0 ){
-                    if( period != sim::zero() && rate[0].time != sim::zero() ){
-                        throw util::xml_scenario_error( "must specify rate at time zero when period is not zero" );
+                sort( m_rate.begin(), m_rate.end() );
+                if( m_rate.size() > 0 ){
+                    if( m_period != Sim::zero() && m_rate[0].time != Sim::zero() ){
+                        throw util::XmlScenarioError( "must specify rate at time zero when period is not zero" );
                     }
                     // remove useless repeated entries from list
-                    double lastRate = rate[0].value;
-                    for( size_t i = 1; i < rate.size(); ){
-                        if( rate[i].value == lastRate ){
-                            rate.erase( rate.begin() + i );
+                    double lastRate = m_rate[0].value;
+                    for( size_t i = 1; i < m_rate.size(); ){
+                        if( m_rate[i].value == lastRate ){
+                            m_rate.erase( m_rate.begin() + i );
                         }else{
-                            lastRate = rate[i].value;
+                            lastRate = m_rate[i].value;
                             ++i;
                         }
                     }
                 }
-            }catch( const util::format_error& e ){
-                throw util::xml_scenario_error( string("interventions/importedInfections/timed/time: ").append(e.message()) );
+            }catch( const util::FormatError& e ){
+                throw util::XmlScenarioError( string("interventions/importedInfections/timed/time: ").append(e.message()) );
             }
         }
         
@@ -97,23 +97,23 @@ namespace Host {
          * @param pop The Population class encapsulating all humans */
         void import(vector<Human> &population)
         {
-            if( rate.size() == 0 ) return;      // no imported infections
-            SimTime now = sim::intervTime();
-            assert( now >= sim::zero() );
-            if( period > sim::zero() ){
-                now = mod_nn(now, period);
+            if( m_rate.size() == 0 ) return;      // no imported infections
+            SimTime now = Sim::intervTime();
+            assert( now >= Sim::zero() );
+            if( m_period > Sim::zero() ){
+                now = modNn(now, m_period);
             }
-            if( rate[lastIndex].time > now ){
-                lastIndex = 0;  // gone round in a loop: back to start of period
+            if( m_rate[m_lastIndex].time > now ){
+                m_lastIndex = 0;  // gone round in a loop: back to start of period
             }
-            if( now > rate[lastIndex].time && rate.size() > lastIndex+1 ){
-                if( rate[lastIndex+1].time <= now ){
-                    ++lastIndex;
+            if( now > m_rate[m_lastIndex].time && m_rate.size() > m_lastIndex+1 ){
+                if( m_rate[m_lastIndex+1].time <= now ){
+                    ++m_lastIndex;
                     // won't be necessary to do this more than once, since import() is called every time step
                 }
             }
             
-            double rateNow = rate[lastIndex].value;
+            double rateNow = m_rate[m_lastIndex].value;
             if( rateNow > 0.0 ){
                 for(Human& human : population){
                     if(human.rng.bernoulli( rateNow )){
@@ -130,21 +130,21 @@ namespace Host {
         void operator& (S& stream) {
             using namespace OM::util::checkpoint;
             // period and rate are set from XML and not changed
-            lastIndex & stream;
+            m_lastIndex & stream;
         }
         
     private:
-        SimTime period = sim::never();
-        uint32_t lastIndex;
+        SimTime m_period = Sim::never();
+        uint32_t m_lastIndex;
         struct Rate {
             Rate( SimTime t, double v ): time(t), value(v) {}
-            SimTime time = sim::never();
+            SimTime time = Sim::never();
             double value;
             inline bool operator< (const Rate& that) const{
                 return time < that.time;
             }
         };
-        vector<Rate> rate;
+        vector<Rate> m_rate;
     };
 } }
 

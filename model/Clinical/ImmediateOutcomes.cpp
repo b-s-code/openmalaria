@@ -32,10 +32,10 @@ namespace Clinical {
 using namespace ::OM::util;
 
 // These parameters are set by setHealthSystem() and do not need checkpointing.
-double ImmediateOutcomes::cureRateUCOfficial[ImmediateOutcomes::NumCaseTypes];
-double ImmediateOutcomes::cureRateUCSelfTreat[NumCaseTypes];
-WithinHost::TreatmentId ImmediateOutcomes::treatmentUC[NumCaseTypes];
-bool ImmediateOutcomes::useDiagnosticUC = false;
+double ImmediateOutcomes::s_cureRateUcOfficial[ImmediateOutcomes::NumCaseTypes];
+double ImmediateOutcomes::s_cureRateUcSelfTreat[NumCaseTypes];
+WithinHost::TreatmentId ImmediateOutcomes::s_treatmentUc[NumCaseTypes];
+bool ImmediateOutcomes::s_useDiagnosticUc = false;
 
 
 // ———  static, utility functions  ———
@@ -58,11 +58,11 @@ double getHealthSystemACRByName (const scnXml::TreatmentDetails& td, const strin
     else if (drug == "selfTreatment")
         val = td.getSelfTreatment().getValue();
     else {
-        throw util::xml_scenario_error ("healthSystem.drugRegimen: firstLine / secondLine / inpatient has bad value");
+        throw util::XmlScenarioError ("healthSystem.drugRegimen: firstLine / secondLine / inpatient has bad value");
     }
     
     if( !(val >= 0.0 && val <= 1.0) ){
-        throw util::xml_scenario_error (string("healthSystem initialACR/compliance/nonCompliersEffective: ").append(drug).append(" value must be in range [0,1]"));
+        throw util::XmlScenarioError (string("healthSystem initialACR/compliance/nonCompliersEffective: ").append(drug).append(" value must be in range [0,1]"));
     }
     return val;
 }
@@ -77,13 +77,13 @@ const scnXml::TreatmentActions::CQOptional& getHealthSystemTreatmentOptional(
     if( drug == "SPAQ" ) return treatActs.getSPAQ();
     if( drug == "ACT" ) return treatActs.getACT();
     if( drug == "QN" ) return treatActs.getQN();
-    throw util::xml_scenario_error ("healthSystem.drugRegimen: firstLine / secondLine / inpatient has bad value");
+    throw util::XmlScenarioError ("healthSystem.drugRegimen: firstLine / secondLine / inpatient has bad value");
 }
 WithinHost::TreatmentId getHealthSystemTreatmentByName( const scnXml::TreatmentActions& treatActs, const string& drug )
 {
     const scnXml::TreatmentActions::CQOptional& elt = getHealthSystemTreatmentOptional( treatActs, drug );
     if( !elt.present() )
-        throw util::xml_scenario_error( string("healthSystem.treatmentActions: description required for ").append(drug) );
+        throw util::XmlScenarioError( string("healthSystem.treatmentActions: description required for ").append(drug) );
     return WithinHost::WHInterface::addTreatment( elt.get() );
 }
 
@@ -100,17 +100,17 @@ void ImmediateOutcomes::setHealthSystem (const scnXml::HSImmediateOutcomes& hsDe
     double accessUCOfficial1 = hsDescription.getPSeekOfficialCareUncomplicated1().getValue();
     double accessUCOfficial2 = hsDescription.getPSeekOfficialCareUncomplicated2().getValue();
     // Note: this asymmetry is historical, and probably matters little:
-    accessUCSelfTreat[FirstLine] = hsDescription.getPSelfTreatUncomplicated().getValue();
-    accessUCSelfTreat[SecondLine] = 0.0;
-    accessUCAny[FirstLine] = accessUCOfficial1 + accessUCSelfTreat[FirstLine];
-    accessUCAny[SecondLine] = accessUCOfficial1 + accessUCSelfTreat[SecondLine];
-    accessSevere = hsDescription.getPSeekOfficialCareSevere().getValue();
+    s_accessUcSelfTreat[FirstLine] = hsDescription.getPSelfTreatUncomplicated().getValue();
+    s_accessUcSelfTreat[SecondLine] = 0.0;
+    s_accessUcAny[FirstLine] = accessUCOfficial1 + s_accessUcSelfTreat[FirstLine];
+    s_accessUcAny[SecondLine] = accessUCOfficial1 + s_accessUcSelfTreat[SecondLine];
+    s_accessSevere = hsDescription.getPSeekOfficialCareSevere().getValue();
     
-    if( accessUCOfficial1 < 0.0 || accessUCSelfTreat[FirstLine] < 0.0 || accessUCAny[FirstLine] > 1.0 ||
-        accessUCOfficial2 < 0.0 || accessUCSelfTreat[SecondLine] < 0.0 || accessUCAny[SecondLine] > 1.0 ||
-        accessSevere < 0.0 || accessSevere > 1.0 )
+    if( accessUCOfficial1 < 0.0 || s_accessUcSelfTreat[FirstLine] < 0.0 || s_accessUcAny[FirstLine] > 1.0 ||
+        accessUCOfficial2 < 0.0 || s_accessUcSelfTreat[SecondLine] < 0.0 || s_accessUcAny[SecondLine] > 1.0 ||
+        s_accessSevere < 0.0 || s_accessSevere > 1.0 )
     {
-        throw util::xml_scenario_error ("healthSystem: "
+        throw util::XmlScenarioError ("healthSystem: "
             "pSeekOfficialCareUncomplicated1 and pSelfTreatUncomplicated must be"
             " at least 0 and their sum must be at most 1, and"
             "pSeekOfficialCareUncomplicated2 and pSeekOfficialCareSevere must "
@@ -134,37 +134,37 @@ void ImmediateOutcomes::setHealthSystem (const scnXml::HSImmediateOutcomes& hsDe
         complianceSelfTreatment >= 0.0 && complianceSelfTreatment <= 1.0
         && cureRateSelfTreatment >= 0.0 && cureRateSelfTreatment <= 1.0
     ) ){
-        throw util::xml_scenario_error ("healthSystem initialACR/compliance/nonCompliersEffective: pSelfTreatment must be in range [0,1]");
+        throw util::XmlScenarioError ("healthSystem initialACR/compliance/nonCompliersEffective: pSelfTreatment must be in range [0,1]");
     }
     
     
-    cureRateUCOfficial[FirstLine] = complianceFirstLine * cureRateFirstLine
+    s_cureRateUcOfficial[FirstLine] = complianceFirstLine * cureRateFirstLine
             + (1 - complianceFirstLine) * nonCompliersEffectiveFirstLine;
-    cureRateUCOfficial[SecondLine] = complianceSecondLine * cureRateSecondLine
+    s_cureRateUcOfficial[SecondLine] = complianceSecondLine * cureRateSecondLine
             + (1 - complianceSecondLine) * nonCompliersEffectiveSecondLine;
-    cureRateUCSelfTreat[FirstLine] = complianceSelfTreatment * cureRateSelfTreatment
+    s_cureRateUcSelfTreat[FirstLine] = complianceSelfTreatment * cureRateSelfTreatment
             + (1 - complianceSelfTreatment) * nonCompliersEffectiveFirstLine;
-    cureRateUCSelfTreat[SecondLine] = 0.0;      // as with access, this is a historical asymmetry
+    s_cureRateUcSelfTreat[SecondLine] = 0.0;      // as with access, this is a historical asymmetry
     
-    cureRateSevere = getHealthSystemACRByName (hsDescription.getInitialACR(), inpatient);
+    s_cureRateSevere = getHealthSystemACRByName (hsDescription.getInitialACR(), inpatient);
     
-    treatmentUC[FirstLine] = getHealthSystemTreatmentByName(hsDescription.getTreatmentActions(), firstLine);
+    s_treatmentUc[FirstLine] = getHealthSystemTreatmentByName(hsDescription.getTreatmentActions(), firstLine);
     
-    if( secondLine == firstLine ) treatmentUC[SecondLine] = treatmentUC[FirstLine];
-    else treatmentUC[SecondLine] = getHealthSystemTreatmentByName(hsDescription.getTreatmentActions(), secondLine);
+    if( secondLine == firstLine ) s_treatmentUc[SecondLine] = s_treatmentUc[FirstLine];
+    else s_treatmentUc[SecondLine] = getHealthSystemTreatmentByName(hsDescription.getTreatmentActions(), secondLine);
     
-    if( inpatient == firstLine ) treatmentSevere = treatmentUC[FirstLine];
-    else if( inpatient == secondLine ) treatmentSevere = treatmentUC[SecondLine];
-    else treatmentSevere = getHealthSystemTreatmentByName(hsDescription.getTreatmentActions(), inpatient);
+    if( inpatient == firstLine ) s_treatmentSevere = s_treatmentUc[FirstLine];
+    else if( inpatient == secondLine ) s_treatmentSevere = s_treatmentUc[SecondLine];
+    else s_treatmentSevere = getHealthSystemTreatmentByName(hsDescription.getTreatmentActions(), inpatient);
     
-    useDiagnosticUC = hsDescription.getUseDiagnosticUC();
+    s_useDiagnosticUc = hsDescription.getUseDiagnosticUC();
     
     if( ModelOptions::option(util::VIVAX_SIMPLE_MODEL) ){
         WithinHost::WHVivax::setHSParameters(
             hsDescription.getLiverStageDrug().present() ?
             &hsDescription.getLiverStageDrug().get() : 0 );
     }else if( hsDescription.getLiverStageDrug().present() ){
-        throw util::xml_scenario_error( "health-system's liverStageDrug element only supported by vivax" );
+        throw util::XmlScenarioError( "health-system's liverStageDrug element only supported by vivax" );
     }
 }
 
@@ -177,34 +177,34 @@ void ImmediateOutcomes::uncomplicatedEvent (
 ) {
     // If last treatment prescribed was in recent memory, consider second line.
     CaseType regimen = FirstLine;
-    if (m_tLastTreatment + healthSystemMemory > sim::ts0()){
+    if (tLastTreatment + s_healthSystemMemory > Sim::ts0()){
         pgState = Episode::State (pgState | Episode::SECOND_CASE);
         regimen = SecondLine;
     }
 
-    latestReport.update (human, Episode::State( pgState ) );
+    m_latestReport.update (human, Episode::State( pgState ) );
 
-    double x = human.rng.uniform_01();
-    if( x < accessUCAny[regimen] * m_treatmentSeekingFactor ){
+    double x = human.rng.uniform01();
+    if( x < s_accessUcAny[regimen] * m_treatmentSeekingFactor ){
         // UC1: official care OR self treatment
         // UC2: official care only
         
-        if( useDiagnosticUC ){
+        if( s_useDiagnosticUc ){
             mon::recordEvent(mon::measure("nTreatDiagnostics"), human);
-            auto diag = WithinHost::diagnostics::monitoringDiagnostic();
+            auto diag = WithinHost::Diagnostics::monitoringDiagnostic();
             if( !human.withinHostModel->diagnosticResult(human.rng, diag) )
                 return; // negative outcome: no treatment
         }
         
-        m_tLastTreatment = sim::ts0();
-        mon::recordEvent(measures[regimen], human);
+        tLastTreatment = Sim::ts0();
+        mon::recordEvent(s_measures[regimen], human);
         
-        double p = ( x < accessUCSelfTreat[regimen] * m_treatmentSeekingFactor ) ?
-            cureRateUCSelfTreat[regimen] : cureRateUCOfficial[regimen];
+        double p = ( x < s_accessUcSelfTreat[regimen] * m_treatmentSeekingFactor ) ?
+            s_cureRateUcSelfTreat[regimen] : s_cureRateUcOfficial[regimen];
         if( human.rng.bernoulli(p) ){
             // Could report Episode::RECOVERY to latestReport,
             // but we don't report out-of-hospital recoveries anyway.
-            human.withinHostModel->treatment( human, treatmentUC[regimen] );
+            human.withinHostModel->treatment( human, s_treatmentUc[regimen] );
         } else {
             // No change in parasitological status: treated outside of hospital
         }

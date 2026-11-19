@@ -38,26 +38,26 @@ using namespace ::OM::util;
     
 // -----  static class members (variables & functions)  -----
 
-double EmpiricalInfection::_maximumPermittedAmplificationPerCycle;
-double EmpiricalInfection::_subPatentLimit;
-double EmpiricalInfection::_alpha1;
-double EmpiricalInfection::_alpha2;	
-double EmpiricalInfection::_alpha3;
-double EmpiricalInfection::_mu1;	
-double EmpiricalInfection::_mu2;	
-double EmpiricalInfection::_mu3;
-double EmpiricalInfection::_sigma0_res;	
-double EmpiricalInfection::_sigmat_res;
-double EmpiricalInfection::_mu_beta1[_maximumDurationInDays];
-double EmpiricalInfection::_sigma_beta1[_maximumDurationInDays];
-double EmpiricalInfection::_mu_beta2[_maximumDurationInDays];
-double EmpiricalInfection::_sigma_beta2[_maximumDurationInDays];
-double EmpiricalInfection::_mu_beta3[_maximumDurationInDays];
-double EmpiricalInfection::_sigma_beta3[_maximumDurationInDays];
-double EmpiricalInfection::_inflationMean;
-double EmpiricalInfection::_inflationVariance;
-double EmpiricalInfection::_extinctionLevel;
-double EmpiricalInfection::_overallMultiplier;
+double EmpiricalInfection::s_maximumPermittedAmplificationPerCycle;
+double EmpiricalInfection::s_subPatentLimit;
+double EmpiricalInfection::s_alpha1;
+double EmpiricalInfection::s_alpha2;	
+double EmpiricalInfection::s_alpha3;
+double EmpiricalInfection::s_mu1;	
+double EmpiricalInfection::s_mu2;	
+double EmpiricalInfection::s_mu3;
+double EmpiricalInfection::s_sigma0Res;	
+double EmpiricalInfection::s_sigmatRes;
+double EmpiricalInfection::s_muBeta1[MaximumDurationInDays];
+double EmpiricalInfection::s_sigmaBeta1[MaximumDurationInDays];
+double EmpiricalInfection::s_muBeta2[MaximumDurationInDays];
+double EmpiricalInfection::s_sigmaBeta2[MaximumDurationInDays];
+double EmpiricalInfection::s_muBeta3[MaximumDurationInDays];
+double EmpiricalInfection::s_sigmaBeta3[MaximumDurationInDays];
+double EmpiricalInfection::s_inflationMean;
+double EmpiricalInfection::s_inflationVariance;
+double EmpiricalInfection::s_extinctionLevel;
+double EmpiricalInfection::s_overallMultiplier;
 
 
 CommonInfection* createEmpiricalInfection (LocalRng& rng, uint32_t protID, int origin) {
@@ -69,40 +69,40 @@ CommonInfection* checkpointedEmpiricalInfection (istream& stream) {
 
 
 void EmpiricalInfection::init(){
-    CommonWithinHost::createInfection = &createEmpiricalInfection;
-    CommonWithinHost::checkpointedInfection = &checkpointedEmpiricalInfection;
+    CommonWithinHost::s_createInfection = &createEmpiricalInfection;
+    CommonWithinHost::s_checkpointedInfection = &checkpointedEmpiricalInfection;
     
   // alpha1 corresponds to 1 day before first patent, alpha2 2 days before first patent etc.
-  _alpha1=0.2647;
-  _alpha2=2.976;
-  _alpha3=0.9181;
-  _mu1=6.08e-04;
-  _mu2=0.624;
-  _mu3=0.3064;
-  _sigma0_res=0.9998;
-  _sigmat_res=0.002528;
+  s_alpha1=0.2647;
+  s_alpha2=2.976;
+  s_alpha3=0.9181;
+  s_mu1=6.08e-04;
+  s_mu2=0.624;
+  s_mu3=0.3064;
+  s_sigma0Res=0.9998;
+  s_sigmatRes=0.002528;
 /* The following variables are assigned separately for each infection to enable optimisation of their values
 */    
-  _inflationMean= 1.09635;
-  _inflationVariance= 0.172029;
-  _extinctionLevel= 0.0100976;
-  _overallMultiplier= 0.697581;
-  _subPatentLimit=10.0/_overallMultiplier; 
-  _maximumPermittedAmplificationPerCycle=1000.0;
+  s_inflationMean= 1.09635;
+  s_inflationVariance= 0.172029;
+  s_extinctionLevel= 0.0100976;
+  s_overallMultiplier= 0.697581;
+  s_subPatentLimit=10.0/s_overallMultiplier; 
+  s_maximumPermittedAmplificationPerCycle=1000.0;
   string fname = util::CommandLine::lookupResource("autoRegressionParameters.csv");
-  fstream f_autoRegressionParameters(fname.c_str(),ios::in);
-  if (!f_autoRegressionParameters.is_open())
-    throw base_exception (string("file not found: ").append(fname), util::Error::FileIO);
+  fstream fAutoRegressionParameters(fname.c_str(),ios::in);
+  if (!fAutoRegressionParameters.is_open())
+    throw BaseException (string("file not found: ").append(fname), util::Error::FileIO);
 
   //read header of file (unused)
   string csvLine;
-  getline(f_autoRegressionParameters,csvLine);
+  getline(fAutoRegressionParameters,csvLine);
   if (csvLine != "day,mub1,sigb1,mub2,sigb2,mub3,sigb3")
       // this check is here to catch unexpected alterations
       throw TRACED_EXCEPTION_DEFAULT ("autoRegressionParameters.csv does not have expected header line");
 
   // read every line from the stream
-  while(getline(f_autoRegressionParameters, csvLine)){
+  while(getline(fAutoRegressionParameters, csvLine)){
 
     std::istringstream csvStream(csvLine);
 
@@ -121,16 +121,16 @@ void EmpiricalInfection::init(){
     
     int day;
     csvNum1 >> day;
-    if (day < 0 || day >= _maximumDurationInDays)
+    if (day < 0 || day >= MaximumDurationInDays)
       throw TRACED_EXCEPTION_DEFAULT ("EmpiricalInfection::init(): invalid day");
-    csvNum2 >> _mu_beta1[day];
-    csvNum3 >> _sigma_beta1[day];
-    csvNum4 >> _mu_beta2[day];
-    csvNum5 >> _sigma_beta2[day];
-    csvNum6 >> _mu_beta3[day];
-    csvNum7 >> _sigma_beta3[day];
+    csvNum2 >> s_muBeta1[day];
+    csvNum3 >> s_sigmaBeta1[day];
+    csvNum4 >> s_muBeta2[day];
+    csvNum5 >> s_sigmaBeta2[day];
+    csvNum6 >> s_muBeta3[day];
+    csvNum7 >> s_sigmaBeta3[day];
   }  
-  f_autoRegressionParameters.close();
+  fAutoRegressionParameters.close();
 }
 
 
@@ -143,50 +143,50 @@ EmpiricalInfection::EmpiricalInfection(LocalRng& rng, uint32_t protID, int origi
 {
   //sample the parasite densities for the last 3 prepatent days
   //note that the lag decreases with time
-  _laggedLogDensities[0]=sampleSubPatentValue(rng, _alpha1,_mu1,log(_subPatentLimit));  
-  _laggedLogDensities[1]=sampleSubPatentValue(rng, _alpha2,_mu2,log(_subPatentLimit)); 
-  _laggedLogDensities[2]=sampleSubPatentValue(rng, _alpha3,_mu3,log(_subPatentLimit));  
+  m_laggedLogDensities[0]=sampleSubPatentValue(rng, s_alpha1,s_mu1,log(s_subPatentLimit));  
+  m_laggedLogDensities[1]=sampleSubPatentValue(rng, s_alpha2,s_mu2,log(s_subPatentLimit)); 
+  m_laggedLogDensities[2]=sampleSubPatentValue(rng, s_alpha3,s_mu3,log(s_subPatentLimit));  
   //only the immediately preceding value is modified by the growth rate multiplier
-  _laggedLogDensities[0] += log(growthRateMultiplier); 
-  _patentGrowthRateMultiplier = growthRateMultiplier;
+  m_laggedLogDensities[0] += log(growthRateMultiplier); 
+  m_patentGrowthRateMultiplier = growthRateMultiplier;
 }
 
 
 // -----  non-static class members (other functions)  -----
 
 void EmpiricalInfection::setPatentGrowthRateMultiplier(double multiplier) {
-  _patentGrowthRateMultiplier = multiplier;
+  m_patentGrowthRateMultiplier = multiplier;
 }
 
 
 // NOTE: TS never provided a lot of documentation for this code.
-const int EI_MAX_SAMPLES = 10;
+const int EiMaxSamples = 10;
 bool EmpiricalInfection::updateDensity( LocalRng& rng, double survivalFactor, SimTime bsAge, double ){
   //to avoid the formula for the linear predictor being excessively long we introduce L for the lagged densities
-  # define L _laggedLogDensities
+  # define L m_laggedLogDensities
   
-  if (bsAge >= _maximumDurationInDays || !(L[0] > -999999.9))	// Note: second test is extremely unlikely to fail
+  if (bsAge >= MaximumDurationInDays || !(L[0] > -999999.9))	// Note: second test is extremely unlikely to fail
     return true;	// cut-off point
   
   // constraints to ensure the density is defined and not exploding
-  double upperLimitoflogDensity=log(_maximumPermittedAmplificationPerCycle*exp(L[1])/_inflationMean);
+  double upperLimitoflogDensity=log(s_maximumPermittedAmplificationPerCycle*exp(L[1])/s_inflationMean);
   double amplificationPerCycle;
   double localDensity;	// density before scaling by _overallMultiplier
   size_t ageDays = bsAge;
-  for(int tries0 = 0; tries0 < EI_MAX_SAMPLES; ++tries0) {
+  for(int tries0 = 0; tries0 < EiMaxSamples; ++tries0) {
     double logDensity;
-    for(int tries1 = 0; tries1 < EI_MAX_SAMPLES; ++tries1) {
-      double b_1=rng.gauss(_mu_beta1[ageDays],_sigma_beta1[ageDays]);
-      double b_2=rng.gauss(_mu_beta2[ageDays],_sigma_beta2[ageDays]);
-      double b_3=rng.gauss(_mu_beta3[ageDays],_sigma_beta3[ageDays]);
-      double expectedlogDensity = b_1 * (L[0]+L[1]+L[2]) / 3
-      + b_2 * (L[2]-L[0]) / 2
-      + b_3 * (L[2]+L[0]-2*L[1]) / 4;
+    for(int tries1 = 0; tries1 < EiMaxSamples; ++tries1) {
+      double b1=rng.gauss(s_muBeta1[ageDays],s_sigmaBeta1[ageDays]);
+      double b2=rng.gauss(s_muBeta2[ageDays],s_sigmaBeta2[ageDays]);
+      double b3=rng.gauss(s_muBeta3[ageDays],s_sigmaBeta3[ageDays]);
+      double expectedlogDensity = b1 * (L[0]+L[1]+L[2]) / 3
+      + b2 * (L[2]-L[0]) / 2
+      + b3 * (L[2]+L[0]-2*L[1]) / 4;
       
       //include sampling error
-      logDensity=rng.gauss(expectedlogDensity,sigma_noise(ageDays));
+      logDensity=rng.gauss(expectedlogDensity,sigmaNoise(ageDays));
       //include drug and immunity effects via growthRateMultiplier 
-      logDensity += log(_patentGrowthRateMultiplier);
+      logDensity += log(m_patentGrowthRateMultiplier);
       
       if (logDensity <= upperLimitoflogDensity)	//got an acceptable density, we're done
 	break;	// most of the time this should happen first try
@@ -199,26 +199,26 @@ bool EmpiricalInfection::updateDensity( LocalRng& rng, double survivalFactor, Si
     localDensity *= survivalFactor;	// Apply drug and vaccine effects
     
     // Infections that get killed before they become patent:
-    if( (ageDays == 0) && (localDensity < _subPatentLimit) ){
+    if( (ageDays == 0) && (localDensity < s_subPatentLimit) ){
         localDensity=0.0;
     }
     
     amplificationPerCycle=localDensity/exp(L[1]);
-    if (localDensity >= 0.0 && amplificationPerCycle <= _maximumPermittedAmplificationPerCycle)
+    if (localDensity >= 0.0 && amplificationPerCycle <= s_maximumPermittedAmplificationPerCycle)
       break;	// We're done. Hopefully usually with the first try.
   }
-  if (!(localDensity >= 0.0 && amplificationPerCycle <= _maximumPermittedAmplificationPerCycle))	// in case the above tries fail
-    localDensity = _maximumPermittedAmplificationPerCycle*exp(L[1]);
+  if (!(localDensity >= 0.0 && amplificationPerCycle <= s_maximumPermittedAmplificationPerCycle))	// in case the above tries fail
+    localDensity = s_maximumPermittedAmplificationPerCycle*exp(L[1]);
   
-  _laggedLogDensities[2]=_laggedLogDensities[1];
-  _laggedLogDensities[1]=_laggedLogDensities[0];
-  _laggedLogDensities[0]=log(localDensity);
+  m_laggedLogDensities[2]=m_laggedLogDensities[1];
+  m_laggedLogDensities[1]=m_laggedLogDensities[0];
+  m_laggedLogDensities[0]=log(localDensity);
   
   m_density = localDensity;
   m_cumulativeExposureJ += m_density;
   
   // Note: here use a positive test for survival, since if m_density became an NaN tests against it will return false:
-  if (m_density > _extinctionLevel)
+  if (m_density > s_extinctionLevel)
     return false;	// Still parasites; infection didn't go extinct
   else
     return true;	// parasites are extinct; infection will be removed from model
@@ -249,21 +249,21 @@ double EmpiricalInfection::samplePatentValue(LocalRng& rng, double mu, double si
   return returnValue;
 }
 
-double EmpiricalInfection::sigma_noise(int ageDays) {
-  return _sigma0_res+_sigmat_res*((double)ageDays);
+double EmpiricalInfection::sigmaNoise(int ageDays) {
+  return s_sigma0Res+s_sigmatRes*((double)ageDays);
 }
 
 double EmpiricalInfection::getInflatedDensity(LocalRng& rng, double nonInflatedDensity){
-  double inflatedLogDensity = log(_inflationMean) + rng.gauss(nonInflatedDensity, sqrt(_inflationVariance));
+  double inflatedLogDensity = log(s_inflationMean) + rng.gauss(nonInflatedDensity, sqrt(s_inflationVariance));
   return exp(inflatedLogDensity);
 }
 
 void EmpiricalInfection::overrideInflationFactors(double inflationMean, double inflationVariance, double extinctionLevel, double overallMultiplier){
-  _inflationVariance=inflationVariance;
-  _inflationMean=inflationMean;
-  _extinctionLevel=extinctionLevel;
-  _overallMultiplier=overallMultiplier;
-  _subPatentLimit=10.0/_overallMultiplier;
+  s_inflationVariance=inflationVariance;
+  s_inflationMean=inflationMean;
+  s_extinctionLevel=extinctionLevel;
+  s_overallMultiplier=overallMultiplier;
+  s_subPatentLimit=10.0/s_overallMultiplier;
 }
 
 
@@ -272,17 +272,17 @@ void EmpiricalInfection::overrideInflationFactors(double inflationMean, double i
 EmpiricalInfection::EmpiricalInfection (istream& stream) :
     CommonInfection(stream)
 {
-    _laggedLogDensities[0] & stream;
-    _laggedLogDensities[1] & stream;
-    _laggedLogDensities[2] & stream;
-    _patentGrowthRateMultiplier & stream;
+    m_laggedLogDensities[0] & stream;
+    m_laggedLogDensities[1] & stream;
+    m_laggedLogDensities[2] & stream;
+    m_patentGrowthRateMultiplier & stream;
 }
 void EmpiricalInfection::checkpoint (ostream& stream) {
     CommonInfection::checkpoint (stream);
-    _laggedLogDensities[0] & stream;
-    _laggedLogDensities[1] & stream;
-    _laggedLogDensities[2] & stream;
-    _patentGrowthRateMultiplier & stream;
+    m_laggedLogDensities[0] & stream;
+    m_laggedLogDensities[1] & stream;
+    m_laggedLogDensities[2] & stream;
+    m_patentGrowthRateMultiplier & stream;
 }
 
 } }

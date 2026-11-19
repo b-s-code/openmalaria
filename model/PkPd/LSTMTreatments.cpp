@@ -29,9 +29,9 @@ namespace OM {
 namespace PkPd {
 
 void MedicateData::load( const scnXml::PKPDMedication& med ){
-    drug = LSTMDrugType::findDrug( med.getDrug() );
-    qty = med.getMg();
-    time = med.getHour() / 24.0; // convert from hours to days
+    m_drug = LSTMDrugType::findDrug( med.getDrug() );
+    m_qty = med.getMg();
+    m_time = med.getHour() / 24.0; // convert from hours to days
 }
 
 void Schedule::load( const scnXml::PKPDSchedule::MedicateSequence& seq ){
@@ -53,10 +53,10 @@ void DosageTable::load( const xsd::cxx::tree::sequence<scnXml::PKPDDosageRange>&
     for( const scnXml::PKPDDosageRange& age : seq ){
         if( lastAge != lastAge ){
             if( age.getLowerbound() != 0.0 )
-                throw util::xml_scenario_error( "dosage table must have first lower bound equal 0" );
+                throw util::XmlScenarioError( "dosage table must have first lower bound equal 0" );
         }else{
             if( age.getLowerbound() <= lastAge ){
-                throw util::xml_scenario_error( "dosage table must list age groups in increasing order" );
+                throw util::XmlScenarioError( "dosage table must list age groups in increasing order" );
             }
             table[age.getLowerbound()] = lastMult;
         }
@@ -85,11 +85,11 @@ void LSTMTreatments::init(const scnXml::Treatments& data){
         else if( elt.getBodymass().size() ) dosages[i].load( elt.getBodymass(), true );
         else{
             if( !elt.getMultiply().present() ) {
-                throw util::xml_scenario_error( "dosages table does not "
+                throw util::XmlScenarioError( "dosages table does not "
                         "include age, bodymass or multiply element" );
             }
             if( elt.getMultiply().get().getBy() != "kg" ){
-                throw util::xml_scenario_error( "dosages table \"multipy by\" "
+                throw util::XmlScenarioError( "dosages table \"multipy by\" "
                         "option is not \"kg\"" );
             }
             dosages[i].useMass = true;
@@ -108,13 +108,13 @@ void LSTMTreatments::clear(){
 }
 
 inline void invalidModel(){
-    throw util::xml_scenario_error( "use of PK/PD treatment requires use of a compatible infection model and specification of pharmacology/treatments" );
+    throw util::XmlScenarioError( "use of PK/PD treatment requires use of a compatible infection model and specification of pharmacology/treatments" );
 }
 size_t LSTMTreatments::findSchedule(const string& name){
     if( scheduleNames.size() == 0 ) invalidModel();
     auto iter = scheduleNames.find( name );
     if( iter == scheduleNames.end() ){
-        throw util::xml_scenario_error(string("no treatment schedule with this name: ")
+        throw util::XmlScenarioError(string("no treatment schedule with this name: ")
             .append(name));
     }
     return iter->second;
@@ -124,7 +124,7 @@ size_t LSTMTreatments::findDosages(const string& name){
     if( dosagesNames.size() == 0 ) invalidModel();
     auto iter = dosagesNames.find( name );
     if( iter == dosagesNames.end() ){
-        throw util::xml_scenario_error(string("no dosage table with this name: ")
+        throw util::XmlScenarioError(string("no dosage table with this name: ")
             .append(name));
     }
     return iter->second;

@@ -37,16 +37,16 @@ class Genotypes {
 public:
     /// Represent a combination of alleles, each from a different locus
     struct Genotype{
-        Genotype( uint32_t allele, double iFreq, double fit, bool hrp2_del ):
-            init_freq(iFreq), fitness(fit), hrp2_deficient(hrp2_del)
+        Genotype( uint32_t allele, double iFreq, double fit, bool hrp2Del ):
+            initFreq(iFreq), fitness(fit), hrp2Deficient(hrp2Del)
         {
             alleles.insert(allele);
         }
         Genotype cross( const Genotype& that )const;
         std::set<uint32_t> alleles;      // set of codes of all alleles
-        double init_freq;
+        double initFreq;
         double fitness;
-        bool hrp2_deficient;
+        bool hrp2Deficient;
     };
     
     /** Initialise with a single genotype. */
@@ -76,11 +76,11 @@ public:
      *  weights of each genotype for use in sampling. Total need not be one.
      *  Also, passing a zero-length vector is a signal to use initial
      *  frequencies in sampling. */
-    static uint32_t sampleGenotype( LocalRng& rng, std::vector<double>& genotype_weights );
+    static uint32_t sampleGenotype( LocalRng& rng, std::vector<double>& genotypeWeights );
     
     /** Get the number of genotypes. Functions like sampleGenotype use values
      * from 0 to one less than this. */
-    inline static size_t N(){ return N_genotypes; }
+    inline static size_t N(){ return s_nGenotypes; }
     
     /** Get the initial frequency of some genotype. */
     static double initialFreq( size_t genotype );
@@ -89,7 +89,7 @@ public:
     static void staticCheckpoint( std::istream& stream );
     
 private:
-    static size_t N_genotypes;
+    static size_t s_nGenotypes;
 };
 
 }

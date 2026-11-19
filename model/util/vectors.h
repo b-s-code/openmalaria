@@ -76,8 +76,8 @@ namespace vectors {
   /** Return true if, approximately, a == b
    *
    * In detail: true when (fabs(a-b) <= max(fabs(a),fabs(b)) * lim_fact). */
-  inline bool approxEqual (const double a, const double b, const double lim_fact = 1e-6) {
-    bool aE = (fabs(a-b) <= max(fabs(a),fabs(b)) * lim_fact);
+  inline bool approxEqual (const double a, const double b, const double limFact = 1e-6) {
+    bool aE = (fabs(a-b) <= max(fabs(a),fabs(b)) * limFact);
 #ifndef NDEBUG
     if (!aE){
         cerr<<"not approx equal: "<<a<<", "<<b<<endl;
@@ -88,11 +88,11 @@ namespace vectors {
   
   /// Returns true if vec1 and vec2 have equal length and all elements are
   /// approximately equal (see approxEqual for double parameters).
-  inline bool approxEqual (const vector<double>& vec1, const vector<double>& vec2, const double lim_fact) {
+  inline bool approxEqual (const vector<double>& vec1, const vector<double>& vec2, const double limFact) {
     if (vec1.size() != vec2.size())
       return false;
     for(size_t i = 0; i < vec1.size(); ++i) {
-      if (!approxEqual (vec1[i], vec2[i], lim_fact))
+      if (!approxEqual (vec1[i], vec2[i], limFact))
         return false;
     }
     return true;
@@ -111,7 +111,7 @@ namespace vectors {
    * @param FC Output values. Should already be allocated, with length
    *    2*N-1 for 1 ≤ N ≤ T. */
   inline void logDFT(const vector<double>& iArray, vector<double>& FC) {
-    if (FC.size() > 2*iArray.size() || mod_nn(FC.size(), 2) == 0)
+    if (FC.size() > 2*iArray.size() || modNn(FC.size(), 2) == 0)
         throw TRACED_EXCEPTION_DEFAULT("Require DFT FC.size() to be 2*n-1 for n<=iArray.size()");
     
     size_t T = iArray.size();
@@ -156,7 +156,7 @@ namespace vectors {
    * so long as it is odd.
    * @param rAngle Angle to rotate generated series by in radians: [0,2π] */
   inline void expIDFT(std::vector< double >& tArray, const std::vector< double >& FC, double rAngle ){
-    if (mod_nn(FC.size(), 2) == 0)
+    if (modNn(FC.size(), 2) == 0)
         throw TRACED_EXCEPTION_DEFAULT("The number of Fourier coefficents should be odd.");
     
     size_t T2 = tArray.size();

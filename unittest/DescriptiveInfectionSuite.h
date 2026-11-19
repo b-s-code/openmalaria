@@ -37,7 +37,7 @@ public:
     void setUp () {
         UnittestUtil::initTime( 5 );
 	UnittestUtil::Infection_init ();
-	UnittestUtil::DescriptiveInfection_init ();
+	UnittestUtil::descriptiveInfectionInit ();
 	DescriptiveInfection::initParameters();	//FIXME: this gets data from InputData
 	gsl::setUp (83);	// seed is unimportant, but must be fixed
 	infection = new DescriptiveInfection ();

@@ -36,12 +36,12 @@ public:
     AgeGroupInterpolationSuite () {
         // Set maximum age to 90 years:
         UnittestUtil::initTime( 5 );
-        agvElt = unique_ptr<scnXml::AgeGroupValues>(new scnXml::AgeGroupValues());
-        scnXml::AgeGroupValues::GroupSequence& seq = agvElt->getGroup();
-        seq.resize( dataLen, scnXml::Group(0.0,0.0) );
-        for( size_t i = 0; i < dataLen; ++i ){
-            seq[ i ].setLowerbound( stdLbounds[ i ] );
-            seq[ i ].setValue( stdValues[ i ] );
+        m_agvElt = unique_ptr<scnXml::AgeGroupValues>(new scnXml::AgeGroupValues());
+        scnXml::AgeGroupValues::GroupSequence& seq = m_agvElt->getGroup();
+        seq.resize( DataLen, scnXml::Group(0.0,0.0) );
+        for( size_t i = 0; i < DataLen; ++i ){
+            seq[ i ].setLowerbound( StdLbounds[ i ] );
+            seq[ i ].setValue( StdValues[ i ] );
         }
     }
     ~AgeGroupInterpolationSuite () {
@@ -58,50 +58,50 @@ public:
     }
     
     void testPiecewiseConst () {
-        agvElt->setInterpolation( "none" );
+        m_agvElt->setInterpolation( "none" );
         AgeGroupInterpolator o;
-        o.set( *agvElt, "testPiecewiseConst" );
-        for( size_t i = 0; i < testLen; ++i ){
-            TS_ASSERT_APPROX( o.eval( testAges[ i ] ), piecewiseConstValues[ i ] );
+        o.set( *m_agvElt, "testPiecewiseConst" );
+        for( size_t i = 0; i < TestLen; ++i ){
+            TS_ASSERT_APPROX( o.eval( TestAges[ i ] ), PiecewiseConstValues[ i ] );
         }
     }
     
     void testLinearInterp () {
-        agvElt->setInterpolation( "linear" );
+        m_agvElt->setInterpolation( "linear" );
         AgeGroupInterpolator o;
-        o.set( *agvElt, "testLinearInterp" );
-        for( size_t i = 0; i < testLen; ++i ){
-            TS_ASSERT_APPROX( o.eval( testAges[ i ] ), linearInterpValues[ i ] );
+        o.set( *m_agvElt, "testLinearInterp" );
+        for( size_t i = 0; i < TestLen; ++i ){
+            TS_ASSERT_APPROX( o.eval( TestAges[ i ] ), LinearInterpValues[ i ] );
         }
     }
     
 private:
-    static const size_t dataLen = 5;
-    static const size_t testLen = 8;
-    static const double stdLbounds[dataLen];
-    static const double stdValues[dataLen];
-    static const double testAges[testLen];
-    static const double piecewiseConstValues[testLen];
-    static const double linearInterpValues[testLen];
-    unique_ptr<scnXml::AgeGroupValues> agvElt;
+    static const size_t DataLen = 5;
+    static const size_t TestLen = 8;
+    static const double StdLbounds[DataLen];
+    static const double StdValues[DataLen];
+    static const double TestAges[TestLen];
+    static const double PiecewiseConstValues[TestLen];
+    static const double LinearInterpValues[TestLen];
+    unique_ptr<scnXml::AgeGroupValues> m_agvElt;
 };
 
-const double AgeGroupInterpolationSuite::stdLbounds[] = {
+const double AgeGroupInterpolationSuite::StdLbounds[] = {
     0,5,10,15,60
 };
-const double AgeGroupInterpolationSuite::stdValues[] = {
+const double AgeGroupInterpolationSuite::StdValues[] = {
     6.08,3.81,2.62,4.05,5.41
 };
-const double AgeGroupInterpolationSuite::testAges[] = {
+const double AgeGroupInterpolationSuite::TestAges[] = {
     // various ages, designed to test limits, boundary points and interpolation
     15.2,18.09,7.0,2.5,
     0.0,20.0,900.0,62.0
 };
-const double AgeGroupInterpolationSuite::piecewiseConstValues[] = {
+const double AgeGroupInterpolationSuite::PiecewiseConstValues[] = {
     4.0499999999999998, 4.0499999999999998, 3.8100000000000001, 6.0800000000000001,
     6.0800000000000001, 4.0499999999999998, 5.4100000000000001, 5.4100000000000001
 };
-const double AgeGroupInterpolationSuite::linearInterpValues[] = {
+const double AgeGroupInterpolationSuite::LinearInterpValues[] = {
     2.7744400000000002, 2.9397479999999998, 4.0369999999999999, 6.0800000000000001,
     6.0800000000000001, 3.0489999999999999, 5.4100000000000001, 4.938533333333333
 };

@@ -29,64 +29,64 @@
 #include <iostream>
 
 namespace OM { namespace util {
-    std::bitset<NUM_OPTIONS> ModelOptions::options;
+    std::bitset<NUM_OPTIONS> ModelOptions::s_options;
     
     // Utility: converts option strings to codes and back
     class OptionCodeMap {
 	// Lookup table to translate the strings used in the XML file to the internal enumerated values:
-	map<string,OptionCodes> codeMap;
-        set<string> ignoreOptions;
+	map<string,OptionCodes> m_codeMap;
+        set<string> m_ignoreOptions;
 	
     public:
 	OptionCodeMap () {
 // 	    codeMap["PENALISATION_EPISODES"] = PENALISATION_EPISODES;
-	    codeMap["NEGATIVE_BINOMIAL_MASS_ACTION"] = NEGATIVE_BINOMIAL_MASS_ACTION;
+	    m_codeMap["NEGATIVE_BINOMIAL_MASS_ACTION"] = NEGATIVE_BINOMIAL_MASS_ACTION;
 	    // codeMap["ATTENUATION_ASEXUAL_DENSITY"] = ATTENUATION_ASEXUAL_DENSITY;
-	    codeMap["LOGNORMAL_MASS_ACTION"] = LOGNORMAL_MASS_ACTION;
-	    codeMap["NO_PRE_ERYTHROCYTIC"] = NO_PRE_ERYTHROCYTIC;
-	    codeMap["MAX_DENS_CORRECTION"] = MAX_DENS_CORRECTION;
-	    codeMap["INNATE_MAX_DENS"] = INNATE_MAX_DENS;
+	    m_codeMap["LOGNORMAL_MASS_ACTION"] = LOGNORMAL_MASS_ACTION;
+	    m_codeMap["NO_PRE_ERYTHROCYTIC"] = NO_PRE_ERYTHROCYTIC;
+	    m_codeMap["MAX_DENS_CORRECTION"] = MAX_DENS_CORRECTION;
+	    m_codeMap["INNATE_MAX_DENS"] = INNATE_MAX_DENS;
 	    // 	codeMap["MAX_DENS_RESET"] = MAX_DENS_RESET;
-	    codeMap["DUMMY_WITHIN_HOST_MODEL"] = DUMMY_WITHIN_HOST_MODEL;
-	    codeMap["PREDETERMINED_EPISODES"] = PREDETERMINED_EPISODES;
-	    codeMap["NON_MALARIA_FEVERS"] = NON_MALARIA_FEVERS;
-        ignoreOptions.insert("INCLUDES_PK_PD");
-	    codeMap["CLINICAL_EVENT_SCHEDULER"] = CLINICAL_EVENT_SCHEDULER;
-	    codeMap["MUELLER_PRESENTATION_MODEL"] = MUELLER_PRESENTATION_MODEL;
-	    codeMap["TRANS_HET"] = TRANS_HET;
-	    codeMap["COMORB_HET"] = COMORB_HET;
-	    codeMap["TREAT_HET"] = TREAT_HET;
-	    codeMap["COMORB_TRANS_HET"] = COMORB_TRANS_HET;
-	    codeMap["TRANS_TREAT_HET"] = TRANS_TREAT_HET;
-	    codeMap["COMORB_TREAT_HET"] = COMORB_TREAT_HET;
-	    codeMap["TRIPLE_HET"] = TRIPLE_HET;
-	    codeMap["EMPIRICAL_WITHIN_HOST_MODEL"] = EMPIRICAL_WITHIN_HOST_MODEL;
-        codeMap["MOLINEAUX_WITHIN_HOST_MODEL"] = MOLINEAUX_WITHIN_HOST_MODEL;
-        codeMap["PENNY_WITHIN_HOST_MODEL"] = PENNY_WITHIN_HOST_MODEL;
-        codeMap["GARKI_DENSITY_BIAS"] = GARKI_DENSITY_BIAS;
+	    m_codeMap["DUMMY_WITHIN_HOST_MODEL"] = DUMMY_WITHIN_HOST_MODEL;
+	    m_codeMap["PREDETERMINED_EPISODES"] = PREDETERMINED_EPISODES;
+	    m_codeMap["NON_MALARIA_FEVERS"] = NON_MALARIA_FEVERS;
+        m_ignoreOptions.insert("INCLUDES_PK_PD");
+	    m_codeMap["CLINICAL_EVENT_SCHEDULER"] = CLINICAL_EVENT_SCHEDULER;
+	    m_codeMap["MUELLER_PRESENTATION_MODEL"] = MUELLER_PRESENTATION_MODEL;
+	    m_codeMap["TRANS_HET"] = TRANS_HET;
+	    m_codeMap["COMORB_HET"] = COMORB_HET;
+	    m_codeMap["TREAT_HET"] = TREAT_HET;
+	    m_codeMap["COMORB_TRANS_HET"] = COMORB_TRANS_HET;
+	    m_codeMap["TRANS_TREAT_HET"] = TRANS_TREAT_HET;
+	    m_codeMap["COMORB_TREAT_HET"] = COMORB_TREAT_HET;
+	    m_codeMap["TRIPLE_HET"] = TRIPLE_HET;
+	    m_codeMap["EMPIRICAL_WITHIN_HOST_MODEL"] = EMPIRICAL_WITHIN_HOST_MODEL;
+        m_codeMap["MOLINEAUX_WITHIN_HOST_MODEL"] = MOLINEAUX_WITHIN_HOST_MODEL;
+        m_codeMap["PENNY_WITHIN_HOST_MODEL"] = PENNY_WITHIN_HOST_MODEL;
+        m_codeMap["GARKI_DENSITY_BIAS"] = GARKI_DENSITY_BIAS;
 //      codeMap["IPTI_SP_MODEL"] = IPTI_SP_MODEL;
 //      codeMap["REPORT_ONLY_AT_RISK"] = REPORT_ONLY_AT_RISK; 
-	    codeMap["MEAN_DURATION_GAMMA"] = MEAN_DURATION_GAMMA;
-	    codeMap["FIRST_LOCAL_MAXIMUM_GAMMA"] = FIRST_LOCAL_MAXIMUM_GAMMA;
-	    codeMap["IMMUNE_THRESHOLD_GAMMA"] = IMMUNE_THRESHOLD_GAMMA;
-	    codeMap["UPDATE_DENSITY_GAMMA"] = UPDATE_DENSITY_GAMMA;
-	    codeMap["PARASITE_REPLICATION_GAMMA"] = PARASITE_REPLICATION_GAMMA;
-        codeMap["VECTOR_LIFE_CYCLE_MODEL"] = VECTOR_LIFE_CYCLE_MODEL;
-        codeMap["VECTOR_SIMPLE_MPD_MODEL"] = VECTOR_SIMPLE_MPD_MODEL;
-        codeMap["MOLINEAUX_PAIRWISE_SAMPLE"] = MOLINEAUX_PAIRWISE_SAMPLE;
-        ignoreOptions.insert("PROPHYLACTIC_DRUG_ACTION_MODEL");
-        codeMap["VIVAX_SIMPLE_MODEL"] = VIVAX_SIMPLE_MODEL;
-        codeMap["INDIRECT_MORTALITY_FIX"] = INDIRECT_MORTALITY_FIX;
-        codeMap["VACCINE_GENOTYPE"] = VACCINE_GENOTYPE;
-        codeMap["CFR_PF_USE_HOSPITAL"] = CFR_PF_USE_HOSPITAL;
-        codeMap["HEALTH_SYSTEM_MEMORY_FIX"] = HEALTH_SYSTEM_MEMORY_FIX;
-        codeMap["USE_EXACT_NV0_SOLVER"] = USE_EXACT_NV0_SOLVER;
+	    m_codeMap["MEAN_DURATION_GAMMA"] = MEAN_DURATION_GAMMA;
+	    m_codeMap["FIRST_LOCAL_MAXIMUM_GAMMA"] = FIRST_LOCAL_MAXIMUM_GAMMA;
+	    m_codeMap["IMMUNE_THRESHOLD_GAMMA"] = IMMUNE_THRESHOLD_GAMMA;
+	    m_codeMap["UPDATE_DENSITY_GAMMA"] = UPDATE_DENSITY_GAMMA;
+	    m_codeMap["PARASITE_REPLICATION_GAMMA"] = PARASITE_REPLICATION_GAMMA;
+        m_codeMap["VECTOR_LIFE_CYCLE_MODEL"] = VECTOR_LIFE_CYCLE_MODEL;
+        m_codeMap["VECTOR_SIMPLE_MPD_MODEL"] = VECTOR_SIMPLE_MPD_MODEL;
+        m_codeMap["MOLINEAUX_PAIRWISE_SAMPLE"] = MOLINEAUX_PAIRWISE_SAMPLE;
+        m_ignoreOptions.insert("PROPHYLACTIC_DRUG_ACTION_MODEL");
+        m_codeMap["VIVAX_SIMPLE_MODEL"] = VIVAX_SIMPLE_MODEL;
+        m_codeMap["INDIRECT_MORTALITY_FIX"] = INDIRECT_MORTALITY_FIX;
+        m_codeMap["VACCINE_GENOTYPE"] = VACCINE_GENOTYPE;
+        m_codeMap["CFR_PF_USE_HOSPITAL"] = CFR_PF_USE_HOSPITAL;
+        m_codeMap["HEALTH_SYSTEM_MEMORY_FIX"] = HEALTH_SYSTEM_MEMORY_FIX;
+        m_codeMap["USE_EXACT_NV0_SOLVER"] = USE_EXACT_NV0_SOLVER;
 	}
 	
 	OptionCodes operator[] (const string s) {
-	    auto codeIt = codeMap.find (s);
-	    if( codeIt != codeMap.end() ) return codeIt->second;
-            if( ignoreOptions.count(s) ){
+	    auto codeIt = m_codeMap.find (s);
+	    if( codeIt != m_codeMap.end() ) return codeIt->second;
+            if( m_ignoreOptions.count(s) ){
                 if( CommandLine::option(CommandLine::DEPRECATION_WARNINGS) ){
                     cerr << "Deprecation warning: model option " << s << " is no longer used" << endl;
                 }
@@ -104,12 +104,12 @@ namespace OM { namespace util {
             }else{
                 msg << "Unrecognised model option: " << s;
             }
-            throw xml_scenario_error(msg.str());
+            throw XmlScenarioError(msg.str());
 	}
 	// reverse-lookup in map; only used for error/debug printing so efficiency is unimportant
 	// doesn't ensure code is unique in the map either
 	string toString (const OptionCodes code) {
-	    for(auto codeIt = codeMap.begin(); codeIt != codeMap.end(); ++codeIt) {
+	    for(auto codeIt = m_codeMap.begin(); codeIt != m_codeMap.end(); ++codeIt) {
 		if (codeIt->second == code)
 		    return codeIt->first;
 	    }
@@ -146,20 +146,20 @@ namespace OM { namespace util {
     OptionCodeMap codeMap;
 
 	// Set options to legacy defaults, then override any given in the XML file:
-	options = getLegacyDefaultModelOptions();
+	s_options = getLegacyDefaultModelOptions();
 
-    const util::ModelNames namedModelToUse = mnp.GetModelName();
+    const util::ModelNames namedModelToUse = mnp.getModelName();
     const bool useNamedModel = namedModelToUse != util::ModelNames::none;
     if (useNamedModel)
     {
         if (namedModelToUse == util::ModelNames::base)
         {
             // This completely discards any legacy model options set above.
-            options = getBaseModelOptions();
+            s_options = getBaseModelOptions();
         }
         else
         {
-            throw util::xml_scenario_error(
+            throw util::XmlScenarioError(
                 "No pre-set model options are available for the specified model name.");
         }
     }
@@ -170,7 +170,7 @@ namespace OM { namespace util {
 	    const scnXml::OptionSet::OptionSequence& optSeq = optionsElt.get().getOption();
 	    for(auto it = optSeq.begin(); it != optSeq.end(); ++it) {
                 OptionCodes opt = codeMap[it->getName()];
-                if( opt != IGNORE ) options[opt] = it->getValue();
+                if( opt != IGNORE ) s_options[opt] = it->getValue();
 	    }
     }
 	
@@ -179,8 +179,8 @@ namespace OM { namespace util {
         const std::bitset<NUM_OPTIONS> defaultOptSet = getLegacyDefaultModelOptions();
 	    cout << "Non-default model options:";
 	    for(int i = 0; i < NUM_OPTIONS; ++i) {
-		if (options[i] != defaultOptSet[i])
-		    cout << "\t" << codeMap.toString(OptionCodes(i)) << "=" << options[i];
+		if (s_options[i] != defaultOptSet[i])
+		    cout << "\t" << codeMap.toString(OptionCodes(i)) << "=" << s_options[i];
 	    }
 	    cout << endl;
 	}
@@ -265,51 +265,51 @@ namespace OM { namespace util {
             .set( PENNY_WITHIN_HOST_MODEL );
         
 	for(size_t i = 0; i < NUM_OPTIONS; ++i) {
-	    if (options [i] && (options & incompatibilities[i]).any()) {
+	    if (s_options [i] && (s_options & incompatibilities[i]).any()) {
 		ostringstream msg;
-		msg << "Incompatible model options: " << codeMap.toString(OptionCodes(i)) << "=" << options[i]
+		msg << "Incompatible model options: " << codeMap.toString(OptionCodes(i)) << "=" << s_options[i]
 			<< " is incompatible with flags:";
-		bitset<NUM_OPTIONS> incompat = (options & incompatibilities[i]);
+		bitset<NUM_OPTIONS> incompat = (s_options & incompatibilities[i]);
 		for(int j = 0; j < NUM_OPTIONS; ++j) {
 		    if (incompat[j])
-			msg << "\t" << codeMap.toString(OptionCodes(j)) << "=" << options[j];
+			msg << "\t" << codeMap.toString(OptionCodes(j)) << "=" << s_options[j];
 		}
-		throw xml_scenario_error (msg.str());
+		throw XmlScenarioError (msg.str());
 	    }
 	}
 	
         // Required options (above table can't check these):
-        if (options[INNATE_MAX_DENS] && !options[MAX_DENS_CORRECTION])
-            throw xml_scenario_error ("INNATE_MAX_DENS requires MAX_DENS_CORRECTION");
-        if( !options[MOLINEAUX_WITHIN_HOST_MODEL] && (
-            options[FIRST_LOCAL_MAXIMUM_GAMMA] ||
-            options[MEAN_DURATION_GAMMA] ||
-            options[PARASITE_REPLICATION_GAMMA] ) )
-            throw xml_scenario_error( "Molineaux model option used without MOLINEAUX_WITHIN_HOST_MODEL option" );
-        if( !options[PENNY_WITHIN_HOST_MODEL] && (
-            options[IMMUNE_THRESHOLD_GAMMA] ||
-            options[UPDATE_DENSITY_GAMMA] ) )
-            throw xml_scenario_error( "Penny model option used without PENNY_WITHIN_HOST_MODEL option" );
+        if (s_options[INNATE_MAX_DENS] && !s_options[MAX_DENS_CORRECTION])
+            throw XmlScenarioError ("INNATE_MAX_DENS requires MAX_DENS_CORRECTION");
+        if( !s_options[MOLINEAUX_WITHIN_HOST_MODEL] && (
+            s_options[FIRST_LOCAL_MAXIMUM_GAMMA] ||
+            s_options[MEAN_DURATION_GAMMA] ||
+            s_options[PARASITE_REPLICATION_GAMMA] ) )
+            throw XmlScenarioError( "Molineaux model option used without MOLINEAUX_WITHIN_HOST_MODEL option" );
+        if( !s_options[PENNY_WITHIN_HOST_MODEL] && (
+            s_options[IMMUNE_THRESHOLD_GAMMA] ||
+            s_options[UPDATE_DENSITY_GAMMA] ) )
+            throw XmlScenarioError( "Penny model option used without PENNY_WITHIN_HOST_MODEL option" );
         
-        if( sim::oneTS() == sim::fromDays(5) ){
+        if( Sim::oneTS() == Sim::fromDays(5) ){
             // 5 day TS is okay; some tests specific to this TS:
             bitset<NUM_OPTIONS> require1DayTS;
             require1DayTS
                 .set( CLINICAL_EVENT_SCHEDULER );
             
             for(size_t i = 0; i < NUM_OPTIONS; ++i) {
-                if (options [i] && require1DayTS[i]) {
+                if (s_options [i] && require1DayTS[i]) {
                     ostringstream msg;
                     msg << "Model option " << codeMap.toString(OptionCodes(i)) << " is only compatible with a 1-day time step.";
-                    throw xml_scenario_error (msg.str());
+                    throw XmlScenarioError (msg.str());
                 }
             }
-        }else if( sim::oneTS() == sim::fromDays(1) ){
+        }else if( Sim::oneTS() == Sim::fromDays(1) ){
             // 1 day TS is also okay
         }else{
             ostringstream msg;
-            msg << "Time step set to " << sim::oneTS() << " days but only 1 and 5 days are supported.";
-            throw xml_scenario_error (msg.str());
+            msg << "Time step set to " << Sim::oneTS() << " days but only 1 and 5 days are supported.";
+            throw XmlScenarioError (msg.str());
         }
     }
     

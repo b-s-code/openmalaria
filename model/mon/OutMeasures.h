@@ -31,7 +31,7 @@ namespace OM {
 namespace mon {
 
 using Measure = uint16_t;
-inline constexpr Measure invalidMeasure = std::numeric_limits<Measure>::max() - 2;
+inline constexpr Measure InvalidMeasure = std::numeric_limits<Measure>::max() - 2;
 
 enum Dim : uint8_t {
     None = 0,
@@ -47,11 +47,11 @@ struct OutMeasure {
     int outId = -1;
     bool isDouble = false;
     uint8_t dims = Dim::None;
-    Measure measure = invalidMeasure;  // resolved at init-time
+    Measure measure = InvalidMeasure;  // resolved at init-time
 };
 
 // Output IDs are stable: append new measures and never reuse gaps.
-inline constexpr OutMeasure defs[] = {
+inline constexpr OutMeasure Defs[] = {
         {"nHost", 0, false, Dim::Age | Dim::Cohort},
         /** The number of human hosts with an infection (patent or not) at the time
         * the survey is taken. */
@@ -335,22 +335,22 @@ inline bool isObsoleteMeasure(std::string_view name)
         name == "nAddedToCohort" || name == "nRemovedFromCohort" || name == "nAntibioticTreatments";
 }
 
-inline constexpr Measure MeasureCount = sizeof(defs) / sizeof(defs[0]);
+inline constexpr Measure MeasureCount = sizeof(Defs) / sizeof(Defs[0]);
 
 consteval Measure measure(std::string_view measureName)
 {
     for (Measure i = 0; i < MeasureCount; ++i) {
-        if (defs[i].name == measureName) return i;
+        if (Defs[i].name == measureName) return i;
     }
     throw "unknown monitoring measure";
 }
 
-inline constexpr Measure allCauseIMR = measure("allCauseIMR");
+inline constexpr Measure AllCauseImr = measure("allCauseIMR");
 
 inline OutMeasure findOutMeasure(std::string_view name)
 {
     for (Measure i = 0; i < MeasureCount; ++i) {
-        OutMeasure om = defs[i];
+        OutMeasure om = Defs[i];
         if (om.outId >= 0 && name == om.name) {
             om.measure = i;
             return om;
@@ -361,15 +361,15 @@ inline OutMeasure findOutMeasure(std::string_view name)
 
 inline bool isValidCondition(Measure measure)
 {
-    static constexpr Measure invalid[] = {
+    static constexpr Measure Invalid[] = {
         mon::measure("nSevere"), mon::measure("nSevereWithoutComorbidities"), mon::measure("nUncomp"),
         mon::measure("nDirDeaths"), mon::measure("nHospitalDeaths"), mon::measure("Clinical_FirstDayDeaths"),
         mon::measure("Clinical_HospitalFirstDayDeaths"), mon::measure("nSeq"), mon::measure("nHospitalSeqs"),
         mon::measure("nHospitalRecovs"), mon::measure("nNMFever"), mon::measure("nNmfDeaths"),
         mon::measure("nSubPopRemovalFirstEvent"), mon::measure("innoculationsPerAgeGroup"), mon::measure("innoculationsPerVector"),
-        mon::measure("inputEIR"), mon::measure("simulatedEIR"), allCauseIMR
+        mon::measure("inputEIR"), mon::measure("simulatedEIR"), AllCauseImr
     };
-    for (Measure invalidMeasure : invalid) {
+    for (Measure invalidMeasure : Invalid) {
         if (measure == invalidMeasure) return false;
     }
     return true;

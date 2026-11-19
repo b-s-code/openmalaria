@@ -107,7 +107,7 @@ private:
 
 public:
     /// RNG used by the transmission model
-    LocalRng m_rng;
+    LocalRng rng;
 
     /// Number of iterations performed during initialization.
     ///
@@ -134,7 +134,7 @@ public:
      * found. Doesn't need checkpointing. */
     map<string, size_t> speciesIndex;
 
-    bool opt_vaccine_genotype = false;
+    bool optVaccineGenotype = false;
     
     friend class PerHost;
     friend class AnophelesModelSuite;

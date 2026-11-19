@@ -47,7 +47,7 @@ public:
 class PyrogenPathogenesis : public PathogenesisModel {
 protected:
     /// Critical density for fever (clinical episodes)
-    double _pyrogenThres;
+    double m_pyrogenThres;
     /// Determine the current pyrogenic threshold.
     virtual void updatePyrogenThres(double totalDensity);
 

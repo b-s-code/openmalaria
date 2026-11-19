@@ -34,17 +34,17 @@ namespace OM { namespace Host {
 using namespace OM::util;
 
 //Goodman estimated for neonatal mortality due to malaria in pregnancy
-const double gEst = 0.011;
+const double GEst = 0.011;
 //Critical value of Prev20-25 for neonatal mortality
-const double critPrev2025 = 0.25;
+const double CritPrev2025 = 0.25;
 //Critical value for estimating prevalence in primigravidae
-const double critPrevPrim = 0.19;
+const double CritPrevPrim = 0.19;
 //Proportion of births with primigravid mothers
-const double pBirthPrim = 0.3;
+const double PBirthPrim = 0.3;
 
 // optimised constants:
-const double y = pBirthPrim * gEst;
-const double z = -1.0 / critPrev2025;
+const double Y = PBirthPrim * GEst;
+const double Z = -1.0 / CritPrev2025;
 
 /// Probability for a newborn to die (indirect death) because the mother is infected.
 /// Depends on the prevalence of parasitaemia in mother at some previous t.
@@ -53,7 +53,7 @@ double riskFromMaternalInfection = 0.0;
 std::vector<double> prevByGestationalAge;
 
 /// Lower and upper bounds for potential mothers (as in model description)
-SimTime ageLb = sim::fromYearsI(20), ageUb = sim::fromYearsI(25);
+SimTime ageLb = Sim::fromYearsI(20), ageUb = Sim::fromYearsI(25);
 
 // The model is parameterised based on patency levels; the diagnostic
 // used for this may be important.
@@ -61,11 +61,11 @@ const WithinHost::Diagnostic* neonatalDiagnostic = 0;
 
 
 void NeonatalMortality::init( const scnXml::Clinical& clinical ){
-    SimTime fiveMonths = sim::fromDays( 5 * 30 );
-    prevByGestationalAge.assign( sim::inSteps(fiveMonths), 0.0 );
+    SimTime fiveMonths = Sim::fromDays( 5 * 30 );
+    prevByGestationalAge.assign( Sim::inSteps(fiveMonths), 0.0 );
     
     if( clinical.getNeonatalMortality().present() ){
-        neonatalDiagnostic = &WithinHost::diagnostics::get(
+        neonatalDiagnostic = &WithinHost::Diagnostics::get(
             clinical.getNeonatalMortality().get().getDiagnostic() );
     }else{
         //NOTE: this is a compatibility option for older scenarios
@@ -74,7 +74,7 @@ void NeonatalMortality::init( const scnXml::Clinical& clinical ){
                 "used by the Neonatal Mortality model is recommended "
                 "(model/clinical/neonatalMortality)" << endl;
         }
-        neonatalDiagnostic = &WithinHost::diagnostics::monitoringDiagnostic();
+        neonatalDiagnostic = &WithinHost::Diagnostics::monitoringDiagnostic();
     }
 }
 
@@ -88,7 +88,7 @@ void NeonatalMortality::staticCheckpoint (ostream& stream) {
 }
 
 bool NeonatalMortality::eventNeonatalMortality(LocalRng& rng) {
-  return rng.uniform_01() <= riskFromMaternalInfection;
+  return rng.uniform01() <= riskFromMaternalInfection;
 }
 
 void NeonatalMortality::update (vector<Host::Human> &population) {
@@ -100,7 +100,7 @@ void NeonatalMortality::update (vector<Host::Human> &population) {
     for (Human& human : population){
         // diagnosticDefault() gives patency after the last time step's
         // update, so it's appropriate to use age at the beginning of this step.
-        SimTime age = human.age(sim::ts0());
+        SimTime age = human.age(Sim::ts0());
         
         // Note: since we're using a linked list, we have to iterate until we reach
         // the individuals we're interested in. Due to population structure, it's
@@ -122,7 +122,7 @@ void NeonatalMortality::update (vector<Host::Human> &population) {
     
     double maxPrev = prev2025;
     //update the vector containing the prevalence by gestational age
-    size_t index = sim::moduloSteps(sim::ts0(), prevByGestationalAge.size());
+    size_t index = Sim::moduloSteps(Sim::ts0(), prevByGestationalAge.size());
     prevByGestationalAge[index] = prev2025;
     for(size_t i = 0; i < prevByGestationalAge.size(); ++i) {
         if (prevByGestationalAge[i] > maxPrev) {
@@ -131,9 +131,9 @@ void NeonatalMortality::update (vector<Host::Human> &population) {
     }
     
     // equation (2) p 75 AJTMH 75 suppl 2
-    double prevPG= maxPrev / (critPrevPrim + maxPrev);
+    double prevPG= maxPrev / (CritPrevPrim + maxPrev);
     // equation (1) p 75 AJTMH 75 suppl 2 including 30% multiplier
-    riskFromMaternalInfection = y * (1.0-exp(prevPG * z));
+    riskFromMaternalInfection = Y * (1.0-exp(prevPG * Z));
 }
 
 } }

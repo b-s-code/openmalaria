@@ -49,7 +49,7 @@ public:
     
     virtual Component::Type componentType() const;
     
-    virtual void print_details( std::ostream& out )const;
+    virtual void printDetails( std::ostream& out )const;
     
 private:
     /** Get the initial efficacy of the vaccine.
@@ -58,25 +58,25 @@ private:
     double getInitialEfficacy (LocalRng& rng, size_t numPrevDoses, uint32_t genotype ) const;
 
     inline static const VaccineComponent& getParams( ComponentId component ){
-        assert( component.id < params.size() && params[component.id] != 0 );
-        return *params[component.id];
+        assert( component.id < s_params.size() && s_params[component.id] != 0 );
+        return *s_params[component.id];
     }
     
     /// Vaccine component type
-    Vaccine::Types type;
+    Vaccine::Types m_type;
     
     /// Function representing decay of effect
-    unique_ptr<util::DecayFunction> decayFunc;
+    unique_ptr<util::DecayFunction> m_decayFunc;
 
     /* Vaccine type specific parameters
      * Initial mean efficacy, definition depends on vaccine type */
-    vector<vector<double>> perGenotypeInitialMeanEfficacy;
+    vector<vector<double>> m_perGenotypeInitialMeanEfficacy;
 
     // Distribution of efficacies among individuals, parameter to sample from beta dist.
-    double efficacyB;
+    double m_efficacyB;
 
     // VACCINE_GENOTYPE option
-    bool opt_vaccine_genotype = false;
+    bool m_optVaccineGenotype = false;
     
     /** @brief Vaccine static parameters
      * 
@@ -84,12 +84,12 @@ private:
      * with the given component ID.
      *
      * No memory management (only leak is at exit which OS deals with). */
-    static vector<VaccineComponent*> params;
+    static vector<VaccineComponent*> s_params;
     
     //TODO(monitoring):
     /** Until the monitoring system is updated, only one type of vaccination
      * delivery can be reported. This is whichever is first configured. */
-    static ComponentId reportComponent;
+    static ComponentId s_reportComponent;
 
     friend class PerHumanVaccine;
     friend class PerEffectPerHumanVaccine;

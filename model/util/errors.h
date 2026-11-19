@@ -30,12 +30,12 @@
 
 using namespace std;
 
-/* Macros to ease use of traced_exception.
+/* Macros to ease use of TracedException.
  * msg should be obvious, and code is the program exit code.
  */
-#define TRACED_EXCEPTION( msg, code ) ::OM::util::traced_exception( (msg), __FILE__, __LINE__, (code) )
-#define TRACED_EXCEPTION_DEFAULT( msg ) ::OM::util::traced_exception( (msg), __FILE__, __LINE__ )
-#define SWITCH_DEFAULT_EXCEPTION ::OM::util::traced_exception( OM::util::Messages::SwitchDefault, __FILE__, __LINE__, ::OM::util::Error::SwitchDefault )
+#define TRACED_EXCEPTION( msg, code ) ::OM::util::TracedException( (msg), __FILE__, __LINE__, (code) )
+#define TRACED_EXCEPTION_DEFAULT( msg ) ::OM::util::TracedException( (msg), __FILE__, __LINE__ )
+#define SWITCH_DEFAULT_EXCEPTION ::OM::util::TracedException( OM::util::Messages::switchDefault, __FILE__, __LINE__, ::OM::util::Error::SwitchDefault )
 
 // #define OM_NO_STACK_TRACE
 
@@ -46,10 +46,10 @@ using namespace std;
 #endif
 
 // Macro to make checking XML inputs easier
-#define XML_ASSERT( cond, msg ) if(!(cond)) throw ::OM::util::xml_scenario_error(msg)
+#define XML_ASSERT( cond, msg ) if(!(cond)) throw ::OM::util::XmlScenarioError(msg)
 
-#define OM_ASSERT_EQ( a, b ) ::OM::util::do_assertion( (a), (b), __FILE__, __LINE__ )
-#define OM_ASSERT_EQ_TOL( a, b, tol ) ::OM::util::do_assertion_tol( (a), (b), (tol), __FILE__, __LINE__ )
+#define OM_ASSERT_EQ( a, b ) ::OM::util::doAssertion( (a), (b), __FILE__, __LINE__ )
+#define OM_ASSERT_EQ_TOL( a, b, tol ) ::OM::util::doAssertionTol( (a), (b), (tol), __FILE__, __LINE__ )
 
 /** Standard exception classes for OpenMalaria. */
 namespace OM { namespace util {
@@ -96,7 +96,7 @@ namespace OM { namespace util {
         Max
     }; }
     namespace Messages {
-        extern const char *SwitchDefault;
+        extern const char *switchDefault;
     }
     
     // As in the "Advanced Bash-Scripting Guide"; not directly relevant to C++
@@ -110,16 +110,16 @@ namespace OM { namespace util {
      * 
      * When throwing this or a subclass, give a message which should be
      * informative and clear from a user-perspective, unless the result is a
-     * code error. In this case use traced_exception. */
-    class base_exception : public runtime_error {
+     * code error. In this case use TracedException. */
+    class BaseException : public runtime_error {
     public:
         // for common errors, specify a unique TRACED_DEFAULT to help segregate
         // errors in BOINC server summaries; otherwise leave the default
-        explicit base_exception(const string& msg, int code=Error::Default);
+        explicit BaseException(const string& msg, int code=Error::Default);
         /** Get the classification. This should be some value of the
          * Error::ErrorCodes enum. */
         inline int getCode() const{
-            return errCode;
+            return m_errCode;
         }
         /** Get the message. Use this as opposed to what() to enable overriding
          * (without dealing with the messy details of how exactly each standard
@@ -128,28 +128,28 @@ namespace OM { namespace util {
             return what();
         }
     private:
-        int errCode;
+        int m_errCode;
     };
     
-    /** Extension of base_exception for not-yet-implemented features. */
-    class unimplemented_exception : public base_exception {
+    /** Extension of BaseException for not-yet-implemented features. */
+    class UnimplementedException : public BaseException {
     public:
-        explicit unimplemented_exception(const string& msg);
+        explicit UnimplementedException(const string& msg);
         
         /** Complete the error message.
          *
          * Warning: this function is not very robust. References to the
          * returned result should not survive beyond a second call to this
-         * function (from any unimplemented_exception object). */
+         * function (from any UnimplementedException object). */
         virtual const char* message() const;
     };
     
-    /** Extension of base_exception which tries to get a stack trace. Also
+    /** Extension of BaseException which tries to get a stack trace. Also
      * prints a message indicating that this is likely a code error.
      * 
      * Should be used when catching code errors to get extra debugging
      * information. */
-    class traced_exception : public base_exception {
+    class TracedException : public BaseException {
     public:
         /** Create a stack-trace and store in this object.
          * 
@@ -164,68 +164,68 @@ namespace OM { namespace util {
          * See TRACED_EXCEPTION and TRACED_EXCEPTION_DEFAULT macros which
          * reduce the number of arguments which need to be passed.
          */
-        explicit traced_exception(const string& msg, const char *file, int line, int code=Error::TracedDefault, int start=1);
-        virtual ~traced_exception() throw();
+        explicit TracedException(const string& msg, const char *file, int line, int code=Error::TracedDefault, int start=1);
+        virtual ~TracedException() throw();
     private:
-        const char *file;
-        int line, start;
+        const char *m_file;
+        int m_line, m_start;
 #ifdef OM_GNU_STACK_TRACE
-        size_t length;
-        char** trace;
+        size_t m_length;
+        char** m_trace;
 #endif
-        friend ostream& operator<<(ostream& stream, const traced_exception& e);
+        friend ostream& operator<<(ostream& stream, const TracedException& e);
     };
     /// Print trace to stream (a series of lines, each with \\n appended)
-    ostream& operator<<(ostream& stream, const traced_exception& e);
+    ostream& operator<<(ostream& stream, const TracedException& e);
     
     /** Thrown to indicate an error in the scenario.xml file.
      * 
      * Since such errors are always user-input errors, collecting a stack
      * trace doesn't help. Just provide a useful message! */
-    class xml_scenario_error : public base_exception {
+    class XmlScenarioError : public BaseException {
     public:
-        explicit xml_scenario_error(const string& msg);
+        explicit XmlScenarioError(const string& msg);
     };
     
     /** Thrown to indicate a badly formatted parameter. */
-    class format_error : public xml_scenario_error {
+    class FormatError : public XmlScenarioError {
     public:
-        explicit format_error (const string& what_arg);
+        explicit FormatError (const string& whatArg);
     };
     
     /** Thrown to indicate an error while loading/saving a checkpoint.
     *
     * Prepends "Error reading checkpoint: " to the message. */
-    class checkpoint_error : public traced_exception {
+    class CheckpointError : public TracedException {
     public:
-        explicit checkpoint_error(const string& msg);
+        explicit CheckpointError(const string& msg);
     };
     
     /** Thrown due to command-line error or to halt, when a command-line
      * argument prompts an early exit. Not an error when errCode==0. */
-    class cmd_exception : public base_exception {
+    class CmdException : public BaseException {
     public:
-        explicit cmd_exception(const string& msg, int code=Error::CommandLine);
+        explicit CmdException(const string& msg, int code=Error::CommandLine);
     };
     
     /** Set up a GSL handler to throw a traced exception. */
-    void set_gsl_handler();
+    void setGslHandler();
     
     template<typename A, typename B>
-    void do_assertion(A a, B b, const char *file, int line) {
+    void doAssertion(A a, B b, const char *file, int line) {
         if( a != b ) {
                 ostringstream oss;
                 oss << "Expected " << a << " == " << b;
-                throw traced_exception( oss.str(), file, line, Error::Assertion );
+                throw TracedException( oss.str(), file, line, Error::Assertion );
         }
     }
     
     template<typename T>
-    void do_assertion_tol(T a, T b, T tol, const char *file, int line) {
+    void doAssertionTol(T a, T b, T tol, const char *file, int line) {
         if( !((a < b + tol ) && (b < a + tol)) ){
                 ostringstream oss;
                 oss << "Expected " << a << " == " << b << " to tolerance " << tol;
-                throw traced_exception( oss.str(), file, line, Error::Assertion );
+                throw TracedException( oss.str(), file, line, Error::Assertion );
         }
     }
 } }

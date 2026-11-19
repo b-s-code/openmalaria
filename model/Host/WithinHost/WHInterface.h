@@ -57,14 +57,14 @@ using util::LocalRng;
  * functionality offered by CMDecisionTree, and thus is technically redundant.
  */
 struct TreatmentId{
-    inline bool operator==( const TreatmentId that ){ return id == that.id; }
-    inline bool operator!=( const TreatmentId that ){ return id != that.id; }
+    inline bool operator==( const TreatmentId that ){ return m_id == that.m_id; }
+    inline bool operator!=( const TreatmentId that ){ return m_id != that.m_id; }
     
     /// Default constructor: construct to an initial value. Don't pass this value to WHInterface::treatment()!
-    TreatmentId() : id(numeric_limits<uint32_t>::max()) {}
+    TreatmentId() : m_id(numeric_limits<uint32_t>::max()) {}
 private:
-    explicit TreatmentId(uint32_t id) : id(id) {}
-    uint32_t id;
+    explicit TreatmentId(uint32_t id) : m_id(id) {}
+    uint32_t m_id;
     friend class Treatments;
 };
 
@@ -91,7 +91,7 @@ public:
 
     /// @brief Constructors, destructors and checkpointing functions
     //@{
-    WHInterface(): numInfs(0) {}
+    WHInterface(): m_numInfs(0) {}
     virtual ~WHInterface() = default;
     
     WHInterface(WHInterface&&) = default;
@@ -129,7 +129,7 @@ public:
      * This is equivalent to calling treatSimple, then deploying any included interventions.
      * 
      * This may be used by intervention deployment, thus should use time 
-     * sim::nowOrTs1(). */
+     * Sim::nowOrTs1(). */
     virtual void treatment( Host::Human& human, TreatmentId treatId ) =0;
     
     /// Conditionally gives Primaquine as a treatment. Reports as appropriate.
@@ -148,7 +148,7 @@ public:
      * @param dosages Index of a dosage table
      * @param age Age of human in years
      */
-    virtual void treatPkPd(size_t schedule, size_t dosages, double age, double delay_d) =0;
+    virtual void treatPkPd(size_t schedule, size_t dosages, double age, double delayD) =0;
 
     /** Add new infections and update the parasite densities of existing
      * infections. Also update immune status.
@@ -160,7 +160,7 @@ public:
      * @param bsvFactor Parasite survival factor for blood-stage vaccines
      */
     virtual void update(Host::Human &human, LocalRng& rng, int &nNewInfs_i, int &nNewInfs_l, 
-        vector<double>& genotype_weights_i, vector<double>& genotype_weights_l, double ageInYears) =0;
+        vector<double>& genotypeWeightsI, vector<double>& genotypeWeightsL, double ageInYears) =0;
 
     /** TODO: this should not need to be exposed. It is currently used by a
      * severe outcome (pDeath) model inside the EventScheduler "case
@@ -202,14 +202,14 @@ public:
      * infections to baloon stupidly.
      *
      * Exact constraint is: _MOI <= MAX_INFECTIONS. */
-    static const int MAX_INFECTIONS = 21;
+    static const int MaxInfections = 21;
 
 protected:    
     virtual void checkpoint (istream& stream);
     virtual void checkpoint (ostream& stream);
 
     /// Multiplicity of infection
-    int numInfs;
+    int m_numInfs;
 
     friend class ::UnittestUtil;
 };

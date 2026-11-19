@@ -36,7 +36,7 @@ struct DoseParams;
 }
 namespace PkPd {
 
-struct Params_fC;
+struct ParamsFC;
 
 /** A class holding PK and PD drug info, per human, per drug type.
  * 
@@ -53,15 +53,15 @@ public:
     virtual size_t getIndex() const;
     virtual double getConcentration(size_t index) const;
     
-    virtual double calculateDrugFactor(LocalRng& rng, WithinHost::CommonInfection *inf, double body_mass) const;
-    virtual void updateConcentration (double body_mass);
+    virtual double calculateDrugFactor(LocalRng& rng, WithinHost::CommonInfection *inf, double bodyMass) const;
+    virtual void updateConcentration (double bodyMass);
     
 protected:
     virtual void checkpoint (istream& stream);
     virtual void checkpoint (ostream& stream);
     
     inline double conc() const{
-        return concA + concB + concC - concABC;
+        return m_concA + m_concB + m_concC - m_concAbc;
     }
     
     // Update constants. bm: body mass (kg)
@@ -69,28 +69,28 @@ protected:
     
     /// Always links a drug instance to its drug-type data
     //TODO: does it still make sense to link this?
-    const LSTMDrugType& typeData;
+    const LSTMDrugType& m_typeData;
     
     // Concentrations in the blood and other compartments
     // See "Permutation of the three-compartment equation",
     // Diggory Hardy, Swiss TPH, February 3, 2015
-    double concA, concB, concC, concABC;
+    double m_concA, m_concB, m_concC, m_concAbc;
     
     // Sampled constants
-    double elim_sample;
-    double k12, k21, k13, k31;
-    double nka;    // -k_a
+    double m_elimSample;
+    double m_k12, m_k21, m_k13, m_k31;
+    double m_nka;    // -k_a
     
     // Computed parameters, constant except for dependence on body mass
     // (this is essentially a cache updated by updateCached())
-    mutable double last_bm;     // body mass at time of last calculation
-    mutable double na, nb, ng;      // -α, -β, -γ, -k_a
+    mutable double m_lastBm;     // body mass at time of last calculation
+    mutable double m_na, m_nb, m_ng;      // -α, -β, -γ, -k_a
     mutable double A, B, C;     // A, B, C
     
 private:
-    double calculateFactor(const Params_fC& p, double duration) const;
+    double calculateFactor(const ParamsFC& p, double duration) const;
     
-    friend double func_fC( double t, void* pp );        // function used in calculateFactor
+    friend double funcFC( double t, void* pp );        // function used in calculateFactor
 };
 
 }

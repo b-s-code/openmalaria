@@ -85,7 +85,7 @@ Parameters to assign infection dependent parameters
 const double beta_N=0.5198;
 const double psi_N=0.0946;
 const double kappa_N=2.9506;
-const double sigma_epsilon=1.4217; 
+const double SigmaEpsilon=1.4217; 
 
 /* Clonal immunity related */
 const double beta_C=0.1872;
@@ -103,8 +103,8 @@ const double lambda_V=4.2119;
 const double prob_lambda_V = 1.0 / lambda_V;
 
 /* distribution model paramters */
-bool PennyInfection::immune_threshold_gamma = false;
-bool PennyInfection::update_density_gamma = false;
+bool PennyInfection::s_immuneThresholdGamma = false;
+bool PennyInfection::s_updateDensityGamma = false;
 
 /* Parameters to assign infection dependent parameters */
 const double mu_Y=3.9700;
@@ -133,7 +133,7 @@ const double a_TV = 19.8167;
 const double b_TV = 0.3093;
 
 /* Other infection parameters */
-const double m_rep=16.0; 
+const double MRep=16.0; 
 const double Omega=0.00025;
 //TODO ending of infection is density per microL of ADULTS, we need to relate weight to BV
 
@@ -148,29 +148,29 @@ CommonInfection* checkpointedPennyInfection (istream& stream) {
 }
 
 void PennyInfection::init() {
-    CommonWithinHost::createInfection = &createPennyInfection;
-    CommonWithinHost::checkpointedInfection = &checkpointedPennyInfection;
+    CommonWithinHost::s_createInfection = &createPennyInfection;
+    CommonWithinHost::s_checkpointedInfection = &checkpointedPennyInfection;
 
     if(util::ModelOptions::option (util::IMMUNE_THRESHOLD_GAMMA)) {
-        immune_threshold_gamma = true;
+        s_immuneThresholdGamma = true;
     } else {
-        immune_threshold_gamma = false;
+        s_immuneThresholdGamma = false;
     }
     
     if(util::ModelOptions::option (util::UPDATE_DENSITY_GAMMA)) {
-        update_density_gamma = true;
+        s_updateDensityGamma = true;
     } else {
-        update_density_gamma = false;
+        s_updateDensityGamma = false;
     }
 }
 
 PennyInfection::PennyInfection(LocalRng& rng, uint32_t protID, int origin):
         CommonInfection(protID, origin),
-        variantSpecificSummation(0),
-        clonalSummation(0)
+        m_variantSpecificSummation(0),
+        m_clonalSummation(0)
 {
     // assign infection dependent immune thresholds
-    if( immune_threshold_gamma )/* using gamma distribution */{
+    if( s_immuneThresholdGamma )/* using gamma distribution */{
         do {
             threshold_N = exp(rng.gamma(a_TN,b_TN));
             threshold_C = exp(rng.gamma(a_TC,b_TC));
@@ -185,40 +185,40 @@ PennyInfection::PennyInfection(LocalRng& rng, uint32_t protID, int origin):
     }
     
     for(int i=0; i<delta_C; ++i){
-        cirDensities[i] = 0.0;
+        m_cirDensities[i] = 0.0;
     }
     for(int i=0; i<delta_V; ++i){
-        seqDensities[i] = 0.0;
+        m_seqDensities[i] = 0.0;
     }
 }
 
 
 bool PennyInfection::updateDensity( LocalRng& rng, double survivalFactor, SimTime bsAge, double ){
     int ageDays = bsAge;       // lazy
-    if( bsAge == sim::zero() ){
+    if( bsAge == Sim::zero() ){
         // assign initial densities (Y circulating, X sequestered)
-        size_t today = mod_nn(ageDays, delta_C);
+        size_t today = modNn(ageDays, delta_C);
         
-        if(update_density_gamma) {
-            cirDensities[today] = exp(rng.gamma(a_Y,b_Y));
+        if(s_updateDensityGamma) {
+            m_cirDensities[today] = exp(rng.gamma(a_Y,b_Y));
         } else {
-            cirDensities[today] = exp(rng.gauss(mu_Y,sigma_Y));
+            m_cirDensities[today] = exp(rng.gauss(mu_Y,sigma_Y));
         }
         
-        m_density = cirDensities[today];
-        today = mod_nn(ageDays, delta_V);
+        m_density = m_cirDensities[today];
+        today = modNn(ageDays, delta_V);
         
-        if(update_density_gamma){
-            seqDensities[today] = exp(rng.gamma(a_X,b_X));
+        if(s_updateDensityGamma){
+            m_seqDensities[today] = exp(rng.gamma(a_X,b_X));
         } else {
-            seqDensities[today] = exp(rng.gauss(mu_X,sigma_X));
+            m_seqDensities[today] = exp(rng.gauss(mu_X,sigma_X));
         }
     }
     else /*not first day*/
     {
         // save yesterday's density (since getVariantSpecificSummation may reset it to zero)
-        size_t yesterdayV = mod_nn(ageDays - 1, delta_V);
-        double seqDensityYesterday = seqDensities[yesterdayV];
+        size_t yesterdayV = modNn(ageDays - 1, delta_V);
+        double seqDensityYesterday = m_seqDensities[yesterdayV];
         
         // The immune responses are represented by the variables
         // R_Nx, RNy (probability that a parasite escapes control by clonal immune response)
@@ -226,8 +226,8 @@ bool PennyInfection::updateDensity( LocalRng& rng, double survivalFactor, SimTim
         // R_Vx,    (probability that a parasite escapes control by clonal immune response)
         
         // innate immunity  
-        size_t yesterdayC = mod_nn(ageDays - 1, delta_C);
-        double base_N = cirDensities[yesterdayC]/threshold_N;
+        size_t yesterdayC = modNn(ageDays - 1, delta_C);
+        double base_N = m_cirDensities[yesterdayC]/threshold_N;
         double base_Npow = pow(base_N,kappa_N);
         double R_Nx = (1.0-beta_N) / (1.0 + base_Npow) + beta_N;
         double R_Ny = (1.0-psi_N) / (1.0 + base_Npow) + psi_N;
@@ -248,42 +248,42 @@ bool PennyInfection::updateDensity( LocalRng& rng, double survivalFactor, SimTim
         //  seq parasites escape control by immune response.
         // new seqDensity  = (cirDensity(t-1)) * the probability that
         //  circ parasites escape control by immune response.
-        double cirDensity_new = seqDensityYesterday * m_rep * R_Vx * R_Cx * R_Nx;
-        double seqDensity_new = cirDensities[yesterdayC] * R_Cy * R_Ny;
+        double cirDensityNew = seqDensityYesterday * MRep * R_Vx * R_Cx * R_Nx;
+        double seqDensityNew = m_cirDensities[yesterdayC] * R_Cy * R_Ny;
         
         // end infection if density less than Omega (per microL)
         // add random biologicaleffect to circulating
-        if (cirDensity_new < Omega) {
-            cirDensity_new = 0.0;
+        if (cirDensityNew < Omega) {
+            cirDensityNew = 0.0;
         } else {
             
-            if( update_density_gamma ) {
-                double a_cirDens = pow(log(cirDensity_new),2)/pow(sigma_epsilon,2);
-                double b_cirDens = pow(sigma_epsilon,2)/log(cirDensity_new);
-                cirDensity_new = exp(rng.gamma(a_cirDens,b_cirDens) ) * survivalFactor;
+            if( s_updateDensityGamma ) {
+                double a_cirDens = pow(log(cirDensityNew),2)/pow(SigmaEpsilon,2);
+                double b_cirDens = pow(SigmaEpsilon,2)/log(cirDensityNew);
+                cirDensityNew = exp(rng.gamma(a_cirDens,b_cirDens) ) * survivalFactor;
             } else {
-                cirDensity_new = exp(rng.gauss(log(cirDensity_new),sigma_epsilon)) * survivalFactor;
+                cirDensityNew = exp(rng.gauss(log(cirDensityNew),SigmaEpsilon)) * survivalFactor;
             }
             // please don't simplify this, we want more chance at ending infection
-            if (cirDensity_new < Omega) {
-                cirDensity_new = 0.0;
+            if (cirDensityNew < Omega) {
+                cirDensityNew = 0.0;
             }
         }
-        seqDensity_new *= survivalFactor;
-        if (seqDensity_new < Omega) {
-            if (cirDensity_new == 0.0){
+        seqDensityNew *= survivalFactor;
+        if (seqDensityNew < Omega) {
+            if (cirDensityNew == 0.0){
                 // infection is extinct
                 return true;
             }
-            seqDensity_new = 0.0;
+            seqDensityNew = 0.0;
         }
         
-        size_t todayC = mod_nn(ageDays, delta_C);
-        cirDensities[todayC] = cirDensity_new;
-        m_density = cirDensities[todayC];
+        size_t todayC = modNn(ageDays, delta_C);
+        m_cirDensities[todayC] = cirDensityNew;
+        m_density = m_cirDensities[todayC];
         
-        size_t todayV = mod_nn(ageDays, delta_V);
-        seqDensities[todayV] = seqDensity_new;
+        size_t todayV = modNn(ageDays, delta_V);
+        m_seqDensities[todayV] = seqDensityNew;
     }
     
     // used for immunity across infections
@@ -298,26 +298,26 @@ double PennyInfection::getVariantSpecificSummation(LocalRng& rng, int ageDays) {
     bool newVarDominant = rng.bernoulli(prob_lambda_V);
     //draw from bernouli distrb, prob 1/lambda_V
     if (newVarDominant) {
-        variantSpecificSummation = 0;
+        m_variantSpecificSummation = 0;
         for(int i=0; i<delta_V; ++i){
-            seqDensities[i] = 0.0;
+            m_seqDensities[i] = 0.0;
         }
     }
     //The effective exposure is computed by adding in the delta_V-day lagged parasite density 
     //and decaying the previous value for the effective exposure with decay parameter rho_V
-    size_t index = mod_nn(ageDays, delta_V);
-    variantSpecificSummation = (variantSpecificSummation * exp_negRho_V) + seqDensities[index];
+    size_t index = modNn(ageDays, delta_V);
+    m_variantSpecificSummation = (m_variantSpecificSummation * exp_negRho_V) + m_seqDensities[index];
     
-    return variantSpecificSummation;
+    return m_variantSpecificSummation;
 }
 
 double PennyInfection::getClonalSummation(int ageDays) {
     //The effective exposure is computed by adding in the delta_C-day lagged parasite density 
     //and decaying the previous value for the effective exposure with decay parameter rho_C
-    size_t index = mod_nn(ageDays, delta_C);
-    clonalSummation = (clonalSummation * exp_negRho_C) + cirDensities[index];
+    size_t index = modNn(ageDays, delta_C);
+    m_clonalSummation = (m_clonalSummation * exp_negRho_C) + m_cirDensities[index];
     
-    return clonalSummation;
+    return m_clonalSummation;
 }
 
 
@@ -325,31 +325,31 @@ PennyInfection::PennyInfection (istream& stream) :
         CommonInfection(stream)
 {
     for(int i=0; i<delta_C; ++i){
-        cirDensities[i] & stream;
+        m_cirDensities[i] & stream;
     }
     for(int i=0; i<delta_V; ++i){
-        seqDensities[i] & stream;
+        m_seqDensities[i] & stream;
     }
     threshold_N & stream;
     threshold_V & stream;
     threshold_C & stream;
-    variantSpecificSummation & stream;
-    clonalSummation & stream;
+    m_variantSpecificSummation & stream;
+    m_clonalSummation & stream;
 }
 
 void PennyInfection::checkpoint (ostream& stream) {
     CommonInfection::checkpoint(stream);
     for(int i=0; i<delta_C; ++i){
-        cirDensities[i] & stream;
+        m_cirDensities[i] & stream;
     }
     for(int i=0; i<delta_V; ++i){
-        seqDensities[i] & stream;
+        m_seqDensities[i] & stream;
     }
     threshold_N & stream;
     threshold_V & stream;
     threshold_C & stream;
-    variantSpecificSummation & stream;
-    clonalSummation & stream;
+    m_variantSpecificSummation & stream;
+    m_clonalSummation & stream;
 }
 
 }

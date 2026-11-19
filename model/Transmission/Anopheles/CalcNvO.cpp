@@ -46,22 +46,22 @@ constexpr int modp(int i, int n) noexcept {
 struct SvDiffParams
 {
 	const gsl_vector* SvfromEIR;
-	const std::vector<gsl_matrix*>* Upsilon;
+	const std::vector<gsl_matrix*>* upsilon;
 	gsl_matrix* inv1Xtp;
 	int eta;
 	int mt;
 	int thetap;
 };
 
-static void CalcLambda(gsl_vector** Lambda, gsl_vector* Nv0, int eta, int thetap) {
+static void calcLambda(gsl_vector** lambda, gsl_vector* Nv0, int eta, int thetap) {
 	for (int t = 0; t < thetap; ++t) {
-		Lambda[t] = gsl_vector_calloc(eta);
-		gsl_vector_set(Lambda[t], 0, gsl_vector_get(Nv0, t));
+		lambda[t] = gsl_vector_calloc(eta);
+		gsl_vector_set(lambda[t], 0, gsl_vector_get(Nv0, t));
 	}
 }
 
-[[maybe_unused]] static void CalcXP_pre_performance_patch(gsl_vector** xp,
-		const std::vector<gsl_matrix*> &Upsilon, gsl_vector** Lambda,
+[[maybe_unused]] static void calcXpPrePerformancePatch(gsl_vector** xp,
+		const std::vector<gsl_matrix*> &upsilon, gsl_vector** lambda,
 		gsl_matrix* inv1Xtp, int eta, int thetap) {
 	gsl_vector* vtemp = gsl_vector_calloc(eta);
 	gsl_matrix* mtemp = gsl_matrix_calloc(eta, eta);
@@ -69,19 +69,19 @@ static void CalcLambda(gsl_vector** Lambda, gsl_vector* Nv0, int eta, int thetap
 
 	// Pre-7b6a2b91 version: recompute X(thetap, i+1) with FuncX() for each i.
 	for (int i = 0; i < thetap; ++i) {
-		FuncX(mtemp, Upsilon, thetap, i + 1, eta);
-		gsl_blas_dgemv(CblasNoTrans, 1.0, mtemp, Lambda[i], 1.0, vtemp);
+		funcX(mtemp, upsilon, thetap, i + 1, eta);
+		gsl_blas_dgemv(CblasNoTrans, 1.0, mtemp, lambda[i], 1.0, vtemp);
 	}
 	gsl_blas_dgemv(CblasNoTrans, 1.0, inv1Xtp, vtemp, 0.0, x0p);
 
 	xp[0] = gsl_vector_calloc(eta);
-	FuncX(mtemp, Upsilon, 0, 0, eta);
+	funcX(mtemp, upsilon, 0, 0, eta);
 	gsl_blas_dgemv(CblasNoTrans, 1.0, mtemp, x0p, 1.0, xp[0]);
 
 	for (int t = 1; t < thetap; ++t) {
 		xp[t] = gsl_vector_calloc(eta);
-		gsl_blas_dgemv(CblasNoTrans, 1.0, Upsilon[t - 1], xp[t - 1], 1.0, xp[t]);
-		gsl_vector_add(xp[t], Lambda[t - 1]);
+		gsl_blas_dgemv(CblasNoTrans, 1.0, upsilon[t - 1], xp[t - 1], 1.0, xp[t]);
+		gsl_vector_add(xp[t], lambda[t - 1]);
 	}
 
 	gsl_vector_free(vtemp);
@@ -89,8 +89,8 @@ static void CalcLambda(gsl_vector** Lambda, gsl_vector* Nv0, int eta, int thetap
 	gsl_matrix_free(mtemp);
 }
 
-static void CalcXP_optimized(gsl_vector** xp, const std::vector<gsl_matrix*> &Upsilon,
-		gsl_vector** Lambda, gsl_matrix* inv1Xtp, int eta, int thetap) {
+static void calcXpOptimized(gsl_vector** xp, const std::vector<gsl_matrix*> &upsilon,
+		gsl_vector** lambda, gsl_matrix* inv1Xtp, int eta, int thetap) {
 	gsl_vector* vtemp = gsl_vector_calloc(eta);
 	gsl_matrix* mtemp = gsl_matrix_calloc(eta, eta);
 	gsl_matrix* tail = gsl_matrix_calloc(eta, eta);
@@ -102,20 +102,20 @@ static void CalcXP_optimized(gsl_vector** xp, const std::vector<gsl_matrix*> &Up
 	gsl_matrix_set_identity(tail);
 	gsl_vector_set_zero(vtemp);
 	for (int i = thetap - 1; i >= 0; --i) {
-		gsl_blas_dgemv(CblasNoTrans, 1.0, tail, Lambda[i], 1.0, vtemp);
-		gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, tail, Upsilon[i], 0.0, mmul);
+		gsl_blas_dgemv(CblasNoTrans, 1.0, tail, lambda[i], 1.0, vtemp);
+		gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, tail, upsilon[i], 0.0, mmul);
 		gsl_matrix_memcpy(tail, mmul);
 	}
 	gsl_blas_dgemv(CblasNoTrans, 1.0, inv1Xtp, vtemp, 0.0, x0p);
 
 	xp[0] = gsl_vector_calloc(eta);
-	FuncX(mtemp, Upsilon, 0, 0, eta);
+	funcX(mtemp, upsilon, 0, 0, eta);
 	gsl_blas_dgemv(CblasNoTrans, 1.0, mtemp, x0p, 1.0, xp[0]);
 
 	for (int t = 1; t < thetap; ++t) {
 		xp[t] = gsl_vector_calloc(eta);
-		gsl_blas_dgemv(CblasNoTrans, 1.0, Upsilon[t - 1], xp[t - 1], 1.0, xp[t]);
-		gsl_vector_add(xp[t], Lambda[t - 1]);
+		gsl_blas_dgemv(CblasNoTrans, 1.0, upsilon[t - 1], xp[t - 1], 1.0, xp[t]);
+		gsl_vector_add(xp[t], lambda[t - 1]);
 	}
 
 	gsl_vector_free(vtemp);
@@ -125,23 +125,23 @@ static void CalcXP_optimized(gsl_vector** xp, const std::vector<gsl_matrix*> &Up
 	gsl_matrix_free(mmul);
 }
 
-static void CalcXP(gsl_vector** xp, const std::vector<gsl_matrix*> &Upsilon,
-		gsl_vector** Lambda, gsl_matrix* inv1Xtp, int eta, int thetap) {
+static void calcXp(gsl_vector** xp, const std::vector<gsl_matrix*> &upsilon,
+		gsl_vector** lambda, gsl_matrix* inv1Xtp, int eta, int thetap) {
 	// Uncomment the next line and comment out the optimized call below to use
 	// the exact pre-performance-patch CalcXP implementation for comparison.
 	//CalcXP_pre_performance_patch(xp, Upsilon, Lambda, inv1Xtp, eta, thetap);
-	CalcXP_optimized(xp, Upsilon, Lambda, inv1Xtp, eta, thetap);
+	calcXpOptimized(xp, upsilon, lambda, inv1Xtp, eta, thetap);
 }
 
-static void CalcSvDiff(gsl_vector* SvDiff, const gsl_vector* SvfromEIR,
-		const std::vector<gsl_matrix*> &Upsilon, gsl_vector* Nv0, gsl_matrix* inv1Xtp,
+static void calcSvDiff(gsl_vector* SvDiff, const gsl_vector* SvfromEIR,
+		const std::vector<gsl_matrix*> &upsilon, gsl_vector* Nv0, gsl_matrix* inv1Xtp,
 		int eta, int mt, int thetap) {
-	gsl_vector** Lambda = (gsl_vector**) malloc(thetap * sizeof(gsl_vector*));
+	gsl_vector** lambda = (gsl_vector**) malloc(thetap * sizeof(gsl_vector*));
 	gsl_vector** xp = (gsl_vector**) malloc(thetap * sizeof(gsl_vector*));
 	gsl_vector* SvfromNv0 = gsl_vector_calloc(thetap);
 
-	CalcLambda(Lambda, Nv0, eta, thetap);
-	CalcXP(xp, Upsilon, Lambda, inv1Xtp, eta, thetap);
+	calcLambda(lambda, Nv0, eta, thetap);
+	calcXp(xp, upsilon, lambda, inv1Xtp, eta, thetap);
 
 	const int indexSv = 2 * mt;
 	for (int i = 0; i < thetap; ++i) {
@@ -152,30 +152,30 @@ static void CalcSvDiff(gsl_vector* SvDiff, const gsl_vector* SvfromEIR,
 	gsl_vector_sub(SvDiff, SvfromEIR);
 
 	for (int i = 0; i < thetap; ++i) {
-		gsl_vector_free(Lambda[i]);
+		gsl_vector_free(lambda[i]);
 		gsl_vector_free(xp[i]);
 	}
 
-	free(Lambda);
+	free(lambda);
 	free(xp);
 	gsl_vector_free(SvfromNv0);
 }
 
-static int CalcSvDiff_rf(const gsl_vector* x, void* p, gsl_vector* f) {
+static int calcSvDiffRf(const gsl_vector* x, void* p, gsl_vector* f) {
 	struct SvDiffParams* params = static_cast<struct SvDiffParams*>(p);
 
 	gsl_vector* Nv0 = gsl_vector_calloc(params->thetap);
 	gsl_vector_memcpy(Nv0, x);
 
-	CalcSvDiff(f, params->SvfromEIR, *params->Upsilon, Nv0, params->inv1Xtp,
+	calcSvDiff(f, params->SvfromEIR, *params->upsilon, Nv0, params->inv1Xtp,
 		params->eta, params->mt, params->thetap);
 
 	gsl_vector_free(Nv0);
 	return GSL_SUCCESS;
 }
 
-[[maybe_unused]] static int solve_Nv0_rootfind(gsl_vector* Nv0, const gsl_vector* SvfromEIR,
-		const std::vector<gsl_matrix*> &Upsilon, gsl_matrix* inv1Xtp,
+[[maybe_unused]] static int solveNv0Rootfind(gsl_vector* Nv0, const gsl_vector* SvfromEIR,
+		const std::vector<gsl_matrix*> &upsilon, gsl_matrix* inv1Xtp,
 		int eta, int mt, int thetap) {
 	const double EpsAbsRF = 1e-7;
 	const size_t maxiterRF = 1000;
@@ -184,7 +184,7 @@ static int CalcSvDiff_rf(const gsl_vector* x, void* p, gsl_vector* f) {
 
 	struct SvDiffParams pararootfind = {
 		SvfromEIR,
-		&Upsilon,
+		&upsilon,
 		inv1Xtp,
 		eta,
 		mt,
@@ -192,20 +192,20 @@ static int CalcSvDiff_rf(const gsl_vector* x, void* p, gsl_vector* f) {
 	};
 
 	gsl_multiroot_function frootfind;
-	frootfind.f = &CalcSvDiff_rf;
+	frootfind.f = &calcSvDiffRf;
 	frootfind.n = thetap;
 	frootfind.params = &pararootfind;
 
 	gsl_vector* SvDiff = gsl_vector_calloc(thetap);
-	CalcSvDiff(SvDiff, SvfromEIR, Upsilon, Nv0, inv1Xtp, eta, mt, thetap);
+	calcSvDiff(SvDiff, SvfromEIR, upsilon, Nv0, inv1Xtp, eta, mt, thetap);
 	// printf("The $l^1$ norm of SvDiff is %.17e \n", gsl_blas_dasum(SvDiff));
 	gsl_vector_free(SvDiff);
 
 	gsl_vector* xrootfind = gsl_vector_alloc(thetap);
 	gsl_vector_memcpy(xrootfind, Nv0);
 
-	const gsl_multiroot_fsolver_type* Trootfind = gsl_multiroot_fsolver_hybrids;
-	gsl_multiroot_fsolver* srootfind = gsl_multiroot_fsolver_alloc(Trootfind, thetap);
+	const gsl_multiroot_fsolver_type* trootfind = gsl_multiroot_fsolver_hybrids;
+	gsl_multiroot_fsolver* srootfind = gsl_multiroot_fsolver_alloc(trootfind, thetap);
 
 	// printf("Starting root-finding \n");
 	// printf("About to set root-finding solver \n");
@@ -241,13 +241,13 @@ static int CalcSvDiff_rf(const gsl_vector* x, void* p, gsl_vector* f) {
 	return status;
 }
 
-[[maybe_unused]] static int solve_Nv0_linear(gsl_vector* Nv0, const gsl_vector* SvfromEIR,
-		const std::vector<gsl_matrix*> &Upsilon, gsl_matrix* inv1Xtp,
+[[maybe_unused]] static int solveNv0Linear(gsl_vector* Nv0, const gsl_vector* SvfromEIR,
+		const std::vector<gsl_matrix*> &upsilon, gsl_matrix* inv1Xtp,
 		int eta, int mt, int thetap) {
 	// printf("Solving linear system with analytic Jacobian (Nv0 -> Sv)... ");
 
 	gsl_matrix* J = gsl_matrix_calloc(thetap, thetap);
-	CalcSvJacobian(J, Upsilon, inv1Xtp, eta, mt, thetap);
+	calcSvJacobian(J, upsilon, inv1Xtp, eta, mt, thetap);
 
 	gsl_matrix* JLU = gsl_matrix_alloc(thetap, thetap);
 	gsl_matrix_memcpy(JLU, J);
@@ -302,7 +302,7 @@ using namespace std;
  * mosqEmergeRateVector is an OUT parameter.
  * All other parameters are IN parameters.
  */
-double CalcInitMosqEmergeRate(
+double calcInitMosqEmergeRate(
 	std::vector<double> &mosqEmergeRateVector, // output vector
 	int thetap, // $\theta_p$: daysInYear
 	int tau, // $\tau$: mosqRestDuration
@@ -317,7 +317,7 @@ double CalcInitMosqEmergeRate(
 	const std::vector<double> &PCi, // $P_{C_i}$: mosqProbFindRestSite (length n)
 	const std::vector<double> &PDi, // $P_{D_i}$: mosqProbResting (length n)
 	const std::vector<double> &PEi, // $P_{E_i}$: mosqProbOvipositing -- assumed not affected by nhh
-	const std::vector<double> KviInit, // Kvi (size n * thetap)
+	const std::vector<double> kviInit, // Kvi (size n * thetap)
 	const std::vector<double> SvInit // Sv (length n)
 ){
     /* Note that from here on we use the notation from "A Mathematical Model for the
@@ -343,40 +343,40 @@ double CalcInitMosqEmergeRate(
 	 *
 	 */
 
-	gsl_vector_view Nv0_view = gsl_vector_view_array(mosqEmergeRateVector.data(), thetap);
-	gsl_vector* Nv0 = &Nv0_view.vector; // $N_{v0}$: mosqEmergeRate 
+	gsl_vector_view nv0View = gsl_vector_view_array(mosqEmergeRateVector.data(), thetap);
+	gsl_vector* Nv0 = &nv0View.vector; // $N_{v0}$: mosqEmergeRate 
 
-	const auto Kvi_view = gsl_matrix_const_view_array(KviInit.data(), thetap, n);
-	const gsl_matrix* Kvi = &Kvi_view.matrix;
+	const auto kviView = gsl_matrix_const_view_array(kviInit.data(), thetap, n);
+	const gsl_matrix* kvi = &kviView.matrix;
 
 	// State variables.
 	// $x_p(t)$: The periodic orbit of all eta state variables.
 	gsl_vector** xp = (gsl_vector**) malloc(thetap*sizeof(gsl_vector*)); 
 	// $N_v^{(p)}(t)$. 
 	// The periodic values of the total number of host-seeking mosquitoes.
-	gsl_vector* Nvp = gsl_vector_calloc(thetap);
+	gsl_vector* nvp = gsl_vector_calloc(thetap);
 	// $O_v^{(p)}(t)$. 
 	// The periodic values of the number of infected host-seeking mosquitoes.
-	gsl_vector* Ovp = gsl_vector_calloc(thetap);
+	gsl_vector* ovp = gsl_vector_calloc(thetap);
 	// $S_v^{(p)}(t)$. 
 	// The periodic values of the number of infectious host-seeking mosquitoes.
-	gsl_vector* Svp = gsl_vector_calloc(thetap);
+	gsl_vector* svp = gsl_vector_calloc(thetap);
 
 	// The number of infectious mosquitoes over every day of the cycle.
 	// calculated from the EIR data.
 	// $S_v$ (from EIR).
-	gsl_vector_const_view SvfromEIR_view = gsl_vector_const_view_array(SvInit.data(), thetap);
-	const gsl_vector* SvfromEIR = &SvfromEIR_view.vector;
+	gsl_vector_const_view svfromEirView = gsl_vector_const_view_array(SvInit.data(), thetap);
+	const gsl_vector* SvfromEIR = &svfromEirView.vector;
 
 	// The set of thetap matrices that determine the dynamics of the system
 	// from one step to the next.
 	// $\Upsilon(t)$ (over all time , $t \in [1, \theta_p]$).
-	std::vector<gsl_matrix*> Upsilon(thetap, nullptr);
+	std::vector<gsl_matrix*> upsilon(thetap, nullptr);
 
 	// The set of thetap vectors that determine the forcing of the system
 	// from one step to the next.
 	// $\Lambda(t)$ (over all time , $t \in [1, \theta_p]$).
-	gsl_vector** Lambda = (gsl_vector**) malloc(thetap*sizeof(gsl_vector*));
+	gsl_vector** lambda = (gsl_vector**) malloc(thetap*sizeof(gsl_vector*));
 
 	// Parameters that help to describe the order of the system.
 	// It is the maximum number of time steps we go back for $N_v$ and $O_v$. 
@@ -388,14 +388,14 @@ double CalcInitMosqEmergeRate(
 	// $X_{\theta_p} = X(\theta_p+1,1)$. 
 	// Refer to Cushing (1995) and the paper for the periodic entomological model
 	// for more information.
-	gsl_matrix* Xtp = gsl_matrix_calloc(eta, eta);
+	gsl_matrix* xtp = gsl_matrix_calloc(eta, eta);
 
 	// $(\mathbb{I}-X_{\theta_p})^{-1}$.
 	// The inverse of the identity matrix minus Xtp.
 	gsl_matrix* inv1Xtp = gsl_matrix_calloc(eta, eta);
 
 	// Allocate memory for gsl_matrices and initialize to 0.
-	Xtp = gsl_matrix_calloc(eta, eta);
+	xtp = gsl_matrix_calloc(eta, eta);
 	inv1Xtp = gsl_matrix_calloc(eta, eta);
 
 	// Probability that a mosquito survives one day of host-seeking but does not find a host. 
@@ -415,16 +415,16 @@ double CalcInitMosqEmergeRate(
 	// defining most parameters as scalars. If we do change things later, which we
 	// may, then we will change the code accordingly. We will need to go through
 	// a lot of changes anyway. 
-	CalcUpsilon(Upsilon, PA, PAi, thetap, eta, mt, tau, thetas, 
-		n, m, Ni.data(), alphai.data(), muvA, thetad, PBi.data(), PCi.data(), PDi.data(), PEi.data(), Kvi);
+	calcUpsilon(upsilon, PA, PAi, thetap, eta, mt, tau, thetas, 
+		n, m, Ni.data(), alphai.data(), muvA, thetad, PBi.data(), PCi.data(), PDi.data(), PEi.data(), kvi);
 
 	// Calculate $X_{\theta_p}$.
 	// Refer to Cushing (1995) and the paper for the periodic entomological model
 	// for more information.
-	FuncX(Xtp, Upsilon, thetap, 0, eta);
+	funcX(xtp, upsilon, thetap, 0, eta);
 
 	// We should now find the spectral radius of Xtp and show that it's less than 1.
-	double srXtp = CalcSpectralRadius(Xtp, eta);
+	double srXtp = calcSpectralRadius(xtp, eta);
 
 	// If the spectral radius of Xtp is greater than or equal to 1, then
 	// we are not guaranteed the existence of a unique globally asymptotically
@@ -434,17 +434,17 @@ double CalcInitMosqEmergeRate(
 	// For this model, all the eigenvalues should be in the unit circle. However,
 	// as we cannot show that analytically, we need to check it numerically.
 	if(srXtp >= 1.0){
-		throw ::OM::util::base_exception(
+		throw ::OM::util::BaseException(
 			"Spectral radius of Xtp >= 1.0: no stable periodic orbit exists",
 			::OM::util::Error::VectorFitting);
 	}
 
 	// Calculate the inverse of (I-Xtp). 
-	CalcInv1minusA(inv1Xtp, Xtp, eta);
+	calcInv1minusA(inv1Xtp, xtp, eta);
 
 	// Uncomment the linear solver below to use it instead of root-finding.
 	// Root-finding is the default method.
-	int st = solve_Nv0_rootfind(Nv0, SvfromEIR, Upsilon, inv1Xtp, eta, mt, thetap);
+	int st = solveNv0Rootfind(Nv0, SvfromEIR, upsilon, inv1Xtp, eta, mt, thetap);
 	//int st = solve_Nv0_linear(Nv0, SvfromEIR, Upsilon, inv1Xtp, eta, mt, thetap);
 	(void) st;
 
@@ -457,21 +457,21 @@ double CalcInitMosqEmergeRate(
 	}
 
 	// Deallocate memory for vectors and matrices.
-	gsl_vector_free(Nvp);
-	gsl_vector_free(Ovp);
-	gsl_vector_free(Svp);
+	gsl_vector_free(nvp);
+	gsl_vector_free(ovp);
+	gsl_vector_free(svp);
 
-	gsl_matrix_free(Xtp);
+	gsl_matrix_free(xtp);
 	gsl_matrix_free(inv1Xtp);
 
 	for (int i=0; i<thetap; i++)
-		gsl_matrix_free(Upsilon[i]);
+		gsl_matrix_free(upsilon[i]);
 
-	free(Lambda);
+	free(lambda);
 	free(xp);
 
 	if (hasNegativeNv0) {
-		throw ::OM::util::base_exception(
+		throw ::OM::util::BaseException(
 			"The exact emergence solver produced negative emergence rates. "
 			"With the current mosquito mortality/survival parameters, the requested EIR likely "
 			"falls faster than the infectious mosquito population can decline biologically; "
@@ -525,19 +525,19 @@ double CalcInitMosqEmergeRate(
  * Upsilon, PAPtr, and PAiPtr are OUT parameters.
  * All other parameters are IN parameters.
  */ 
-void CalcUpsilon(std::vector<gsl_matrix*> &Upsilon, double &PA,
+void calcUpsilon(std::vector<gsl_matrix*> &upsilon, double &PA,
 		double &PAi, int thetap, int eta, int mt, int tau,
 		int thetas, int n, int m, const double* Ni, const double* alphai,
 		double muvA, double thetad, const double* PBi, const double* PCi, const double* PDi,
-		const double* PEi, const gsl_matrix* Kvi) {
+		const double* PEi, const gsl_matrix* kvi) {
 
 	// $P_{dif}$: Probability that a mosquito finds a host on a given
 	// night and then completes the feeding cycle and gets infected.
-	gsl_vector* Pdif = gsl_vector_calloc(thetap);
+	gsl_vector* pdif = gsl_vector_calloc(thetap);
 
 	// $P_{duf}$: Probability that a mosquito finds a host on a given
 	// night and then completes the feeding cycle and does not get infected.
-	gsl_vector* Pduf = gsl_vector_calloc(thetap);
+	gsl_vector* pduf = gsl_vector_calloc(thetap);
 
 	// PA = exp(- (sum_i alpha_i N_i + mu_vA) * theta_d)
 	// (computed in the same "sum then exp" style as the original code)
@@ -555,12 +555,12 @@ void CalcUpsilon(std::vector<gsl_matrix*> &Upsilon, double &PA,
 
 	// $P_{df}$: Probability that a mosquito finds a host on a given
 	// night and then completes the feeding cycle.
-	double Pdf = 0.0;; 
+	double pdf = 0.0;; 
 
 	// Pdf = sum_i PAi_i * PBi_i * PCi_i * PDi_i * PEi
 	for (int i = 0; i < n; i++){
 		const double PAi_i = (1.0 - PA) * (alphai[i] * Ni[i]) / (temp + muvA);
-		Pdf += PAi_i * PBi[i] * PCi[i] * PDi[i] * PEi[i];
+		pdf += PAi_i * PBi[i] * PCi[i] * PDi[i] * PEi[i];
 	}
 
 	// Precompute weights w[i] (independent of k)
@@ -576,20 +576,20 @@ void CalcUpsilon(std::vector<gsl_matrix*> &Upsilon, double &PA,
 	// Pdif(k) = sum_i [ w_i * Kvi(k,i) ]
 	// Pduf(k) = Pdf - Pdif(k)
 	for (int k = 0; k < thetap; ++k) {
-		const double* Krow = gsl_matrix_const_ptr(Kvi, k, 0); // row k, col 0
-		double pdif_k = 0.0;
+		const double* krow = gsl_matrix_const_ptr(kvi, k, 0); // row k, col 0
+		double pdifK = 0.0;
 
 		// If only human groups can have non-zero Kvi, iterate only them:
 		for (int i = 0; i < m; ++i) {
-			pdif_k += w[i] * Krow[i];
+			pdifK += w[i] * krow[i];
 		}
 		// If you want fully general (allow Kvi for any host), use i < n.
 
-		if (pdif_k < 0.0) pdif_k = 0.0;
-		if (pdif_k > Pdf)  pdif_k = Pdf;
+		if (pdifK < 0.0) pdifK = 0.0;
+		if (pdifK > pdf)  pdifK = pdf;
 
-		gsl_vector_set(Pdif, k, pdif_k);
-		gsl_vector_set(Pduf, k, Pdf - pdif_k);
+		gsl_vector_set(pdif, k, pdifK);
+		gsl_vector_set(pduf, k, pdf - pdifK);
 	}
 
 	// The probability of a mosquito surviving the extrinsic incubation
@@ -604,52 +604,52 @@ void CalcUpsilon(std::vector<gsl_matrix*> &Upsilon, double &PA,
 	// Calculate probabilities of mosquito surviving the extrinsic
 	// incubation period.
 	// These currently do not depend on the phase of the period.
-	CalcPSTS(sumkplus, sumklplus, thetas, tau, PA, Pdf);
+	calcPsts(sumkplus, sumklplus, thetas, tau, PA, pdf);
 
 	// We start creating the matrices now.
 	// Refer to Section 2.1 of JBD Paper for how this matrix is created.
 	for (int k=0; k < thetap; k++){
-		Upsilon[k] = gsl_matrix_calloc(eta, eta);
+		upsilon[k] = gsl_matrix_calloc(eta, eta);
 
 		for (int i=0; i<eta; i++){
 			// Set 1's along the subdiagonal of all rows except the three
 			// rows for the the main system variables.
 			if(!((i==0) || (i==mt) || (i==(2*mt)))){
-				gsl_matrix_set(Upsilon[k],i,i-1,1.0);
+				gsl_matrix_set(upsilon[k],i,i-1,1.0);
 			}
 		}
 		// for $N_v$.
-		gsl_matrix_set(Upsilon[k],0,0,PA);
-		temp = Pdf + gsl_matrix_get(Upsilon[k], 0, tau-1);
-		gsl_matrix_set(Upsilon[k],0,tau-1,temp);
+		gsl_matrix_set(upsilon[k],0,0,PA);
+		temp = pdf + gsl_matrix_get(upsilon[k], 0, tau-1);
+		gsl_matrix_set(upsilon[k],0,tau-1,temp);
 
 		// for $O_v$.
 		// We add thetap to i, to ensure that it's positive.
 		// % is the mod function.
-		temp = gsl_vector_get(Pdif,(k+thetap-tau)%thetap);		
-		gsl_matrix_set(Upsilon[k],mt,tau-1,temp);
-		gsl_matrix_set(Upsilon[k],mt,mt,PA);
-		temp = gsl_vector_get(Pduf,(k+thetap-tau)%thetap) 
-			   + gsl_matrix_get(Upsilon[k], mt, mt+tau-1);	
-		gsl_matrix_set(Upsilon[k],mt,mt+tau-1,temp);
+		temp = gsl_vector_get(pdif,(k+thetap-tau)%thetap);		
+		gsl_matrix_set(upsilon[k],mt,tau-1,temp);
+		gsl_matrix_set(upsilon[k],mt,mt,PA);
+		temp = gsl_vector_get(pduf,(k+thetap-tau)%thetap) 
+			   + gsl_matrix_get(upsilon[k], mt, mt+tau-1);	
+		gsl_matrix_set(upsilon[k],mt,mt+tau-1,temp);
 
 		// for $S_v$.
-		temp = gsl_vector_get(Pdif,(k+thetap-thetas)%thetap)*sumkplus;
-		gsl_matrix_set(Upsilon[k],2*mt,thetas-1,temp);
-		gsl_matrix_set(Upsilon[k],2*mt,mt+thetas-1,-temp);
+		temp = gsl_vector_get(pdif,(k+thetap-thetas)%thetap)*sumkplus;
+		gsl_matrix_set(upsilon[k],2*mt,thetas-1,temp);
+		gsl_matrix_set(upsilon[k],2*mt,mt+thetas-1,-temp);
 		for (int l=1; l <= tau-1; l++){
-			temp = gsl_vector_get(Pdif,(k+thetap-thetas-l)%thetap)*sumklplus[l-1];
-			gsl_matrix_set(Upsilon[k],2*mt, thetas+l-1, temp);
-			gsl_matrix_set(Upsilon[k],2*mt, mt+thetas+l-1, -temp);
+			temp = gsl_vector_get(pdif,(k+thetap-thetas-l)%thetap)*sumklplus[l-1];
+			gsl_matrix_set(upsilon[k],2*mt, thetas+l-1, temp);
+			gsl_matrix_set(upsilon[k],2*mt, mt+thetas+l-1, -temp);
 		}
-		gsl_matrix_set(Upsilon[k], 2*mt, 2*mt, PA);
-		temp = Pdf + gsl_matrix_get(Upsilon[k], 2*mt, 2*mt+tau-1);
-		gsl_matrix_set(Upsilon[k], 2*mt, 2*mt+tau-1, temp);
+		gsl_matrix_set(upsilon[k], 2*mt, 2*mt, PA);
+		temp = pdf + gsl_matrix_get(upsilon[k], 2*mt, 2*mt+tau-1);
+		gsl_matrix_set(upsilon[k], 2*mt, 2*mt+tau-1, temp);
 	}
 
 	// Deallocate memory for vectors
-	gsl_vector_free(Pdif);
-	gsl_vector_free(Pduf);
+	gsl_vector_free(pdif);
+	gsl_vector_free(pduf);
 
 	free(sumklplus);
 }
@@ -668,14 +668,14 @@ void CalcUpsilon(std::vector<gsl_matrix*> &Upsilon, double &PA,
  *  - x0 = (I - Xtp)^{-1} * sum_s X(thetap, s+1) * Lambda[s]
  *  - xp recursion: xp[t] = Upsilon[t-1] * xp[t-1] + Lambda[t-1]
  */
-void CalcSvJacobian(gsl_matrix* J, const std::vector<gsl_matrix*> &Upsilon, gsl_matrix* inv1Xtp,
+void calcSvJacobian(gsl_matrix* J, const std::vector<gsl_matrix*> &upsilon, gsl_matrix* inv1Xtp,
 					int eta, int mt, int thetap){
 
 	const int indexSv = 2 * mt;
 
 	// D(t) is eta x thetap: D(t)[:,s] = d xp(t)[*] / d Nv0(s)
-	gsl_matrix* Dcur = gsl_matrix_calloc(eta, thetap);
-	gsl_matrix* Dnext = gsl_matrix_calloc(eta, thetap);
+	gsl_matrix* dcur = gsl_matrix_calloc(eta, thetap);
+	gsl_matrix* dnext = gsl_matrix_calloc(eta, thetap);
 
 	// Scratch objects.
 	gsl_matrix* tail = gsl_matrix_calloc(eta, eta);
@@ -697,17 +697,17 @@ void CalcSvJacobian(gsl_matrix* J, const std::vector<gsl_matrix*> &Upsilon, gsl_
 		gsl_blas_dgemv(CblasNoTrans, 1.0, inv1Xtp, col0, 0.0, tmp);
 
 		// Set column s of Dcur to tmp
-		gsl_vector_view Dcol = gsl_matrix_column(Dcur, s);
-		gsl_vector_memcpy(&Dcol.vector, tmp);
+		gsl_vector_view dcol = gsl_matrix_column(dcur, s);
+		gsl_vector_memcpy(&dcol.vector, tmp);
 
 		// Update tail = tail * Upsilon[s]
-		gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, tail, Upsilon[s], 0.0, mmul);
+		gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, tail, upsilon[s], 0.0, mmul);
 		gsl_matrix_memcpy(tail, mmul);
 	}
 
 	// Fill Jacobian row for t=0
 	for (int s = 0; s < thetap; ++s) {
-		gsl_matrix_set(J, 0, s, gsl_matrix_get(Dcur, indexSv, s));
+		gsl_matrix_set(J, 0, s, gsl_matrix_get(dcur, indexSv, s));
 	}
 
 	// 2) Forward sensitivity recursion matching CalcXP:
@@ -715,28 +715,28 @@ void CalcSvJacobian(gsl_matrix* J, const std::vector<gsl_matrix*> &Upsilon, gsl_
 	//    with Lambda[t-1] = e0 * Nv0(t-1)
 	for (int t = 1; t < thetap; ++t) {
 		// Dnext = Upsilon[t-1] * Dcur
-		gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, Upsilon[t - 1], Dcur, 0.0, Dnext);
+		gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, upsilon[t - 1], dcur, 0.0, dnext);
 
 		// Add e0 to column (t-1): Dnext(0, t-1) += 1
-		gsl_matrix_set(Dnext, 0, t - 1, gsl_matrix_get(Dnext, 0, t - 1) + 1.0);
+		gsl_matrix_set(dnext, 0, t - 1, gsl_matrix_get(dnext, 0, t - 1) + 1.0);
 
 		// Jacobian row t = row indexSv of Dnext
 		for (int s = 0; s < thetap; ++s) {
-			gsl_matrix_set(J, t, s, gsl_matrix_get(Dnext, indexSv, s));
+			gsl_matrix_set(J, t, s, gsl_matrix_get(dnext, indexSv, s));
 		}
 
 		// Swap Dcur and Dnext
-		gsl_matrix* tmpM = Dcur;
-		Dcur = Dnext;
-		Dnext = tmpM;
+		gsl_matrix* tmpM = dcur;
+		dcur = dnext;
+		dnext = tmpM;
 	}
 
 	gsl_vector_free(tmp);
 	gsl_vector_free(col0);
 	gsl_matrix_free(mmul);
 	gsl_matrix_free(tail);
-	gsl_matrix_free(Dnext);
-	gsl_matrix_free(Dcur);
+	gsl_matrix_free(dnext);
+	gsl_matrix_free(dcur);
 }
 /********************************************************************/
 
@@ -754,8 +754,8 @@ void CalcSvJacobian(gsl_matrix* J, const std::vector<gsl_matrix*> &Upsilon, gsl_
  * sumkplusPtr and sumklplus are OUT parameters.
  * All other parameters are IN parameter.
  */ 
-void CalcPSTS(double &sumkplus, double* sumklplus, int thetas,
-			  int tau, double PA, double Pdf){
+void calcPsts(double &sumkplus, double* sumklplus, int thetas,
+			  int tau, double PA, double pdf){
 	const int kplus = thetas / tau - 1; // $k_+$ in model.
 
 	// Evaluate sumkplus
@@ -763,7 +763,7 @@ void CalcPSTS(double &sumkplus, double* sumklplus, int thetas,
 	for (int j=0; j <= kplus; j++){
 		const double tempbin = gsl_sf_choose(thetas - (j + 1) * tau + j, j); // binomial
 		const double temppap = pow(PA,thetas-(j+1)*tau);
-		const double temppdfp = pow(Pdf,j);
+		const double temppdfp = pow(pdf,j);
 		const double temp = tempbin*temppap*temppdfp;
 		sumkplus=sumkplus+temp;
 	}
@@ -776,7 +776,7 @@ void CalcPSTS(double &sumkplus, double* sumklplus, int thetas,
 		for(int j=0; j<=klplus; j++){
 			const double tempbin = gsl_sf_choose(thetas + l - (j + 2) * tau + j, j); // binomial
 			const double temppap = pow(PA,thetas+l-(j+2)*tau);
-			const double temppdfp = pow(Pdf,j+1);
+			const double temppdfp = pow(pdf,j+1);
 			const double temp = tempbin*temppap*temppdfp;
 			sumklplus[l-1] = sumklplus[l-1]+temp;
 		}
@@ -801,13 +801,13 @@ void CalcPSTS(double &sumkplus, double* sumklplus, int thetas,
  * X is an OUT parameter.
  * All other parameters are IN parameters.
  */ 
-void FuncX(gsl_matrix* X, const std::vector<gsl_matrix*> &Upsilon, int t, int s, int eta){
+void funcX(gsl_matrix* X, const std::vector<gsl_matrix*> &upsilon, int t, int s, int eta){
 	gsl_matrix* temp = gsl_matrix_calloc(eta, eta); 
 
 	gsl_matrix_set_identity(X);
 
 	for (int i=s; i<t; i++){
-		gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, Upsilon[i], X, 0.0, temp);
+		gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, upsilon[i], X, 0.0, temp);
 		gsl_matrix_memcpy(X, temp);
 	}
 	gsl_matrix_free(temp);
@@ -825,7 +825,7 @@ void FuncX(gsl_matrix* X, const std::vector<gsl_matrix*> &Upsilon, int t, int s,
  * A, n, and fntestentopar are IN parameters.
  */ 
 
-double CalcSpectralRadius(gsl_matrix* A, int n){
+double calcSpectralRadius(gsl_matrix* A, int n){
 	gsl_vector* abseval = gsl_vector_calloc(n);	// Vector of the absolute values of eigenvalues.
 	gsl_matrix* B = gsl_matrix_calloc(n, n); // Use to keep A safe.
 	gsl_vector_complex* eval = gsl_vector_complex_calloc(n); // Vector of eigenvalues.
@@ -871,7 +871,7 @@ double CalcSpectralRadius(gsl_matrix* A, int n){
  * inv1A is an OUT parameter.
  */ 
 
-void CalcInv1minusA(gsl_matrix* inv1A, gsl_matrix* A, int n){
+void calcInv1minusA(gsl_matrix* inv1A, gsl_matrix* A, int n){
 	// Data types required to compute inverse.
 	gsl_matrix* B = gsl_matrix_calloc(n, n); // We calculate (I-A) in B.
 	gsl_permutation* p = gsl_permutation_alloc(n);

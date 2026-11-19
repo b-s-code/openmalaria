@@ -41,7 +41,7 @@ template<typename T>
 int castToInt( T x ){
     int y = static_cast<int>( x );
     if( static_cast<T>( y ) != x ){
-        throw util::format_error( "underflow/overflow" );
+        throw util::FormatError( "underflow/overflow" );
     }
     return y;
 }
@@ -55,17 +55,17 @@ SimTime readShortDuration( const std::string& str, DefaultUnit defUnit ){
     if( len == str.size() ){
         // no unit given; examine our policy:
         if( v == 0 ){   // don't need a unit in this case
-            return sim::zero();
+            return Sim::zero();
         }else if( defUnit == NONE ){
-            throw util::format_error( "unit required but not given (try e.g. 5d or 12t)" );
+            throw util::FormatError( "unit required but not given (try e.g. 5d or 12t)" );
         }else{
             if( util::CommandLine::option(util::CommandLine::DEPRECATION_WARNINGS) ){
                 cerr << "Deprecation warning: duration \"" << str << "\" specified without unit; it is recommended to do so (e.g. 5d or 1t)" << endl;
             }
             if( defUnit == DAYS ){
-                return sim::roundToTSFromDays( v );
+                return Sim::roundToTSFromDays( v );
             }else if( defUnit == STEPS ){
-                return sim::fromTS( castToInt(v) );
+                return Sim::fromTS( castToInt(v) );
             }else{
                 throw SWITCH_DEFAULT_EXCEPTION;
             }
@@ -74,13 +74,13 @@ SimTime readShortDuration( const std::string& str, DefaultUnit defUnit ){
         // one extra character found; is this a unit?
         char u = str[len];
         if( u == 'd' || u == 'D' ){
-            return sim::roundToTSFromDays( v );
+            return Sim::roundToTSFromDays( v );
         }else if( u == 't' || u == 'T' ){
-            return sim::fromTS( castToInt(v) );
+            return Sim::fromTS( castToInt(v) );
         }
         // otherwise, fall through to below
     }
-    throw util::format_error( string("bad format: '").append(str).append("' (try e.g. 1 or 2d or 3s)") );
+    throw util::FormatError( string("bad format: '").append(str).append("' (try e.g. 1 or 2d or 3s)") );
 }
 
 // Parses str, returns v and may set unit
@@ -97,17 +97,17 @@ double parseDurationAndUnit( const std::string& str, DefaultUnit& unit ){
         else if( u == 'd' || u == 'D' ) unit = DAYS;
         else if( u == 't' || u == 'T' ) unit = STEPS;
         else {
-            throw util::format_error( string("unknown unit: '").append(str).append("' (try e.g. 1 or 2d or 3s or 4y)") );
+            throw util::FormatError( string("unknown unit: '").append(str).append("' (try e.g. 1 or 2d or 3s or 4y)") );
         }
     }else if( len == str.size() ){
         if( v == 0.0 ) unit = DAYS;        // special case: 0 does not require a unit; pretend the unit is days
         else if( unit == NONE /*no default set for this value*/ ){
-            throw util::format_error( "unit required but not given (try e.g. 5d or 12t or 2.3y)" );
+            throw util::FormatError( "unit required but not given (try e.g. 5d or 12t or 2.3y)" );
         }else if( util::CommandLine::option(util::CommandLine::DEPRECATION_WARNINGS) ){
             cerr << "Deprecation warning: duration \"" << str << "\" specified without unit; it is recommended to do so (e.g. 5d or 1t or 0.5y)" << endl;
         }
     }else{
-        throw util::format_error( string("bad format: '").append(str).append("' (try e.g. 1 or 2d or 3s or 4y)") );
+        throw util::FormatError( string("bad format: '").append(str).append("' (try e.g. 1 or 2d or 3s or 4y)") );
     }
     return v;
 }
@@ -115,35 +115,35 @@ double parseDurationAndUnit( const std::string& str, DefaultUnit& unit ){
 SimTime readDuration( const std::string& str, DefaultUnit unit ){
     double v = parseDurationAndUnit( str, unit );
     
-    if( unit == YEARS ) return sim::fromYearsN( v );
+    if( unit == YEARS ) return Sim::fromYearsN( v );
     else if( v != std::floor(v) ){
-        throw util::format_error( "fractional values are only allowed when the unit is years (e.g. 0.25y)" );
-    }else if( unit == DAYS ) return sim::roundToTSFromDays( v );
-	else if( unit == STEPS ) return sim::fromTS( castToInt(v) );
+        throw util::FormatError( "fractional values are only allowed when the unit is years (e.g. 0.25y)" );
+    }else if( unit == DAYS ) return Sim::roundToTSFromDays( v );
+	else if( unit == STEPS ) return Sim::fromTS( castToInt(v) );
     else throw SWITCH_DEFAULT_EXCEPTION;
 }
 
 double durationToDays( const std::string& str, DefaultUnit unit ){
     double v = parseDurationAndUnit( str, unit );
     
-    if( unit == YEARS ) return v * sim::oneYear();
+    if( unit == YEARS ) return v * Sim::oneYear();
     else if( unit == DAYS ) return v;
-    else if( unit == STEPS ) return v * sim::oneTS();
+    else if( unit == STEPS ) return v * Sim::oneTS();
     else throw SWITCH_DEFAULT_EXCEPTION;
 }
 
-/** Returns sim::never() when it doesn't recognise a date. Throws when it does
+/** Returns Sim::never() when it doesn't recognise a date. Throws when it does
  * but encounters definite format errors. */
 SimTime parseDate( const std::string& str ){
     std::regex dateRx("(\\d{4})-(\\d{1,2})-(\\d{1,2})");
-    std::smatch rx_what;
+    std::smatch rxWhat;
 
-    if( regex_match(str, rx_what, dateRx) ){
-        int year = std::atoi(rx_what[1].str().c_str()),
-            month = std::atoi(rx_what[2].str().c_str()),
-            day = std::atoi(rx_what[3].str().c_str());
-        if( month < 1 || month > 12 || day < 1 || day > monthLen[month-1] ){
-            throw util::format_error( string(str).append(" does not look like a date (expected YYYY-MM-DD with 1≤MM≤12 and 1≤DD≤(days in month))") );
+    if( regex_match(str, rxWhat, dateRx) ){
+        int year = std::atoi(rxWhat[1].str().c_str()),
+            month = std::atoi(rxWhat[2].str().c_str()),
+            day = std::atoi(rxWhat[3].str().c_str());
+        if( month < 1 || month > 12 || day < 1 || day > MonthLen[month-1] ){
+            throw util::FormatError( string(str).append(" does not look like a date (expected YYYY-MM-DD with 1≤MM≤12 and 1≤DD≤(days in month))") );
         }
         // We can't overflow: the largest year possible is 9999 which is about
         // 3.6 million days; an int is good to more than 1e9.
@@ -151,28 +151,28 @@ SimTime parseDate( const std::string& str ){
         // Inconsistency: time "zero" is 0000-01-01, not 0001-01-01. Since
         // dates are always relative to another date, the extra year doesn't
         // actually affect anything.
-        return sim::origin()
-            + sim::fromYearsI(year)
-            + sim::roundToTSFromDays(monthStart[month-1] + day - 1);
+        return Sim::origin()
+            + Sim::fromYearsI(year)
+            + Sim::roundToTSFromDays(MonthStart[month-1] + day - 1);
     }else{
-        return sim::never();
+        return Sim::never();
     }
 }
 
 SimTime readDate( const std::string& str, DefaultUnit defUnit ){
     SimTime date = parseDate( str );
-    if( date != sim::never() ){
-        if( date > sim::startDate() + sim::fromYearsI(500) ){
+    if( date != Sim::never() ){
+        if( date > Sim::startDate() + Sim::fromYearsI(500) ){
             cerr << "Warning: date is a long time after start date. Did you forget to set monitoring/startDate?" << endl;
-        }else if( date < sim::startDate() ){
-            throw util::format_error( "date of event is before the start of monitoring" );
+        }else if( date < Sim::startDate() ){
+            throw util::FormatError( "date of event is before the start of monitoring" );
         }
         return date;
     }else{
         if( util::CommandLine::option(util::CommandLine::DEPRECATION_WARNINGS) ){
             cerr << "Deprecation warning: time specified via duration \"" << str << "\" where a date could be used; recommended to use a date (e.g. 2011-12-20)" << endl;
         }
-        return sim::startDate() + readDuration( str, defUnit );
+        return Sim::startDate() + readDuration( str, defUnit );
     }
 }
 

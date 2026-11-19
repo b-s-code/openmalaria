@@ -293,7 +293,7 @@ namespace OM { namespace util {
          * fine, but code needing a value repeatedly should cache it locally.
          */
 	static inline bool option(OptionCodes code) {
-	    return options.test( code );
+	    return s_options.test( code );
 	}
 
     /*
@@ -322,16 +322,16 @@ namespace OM { namespace util {
 
 	// Reset opts to default. Used by unit tests.
         static inline void reset() {
-            options.reset();
-            options.set( MAX_DENS_CORRECTION );
-            options.set( INNATE_MAX_DENS );
+            s_options.reset();
+            s_options.set( MAX_DENS_CORRECTION );
+            s_options.set( INNATE_MAX_DENS );
         }
         static inline void set(OptionCodes code) {
-            options.set( code );
+            s_options.set( code );
         }
         
 	// The model options
-	static std::bitset<NUM_OPTIONS> options;
+	static std::bitset<NUM_OPTIONS> s_options;
 	
 	friend class ::UnittestUtil;	// Note: class is in base namespace
     };

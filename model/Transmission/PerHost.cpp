@@ -32,13 +32,13 @@ using namespace OM::util;
 
 // -----  PerHost static  -----
 
-AgeGroupInterpolator PerHost::relAvailAge;
-vector<PerHostAnophParams> PerHostAnophParams::params;
-vector<double> PerHostAnophParams::entoAvailabilityPercentiles;
+AgeGroupInterpolator PerHost::s_relAvailAge;
+vector<PerHostAnophParams> PerHostAnophParams::s_params;
+vector<double> PerHostAnophParams::s_entoAvailabilityPercentiles;
 
 PerHostAnophParams::PerHostAnophParams (const scnXml::Mosq& mosq) {
     if(mosq.getAvailability().getDistr() != "const" && (util::ModelOptions::option(NEGATIVE_BINOMIAL_MASS_ACTION) || util::ModelOptions::option(LOGNORMAL_MASS_ACTION) || util::ModelOptions::option(COMORB_TRANS_HET)))
-        throw util::xml_scenario_error( "PerHostAnophParams::PerHostAnophParams(): ModelOptions NEGATIVE_BINOMIAL_MASS_ACTION, LOGNORMAL_MASS_ACTION, COMORB_TRANS_HET are not compatible with ento-availability heterogeneity distributions other than \"const\"");
+        throw util::XmlScenarioError( "PerHostAnophParams::PerHostAnophParams(): ModelOptions NEGATIVE_BINOMIAL_MASS_ACTION, LOGNORMAL_MASS_ACTION, COMORB_TRANS_HET are not compatible with ento-availability heterogeneity distributions other than \"const\"");
 
     entoAvailability = util::createSampler(1.0, mosq.getAvailability());
     probMosqBiting.setParams( mosq.getMosqProbBiting() );
@@ -47,7 +47,7 @@ PerHostAnophParams::PerHostAnophParams (const scnXml::Mosq& mosq) {
 }
 
 void PerHost::init ( const scnXml::AgeGroupValues& availabilityToMosquitoes ) {
-    relAvailAge.set( availabilityToMosquitoes, "availabilityToMosquitoes" );
+    s_relAvailAge.set( availabilityToMosquitoes, "availabilityToMosquitoes" );
 }
 
 // -----  PerHost non-static -----
@@ -77,7 +77,7 @@ void PerHost::initialise (LocalRng& rng, double availabilityFactor) {
 }
 
 void PerHost::update(Host::Human& human){
-    for( auto iter = activeComponents.begin(); iter != activeComponents.end(); ++iter ){
+    for( auto iter = m_activeComponents.begin(); iter != m_activeComponents.end(); ++iter ){
         (*iter)->update(human);
     }
 }
@@ -85,7 +85,7 @@ void PerHost::update(Host::Human& human){
 void PerHost::deployComponent( LocalRng& rng, const HumanVectorInterventionComponent& params ){
     // This adds per-host per-intervention details to the host's data set.
     // This data is never removed since it can contain per-host heterogeneity samples.
-    for( auto iter = activeComponents.begin(); iter != activeComponents.end(); ++iter ){
+    for( auto iter = m_activeComponents.begin(); iter != m_activeComponents.end(); ++iter ){
         if( (*iter)->id() == params.id() ){
             // already have a deployment for that description; just update it
             (*iter)->redeploy( rng, params );
@@ -93,31 +93,31 @@ void PerHost::deployComponent( LocalRng& rng, const HumanVectorInterventionCompo
         }
     }
     // no deployment for that description: must make a new one
-    activeComponents.push_back( params.makeHumanPart(rng) );
+    m_activeComponents.push_back( params.makeHumanPart(rng) );
 }
 
 // Note: in the case an intervention is not present, we can use the approximation
-// of Weibull decay over the time span now - sim::never()
+// of Weibull decay over the time span now - Sim::never()
 // (easily large enough for conceivable Weibull params that the value is 0.0 when
 // rounded to a double. Performance-wise it's perhaps slightly slower than using
 // an if() when interventions aren't present.
 double PerHost::entoAvailabilityHetVecItv (size_t species) const {
-    double alpha_i = anophEntoAvailability[species];
-    for( auto iter = activeComponents.begin(); iter != activeComponents.end(); ++iter ){
-        alpha_i *= (*iter)->relativeAttractiveness( species );
+    double alphaI = anophEntoAvailability[species];
+    for( auto iter = m_activeComponents.begin(); iter != m_activeComponents.end(); ++iter ){
+        alphaI *= (*iter)->relativeAttractiveness( species );
     }
-    return alpha_i;
+    return alphaI;
 }
 double PerHost::probMosqBiting (size_t species) const {
     double P_B_i = anophProbMosqBiting[species];
-    for( auto iter = activeComponents.begin(); iter != activeComponents.end(); ++iter ){
+    for( auto iter = m_activeComponents.begin(); iter != m_activeComponents.end(); ++iter ){
         P_B_i *= (*iter)->preprandialSurvivalFactor( species );
     }
     return P_B_i;
 }
 double PerHost::probMosqResting (size_t species) const {
     double pRest = anophProbMosqResting[species];
-    for( auto iter = activeComponents.begin(); iter != activeComponents.end(); ++iter ){
+    for( auto iter = m_activeComponents.begin(); iter != m_activeComponents.end(); ++iter ){
         pRest *= (*iter)->postprandialSurvivalFactor( species );
     }
     return pRest;
@@ -125,14 +125,14 @@ double PerHost::probMosqResting (size_t species) const {
 
 double PerHost::relMosqFecundity (size_t species) const {
     double relFecundity = 1.0;
-    for( auto iter = activeComponents.begin(); iter != activeComponents.end(); ++iter ){
+    for( auto iter = m_activeComponents.begin(); iter != m_activeComponents.end(); ++iter ){
         relFecundity *= (*iter)->relFecundity( species );
     }
     return relFecundity;
 }
 
 bool PerHost::hasActiveInterv(interventions::Component::Type type) const{
-    for( auto iter = activeComponents.begin(); iter != activeComponents.end(); ++iter ){
+    for( auto iter = m_activeComponents.begin(); iter != m_activeComponents.end(); ++iter ){
         if( (*iter)->isDeployed() ){
             if( interventions::InterventionManager::getComponent( (*iter)->id() ).componentType() == type )
                 return true;
@@ -142,8 +142,8 @@ bool PerHost::hasActiveInterv(interventions::Component::Type type) const{
 }
 
 void PerHost::checkpointIntervs( ostream& stream ){
-    activeComponents.size() & stream;
-    for( auto iter = activeComponents.begin(); iter != activeComponents.end(); ++iter ){
+    m_activeComponents.size() & stream;
+    for( auto iter = m_activeComponents.begin(); iter != m_activeComponents.end(); ++iter ){
         *iter & stream;
     }
 }
@@ -151,20 +151,20 @@ void PerHost::checkpointIntervs( istream& stream ){
     size_t l;
     l & stream;
     validateListSize(l);
-    activeComponents.clear();
+    m_activeComponents.clear();
     for( size_t i = 0; i < l; ++i ){
         interventions::ComponentId id( stream );
         try{
-            const interventions::HumanInterventionComponent& gen_params =
+            const interventions::HumanInterventionComponent& genParams =
                 interventions::InterventionManager::getComponent( id );   // may throw
             const HumanVectorInterventionComponent *params =
-                dynamic_cast<const HumanVectorInterventionComponent*>( &gen_params );
+                dynamic_cast<const HumanVectorInterventionComponent*>( &genParams );
             if( params == 0 )
-                throw util::base_exception( "" );       // see catch block below
-            activeComponents.push_back( params->makeHumanPart( stream, id ) );
-        }catch( util::base_exception& e ){
+                throw util::BaseException( "" );       // see catch block below
+            m_activeComponents.push_back( params->makeHumanPart( stream, id ) );
+        }catch( util::BaseException& e ){
             // two causes, both boil down to index being wrong
-            throw util::checkpoint_error( "bad value in checkpoint file" );
+            throw util::CheckpointError( "bad value in checkpoint file" );
         }
     }
 }
