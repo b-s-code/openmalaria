@@ -139,6 +139,8 @@ struct MonIndex {
         }else if( om.byDrug ){
             assert( nSpecies == 1 && nGenotypes == 1 );
             for( size_t cohortSet = 0; cohortSet < nCohorts; ++cohortSet ){
+            // Intersections are always empty with mutually exclusive cohorts
+            if( impl::cohortsMutuallyExclusive && (cohortSet & (cohortSet - 1)) ) continue;
             // Last age category is not reported
             for( size_t ageGroup = 0; ageGroup < nAgeCats; ++ageGroup ){
             for( size_t drug = 0; drug < nDrugs; ++drug ){
@@ -153,6 +155,8 @@ struct MonIndex {
         }else{
             assert( nSpecies == 1 && nDrugs == 1 );
             for( size_t cohortSet = 0; cohortSet < nCohorts; ++cohortSet ){
+            // Intersections are always empty with mutually exclusive cohorts
+            if( impl::cohortsMutuallyExclusive && (cohortSet & (cohortSet - 1)) ) continue;
             // Last age category is not reported
             for( size_t ageGroup = 0; ageGroup < nAgeCats; ++ageGroup ){
             for( size_t genotype = 0; genotype < nGenotypes; ++genotype ){

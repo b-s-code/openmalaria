@@ -262,6 +262,29 @@ Licence: GNU General Public Licence version 2 or later (see COPYING) -->
         </xs:annotation>
       </xs:element>
     </xs:sequence>
+    <xs:attribute name="mutuallyExclusive" type="xs:boolean" default="false">
+      <xs:annotation>
+        <xs:documentation>
+          If true, no human may be a member of more than one of the listed
+          sub-populations at once, and only the non-intersecting output sets
+          are written: "member of none" (0) and "member of exactly one" (that
+          sub-population's number). This avoids writing 2^n output sets when
+          only n+1 can be non-empty.
+          
+          The simulation stops with an error as soon as a human who is a member
+          of one listed sub-population is added to another, including during
+          warm-up. To move a human between cohorts, their membership of the
+          old cohort must end (e.g. expire or be removed) before they are added
+          to the new one; ending later in the same time step is too late.
+          
+          Known limitation: do not use ITN intervention components as cohorts
+          with this option; disposal of a net does not end cohort membership
+          for output purposes, so a later deployment to another cohort will
+          raise the error.
+        </xs:documentation>
+        <xs:appinfo>name:Mutually exclusive cohorts;</xs:appinfo>
+      </xs:annotation>
+    </xs:attribute>
   </xs:complexType>
   <xs:complexType name="CohortSubPop">
     <xs:attribute name="id" use="required" type="xs:string">

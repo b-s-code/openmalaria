@@ -54,6 +54,7 @@ namespace impl{
     // Constants or defined during init:
     size_t nSurveys = 0;        // number of reported surveys
     size_t nCohorts = 1;     // default: just the whole population
+    bool cohortsMutuallyExclusive = false;
     extern size_t surveyIndex;     // index in surveyDates of next survey
     vector<SurveyDate> surveyDates;     // dates of surveys
 }
@@ -158,6 +159,7 @@ SimTime readSurveyDates( const scnXml::Monitoring& monitoring ){
     if( monitoring.getCohorts().present() ){
         // this needs to be set early, but we can't set cohortSubPopIds until after InterventionManager is initialised
         impl::nCohorts = static_cast<uint32_t>(1) << monitoring.getCohorts().get().getSubPop().size();
+        impl::cohortsMutuallyExclusive = monitoring.getCohorts().get().getMutuallyExclusive();
     }
     
     mon::AgeGroup::init( monitoring );
@@ -256,6 +258,7 @@ void AgeGroup::update (SimTime age) {
 
 using interventions::ComponentId;
 vector<uint32_t> cohortSubPopNumbers;   // value is output number
+vector<string> cohortSubPopNames;       // index is internal index; for error messages
 map<ComponentId,uint32_t> cohortSubPopIds;      // value is internal index (used above)
 
 bool notPowerOfTwo( uint32_t num ){
@@ -287,6 +290,7 @@ void initCohorts( const scnXml::Monitoring& monitoring )
                     .append("\" a number which is not a power of 2 (up to 2^21)") );
             }
             cohortSubPopNumbers.push_back( it->getNumber() );
+            cohortSubPopNames.push_back( it->getId() );
             nextId += 1;
         }
     }
@@ -296,7 +300,18 @@ uint32_t updateCohortSet( uint32_t old, ComponentId subPop, bool isMember ){
     auto it = cohortSubPopIds.find( subPop );
     if( it == cohortSubPopIds.end() ) return old;       // sub-pop not used in cohorts
     uint32_t subPopId = static_cast<uint32_t>(1) << it->second;        // 1 bit positive
-    return (old & ~subPopId) | (isMember ? subPopId : 0);
+    uint32_t others = old & ~subPopId;
+    if( impl::cohortsMutuallyExclusive && isMember && others != 0 ){
+        uint32_t other = 0;
+        while( !(others & (static_cast<uint32_t>(1) << other)) ) ++other;
+        throw util::xml_scenario_error( string("cohorts are mutuallyExclusive but a human in cohort sub-population \"")
+            .append(cohortSubPopNames[other]).append("\" was added to cohort sub-population \"")
+            .append(cohortSubPopNames[it->second]).append("\" ")
+            .append(sim::intervTime() >= sim::zero()
+                ? "at intervention time step " + to_string(sim::inSteps(sim::intervTime()))
+                : string("during warm-up")) );
+    }
+    return others | (isMember ? subPopId : 0);
 }
 
 uint32_t internal::cohortSetOutputId(uint32_t cohortSet){

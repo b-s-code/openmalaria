@@ -16,6 +16,7 @@ set (OM_BOXTEST_NAMES
   1 4 5 6 9 10 11 12
   2ITNs
   Cohort
+  CohortExclusive
   EffectiveDrug
   Empirical
   # ESCMTest (cannot be updated to new format due to dropped features and weirdness)

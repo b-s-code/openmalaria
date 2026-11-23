@@ -36,6 +36,7 @@ namespace impl {
     // Consts (set during program start-up):
     extern size_t nSurveys;     // number of reported surveys
     extern size_t nCohorts;
+    extern bool cohortsMutuallyExclusive;
     // Variables (checkpointed):
     extern bool isInit; // set true after "initialisation" survey at intervention time 0
     extern size_t survNumEvent, survNumStat;
