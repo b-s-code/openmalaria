@@ -1,14 +1,14 @@
 FROM ubuntu:jammy AS builder
 WORKDIR /
 
-ARG OM_BRANCH=schema-49
+ARG OM_BRANCH=bs_49_no_checkpoint_intersection_printing
 ARG OM_VERSION=49
 
 # schema-48.0 release does not have changes required to build OM on linux/arm64.
 RUN apt-get update && apt-get install -y --no-install-recommends \
   build-essential ca-certificates git libz-dev python3 cmake libgsl-dev libxerces-c-dev xsdcxx libboost-dev \
   && rm -rf /var/lib/apt/lists/* \
-  && git clone --depth 1 --branch ${OM_BRANCH} https://github.com/OpenMalaria-Org/openmalaria.git \
+  && git clone --depth 1 --branch ${OM_BRANCH} https://github.com/b-s-code/openmalaria.git \
   && cd openmalaria \
   && mkdir build \
   && cd build \
