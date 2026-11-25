@@ -93,6 +93,7 @@ private:
     std::list<CommonInfection*> infections;
 
     bool opt_vaccine_genotype = false;
+    bool opt_more_immune_after_pev = false;
 };
 
 } }
