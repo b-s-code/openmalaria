@@ -227,8 +227,6 @@ double InfectionIncidenceModel::expectedNumNewInfections(OM::Host::Human& human,
         throw TRACED_EXCEPTION (out.str(), util::Error::EffectiveEIR);
     }
 
-    double expectedNumInfections = getModelExpectedInfections (human.rng, effectiveEIR, human.perHostTransmission);
-
     // When MORE_IMMUNE_AFTER_PEV is enabled the PEV effect is instead
     // applied later, in the within-host model, so it is not applied here.
     if(opt_more_immune_after_pev == false)
