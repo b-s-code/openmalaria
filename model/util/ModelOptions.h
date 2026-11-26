@@ -272,10 +272,11 @@ namespace OM { namespace util {
 
         /** Change PEV effect timing.
 		 * 
-         * ON = PEV effect implemented in the infection-incidence model.
-		 * OFF = PEV effect implemented in the within host update function,
-         * meaning PEV application should have less downstream effect on blood
-		 * stage immunity.
+         * OFF = PEV effect implemented in the infection-incidence model.
+         * ON = PEV effect implemented in the within host update function,
+         * so blood stage immunity (m_cumulative_h) is credited with infections
+         * from before PEV. Infection counts match OFF in distribution.
+         * Incompatible with VACCINE_GENOTYPE.
          */
         MORE_IMMUNE_AFTER_PEV,
 

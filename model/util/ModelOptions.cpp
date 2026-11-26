@@ -263,7 +263,11 @@ namespace OM { namespace util {
             .set( EMPIRICAL_WITHIN_HOST_MODEL )
             .set( MOLINEAUX_WITHIN_HOST_MODEL )
             .set( PENNY_WITHIN_HOST_MODEL );
-        
+
+        // Per-genotype PEV is not implemented for MORE_IMMUNE_AFTER_PEV.
+        incompatibilities[MORE_IMMUNE_AFTER_PEV]
+            .set( VACCINE_GENOTYPE );
+
 	for(size_t i = 0; i < NUM_OPTIONS; ++i) {
 	    if (options [i] && (options & incompatibilities[i]).any()) {
 		ostringstream msg;
