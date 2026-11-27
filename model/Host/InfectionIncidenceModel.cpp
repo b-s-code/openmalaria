@@ -229,19 +229,22 @@ double InfectionIncidenceModel::expectedNumNewInfections(OM::Host::Human& human,
 
     // When MORE_IMMUNE_AFTER_PEV is enabled the PEV effect is instead
     // applied later, in the within-host model, so it is not applied here.
-    if(opt_more_immune_after_pev == false)
+    // m_pInfected still uses λ·f, so nExpectd matches stock.
+    double expectedNumInfectionsAfterPEV = expectedNumInfections;
+    // Only to be consistent with old simulation runs when set to false
+    // Setting this option to true will only affect reporting
+    if(opt_vaccine_genotype == false)
     {
-        // Only to be consistent with old simulation runs when set to false
-        // Setting this option to true will only affect reporting
-        if(opt_vaccine_genotype == false)
-            //Introduce the effect of vaccination. Note that this does not affect cumEIR.
-            expectedNumInfections *= human.vaccine.getFactor( interventions::Vaccine::PEV );
+        //Introduce the effect of vaccination. Note that this does not affect cumEIR.
+        expectedNumInfectionsAfterPEV *= human.vaccine.getFactor( interventions::Vaccine::PEV );
+        if(opt_more_immune_after_pev == false)
+            expectedNumInfections = expectedNumInfectionsAfterPEV;
     }
 
     //Update pre-erythrocytic immunity
     m_cumulativeEIRa+=effectiveEIR;
 
-    m_pInfected = 1.0 - exp(-expectedNumInfections) * (1.0-m_pInfected);
+    m_pInfected = 1.0 - exp(-expectedNumInfectionsAfterPEV) * (1.0-m_pInfected);
     if (m_pInfected < 0.0)
         m_pInfected = 0.0;
     else if (m_pInfected > 1.0)
@@ -254,6 +257,8 @@ int InfectionIncidenceModel::numNewInfections (Human& human, double expectedNumI
 { 
   if (expectedNumInfections > 0.0000001){
     int n = human.rng.poisson(expectedNumInfections);
+    // shortcut: with MORE_IMMUNE_AFTER_PEV this caps Poisson(λ) before PEV thinning, not Poisson(λ·f);
+    // only differs from stock when λ gives 21+ infections in one step.
     if( n > WithinHost::WHInterface::MAX_INFECTIONS ){
         n = WithinHost::WHInterface::MAX_INFECTIONS;
     }

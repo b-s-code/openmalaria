@@ -118,34 +118,39 @@ void DescriptiveWithinHostModel::update(Host::Human &human, LocalRng& rng, int &
 {
     // Note: adding infections at the beginning of the update instead of the end
     // shouldn't be significant since before latentp delay nothing is updated.
-    int nNewInfsToBeCreated_i = nNewInfs_i;
-    int nNewInfsToBeCreated_l = nNewInfs_l;
-
-    nNewInfs_l = min(nNewInfs_l,MAX_INFECTIONS-numInfs);
-    nNewInfs_i = min(nNewInfs_i,MAX_INFECTIONS-numInfs-nNewInfs_l);
-
-    // Cache number of infections prior to PEV effect, so that effect of PEV on m_cumulative_h can be reduced.
-    const int nNewInfsBeforePEV_l = nNewInfs_l;
-    const int nNewInfsBeforePEV_i = nNewInfs_i;
 
     // When MORE_IMMUNE_AFTER_PEV is enabled, the PEV effect is applied here
     // (rather than in the infection-incidence model) and m_cumulative_h is
     // incremented using the number of infections before the PEV effect, so
     // that PEV-vaccinated hosts acquire more blood stage immunity.
+    // Intent: infection counts must match stock PEV in distribution; the only
+    // intended difference is that m_cumulative_h is credited with infections
+    // from before PEV. (VACCINE_GENOTYPE is rejected with this option.)
+    // Pre-PEV counts get the same cap as the thinned counts below.
+    const int nNewInfsBeforePEV_l = min(nNewInfs_l,MAX_INFECTIONS-numInfs);
+    const int nNewInfsBeforePEV_i = min(nNewInfs_i,MAX_INFECTIONS-numInfs-nNewInfsBeforePEV_l);
     if(opt_more_immune_after_pev)
     {
-        // Only to be consistent with old simulation runs when set to false
-        // Setting this option to true will only affect reporting
-        if(opt_vaccine_genotype == false)
-        {
-            //Introduce the effect of vaccination. Note that this does not affect cumEIR.
-            // TODO : consider rounding, we are multiplying an int and a double here.
-            nNewInfs_l *= human.vaccine.getFactor( interventions::Vaccine::PEV );
-            nNewInfs_i *= human.vaccine.getFactor( interventions::Vaccine::PEV );
+        // Keeping each infection with probability f thins Poisson(λ) to
+        // Poisson(λ·f), as stock PEV. Skipping the draws at f == 1 keeps
+        // runs without PEV bit-identical to stock.
+        const double pevFactor = human.vaccine.getFactor( interventions::Vaccine::PEV );
+        if( pevFactor != 1.0 ){
+            int n_l = 0, n_i = 0;
+            for( int i=0; i<nNewInfs_l; ++i ) n_l += human.rng.bernoulli(pevFactor);
+            for( int i=0; i<nNewInfs_i; ++i ) n_i += human.rng.bernoulli(pevFactor);
+            nNewInfs_l = n_l;
+            nNewInfs_i = n_i;
         }
-        // TODO : consider case when opt_vaccine_genotype == true.
-        // Likely need to adjust nNewInfsBeforePEV_* for nNewInfsDiscarded.
     }
+
+    // Reported counts are the thinned, uncapped counts, as stock reports.
+    int nNewInfsToBeCreated_i = nNewInfs_i;
+    int nNewInfsToBeCreated_l = nNewInfs_l;
+
+    // Cap applied after PEV, as in stock.
+    nNewInfs_l = min(nNewInfs_l,MAX_INFECTIONS-numInfs);
+    nNewInfs_i = min(nNewInfs_i,MAX_INFECTIONS-numInfs-nNewInfs_l);
 
     numInfs += nNewInfs_i;
     assert( numInfs>=0 && numInfs<=MAX_INFECTIONS );
