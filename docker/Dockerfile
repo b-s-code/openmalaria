@@ -1,7 +1,7 @@
 FROM ubuntu:jammy AS builder
 WORKDIR /
 
-ARG OM_BRANCH=bs_pev_later_48
+ARG OM_BRANCH=bs_pev_later_48_fixes
 
 # schema-48.0 release does not have changes required to build OM on linux/arm64.
 RUN apt-get update && apt-get install -y --no-install-recommends \
