@@ -50,6 +50,8 @@ set (OM_BOXTEST_NAMES
   Vivax
   NonHumanHosts
   PEV
+  PEVMoreImmune
+  PEVMoreImmuneDescriptive
   BSV
   TBV
   DecisionTree5DayDielmo

@@ -264,9 +264,11 @@ namespace OM { namespace util {
             .set( MOLINEAUX_WITHIN_HOST_MODEL )
             .set( PENNY_WITHIN_HOST_MODEL );
 
-        // Per-genotype PEV is not implemented for MORE_IMMUNE_AFTER_PEV.
+        // Per-genotype PEV is not implemented for MORE_IMMUNE_AFTER_PEV, and
+        // WHVivax does not apply PEV, so PEV would silently have no effect.
         incompatibilities[MORE_IMMUNE_AFTER_PEV]
-            .set( VACCINE_GENOTYPE );
+            .set( VACCINE_GENOTYPE )
+            .set( VIVAX_SIMPLE_MODEL );
 
 	for(size_t i = 0; i < NUM_OPTIONS; ++i) {
 	    if (options [i] && (options & incompatibilities[i]).any()) {

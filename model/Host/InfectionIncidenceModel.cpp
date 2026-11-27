@@ -227,9 +227,9 @@ double InfectionIncidenceModel::expectedNumNewInfections(OM::Host::Human& human,
         throw TRACED_EXCEPTION (out.str(), util::Error::EffectiveEIR);
     }
 
-    // When MORE_IMMUNE_AFTER_PEV is enabled the PEV effect is instead
-    // applied later, in the within-host model, so it is not applied here.
-    // m_pInfected still uses λ·f, so nExpectd matches stock.
+    // When MORE_IMMUNE_AFTER_PEV is enabled the PEV effect on infection
+    // counts is applied later, in the within-host model, so the returned λ
+    // is not scaled here. m_pInfected still uses λ·f, so nExpectd matches stock.
     double expectedNumInfectionsAfterPEV = expectedNumInfections;
     // Only to be consistent with old simulation runs when set to false
     // Setting this option to true will only affect reporting

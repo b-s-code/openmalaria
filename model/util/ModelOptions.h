@@ -276,7 +276,7 @@ namespace OM { namespace util {
          * ON = PEV effect implemented in the within host update function,
          * so blood stage immunity (m_cumulative_h) is credited with infections
          * from before PEV. Infection counts match OFF in distribution.
-         * Incompatible with VACCINE_GENOTYPE.
+         * Incompatible with VACCINE_GENOTYPE and VIVAX_SIMPLE_MODEL.
          */
         MORE_IMMUNE_AFTER_PEV,
 
